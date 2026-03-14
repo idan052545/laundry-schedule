@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService, MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook, MdFolder } from "react-icons/md";
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -36,12 +37,15 @@ export default function Navbar() {
             <span className="text-lg font-bold hidden sm:block">פלוגת דותן</span>
           </Link>
 
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-2 rounded-md hover:bg-dotan-green"
-          >
-            {menuOpen ? <MdClose className="w-6 h-6" /> : <MdMenu className="w-6 h-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-1">
+            {session && <NotificationBell />}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 rounded-md hover:bg-dotan-green"
+            >
+              {menuOpen ? <MdClose className="w-6 h-6" /> : <MdMenu className="w-6 h-6" />}
+            </button>
+          </div>
 
           <div className="hidden md:flex items-center gap-4">
             {session ? (
@@ -52,6 +56,7 @@ export default function Navbar() {
                     {label}
                   </Link>
                 ))}
+                <NotificationBell />
                 <span className="text-dotan-mint text-sm mr-2">
                   {session.user?.name}
                 </span>

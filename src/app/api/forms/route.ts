@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { sendPushToAll } from "@/lib/push";
 
 const formInclude = {
   author: { select: { id: true, name: true, image: true } },
@@ -55,6 +56,14 @@ export async function POST(request: Request) {
     },
     include: formInclude,
   });
+
+  // Send push notification (fire and forget)
+  sendPushToAll({
+    title: `טופס חדש: ${title}`,
+    body: deadline ? `דדליין: ${deadline}` : "טופס חדש להגשה",
+    url: "/forms",
+    tag: `form-${form.id}`,
+  }, userId).catch(() => {});
 
   return NextResponse.json(form);
 }

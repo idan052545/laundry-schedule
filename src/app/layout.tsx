@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "פלוגת דותן",
   description: "מערכת ניהול פלוגת דותן - מכבסה, הודעות, מצל ועוד",
+  other: {
+    "theme-color": "#2d5a27",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+  },
 };
 
 export default function RootLayout({

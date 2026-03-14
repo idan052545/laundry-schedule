@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { sendPushToAll } from "@/lib/push";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -61,6 +62,20 @@ export async function POST(request: Request) {
       },
     },
   });
+
+  // Send push notification (fire and forget)
+  const typeLabels: Record<string, string> = {
+    message: "הודעה",
+    task: "משימה",
+    reminder: "תזכורת",
+    image: "תמונה",
+  };
+  sendPushToAll({
+    title: `${typeLabels[type] || "הודעה"} מ${user.name}`,
+    body: title,
+    url: "/commander",
+    tag: `commander-${post.id}`,
+  }, userId).catch(() => {});
 
   return NextResponse.json(post);
 }

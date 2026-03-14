@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { sendPushToUsers, sendPushToAll } from "@/lib/push";
 
 const messageInclude = {
   author: { select: { id: true, name: true, image: true, role: true } },
@@ -91,6 +92,19 @@ export async function POST(request: Request) {
     },
     include: messageInclude,
   });
+
+  // Send push notifications (fire and forget)
+  const payload = {
+    title: `הודעה חדשה: ${title}`,
+    body: content.substring(0, 100),
+    url: "/messages",
+    tag: `message-${message.id}`,
+  };
+  if (assigneeIds.length > 0) {
+    sendPushToUsers(assigneeIds, payload).catch(() => {});
+  } else {
+    sendPushToAll(payload, userId).catch(() => {});
+  }
 
   return NextResponse.json(message);
 }
