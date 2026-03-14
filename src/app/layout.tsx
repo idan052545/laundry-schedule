@@ -34,8 +34,10 @@ export default function RootLayout({
           <main className="max-w-7xl mx-auto px-4 py-8">
             {children}
           </main>
-          <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100">
-            Made by עידן סימנטוב צוות 16
+          <footer className="text-center py-5 mt-8 border-t border-dotan-mint">
+            <p className="text-sm text-gray-500">
+              נבנה ע&quot;י <span className="font-bold text-dotan-green-dark">עידן חן סימנטוב</span> <span className="text-xs bg-dotan-mint-light text-dotan-green-dark px-2 py-0.5 rounded-full font-medium mr-1">צוות 16</span>
+            </p>
           </footer>
         </Providers>
       </body>
