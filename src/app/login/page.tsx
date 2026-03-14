@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MdLocalLaundryService } from "react-icons/md";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,10 +34,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
+      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-dotan-mint">
         <div className="text-center mb-8">
-          <MdLocalLaundryService className="text-5xl text-blue-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-800">התחברות</h1>
+          <Image src="/dotanLogo.jpeg" alt="פלוגת דותן" width={72} height={72} className="rounded-full mx-auto mb-4 shadow" />
+          <h1 className="text-3xl font-bold text-dotan-green-dark">התחברות</h1>
           <p className="text-gray-500 mt-2">היכנס לחשבון שלך</p>
         </div>
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none transition"
               placeholder="example@email.com"
               required
               dir="ltr"
@@ -71,7 +71,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none transition"
               placeholder="********"
               required
               dir="ltr"
@@ -81,7 +81,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
+            className="w-full bg-dotan-green-dark text-white py-3 rounded-lg hover:bg-dotan-green transition font-medium disabled:opacity-50"
           >
             {loading ? "מתחבר..." : "התחבר"}
           </button>
@@ -89,7 +89,7 @@ export default function LoginPage() {
 
         <p className="text-center mt-6 text-gray-500">
           אין לך חשבון?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline font-medium">
+          <Link href="/register" className="text-dotan-green font-medium hover:underline">
             הרשם עכשיו
           </Link>
         </p>

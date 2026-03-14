@@ -1,0 +1,78 @@
+const XLSX = require("xlsx");
+
+const users = [
+  { name: "רועי דדון", room: "219", email: "user.219.1@laundry.app" },
+  { name: "יובל ישר", room: "219", email: "user.219.2@laundry.app" },
+  { name: "יהונתן אבוקרט", room: "219", email: "user.219.3@laundry.app" },
+  { name: "עילי בן אברהם", room: "219", email: "user.219.4@laundry.app" },
+  { name: "עילי גולדשטיין", room: "219", email: "user.219.5@laundry.app" },
+  { name: "דולב כהן", room: "219", email: "user.219.6@laundry.app" },
+  { name: "טל הנגבי", room: "403", email: "user.403.7@laundry.app" },
+  { name: "מאי צימרמן", room: "403", email: "user.403.8@laundry.app" },
+  { name: "פיונה פונג", room: "403", email: "user.403.9@laundry.app" },
+  { name: "הילה פינצי", room: "403", email: "user.403.10@laundry.app" },
+  { name: "מיקה חיים", room: "403", email: "user.403.11@laundry.app" },
+  { name: "נועה גלמן", room: "403", email: "user.403.12@laundry.app" },
+  { name: "אופק מזור", room: "307", email: "user.307.13@laundry.app" },
+  { name: "יזן כנעאן", room: "307", email: "user.307.14@laundry.app" },
+  { name: "עדי ולנשטיין", room: "307", email: "user.307.15@laundry.app" },
+  { name: "אלון זלנפרויד", room: "307", email: "user.307.16@laundry.app" },
+  { name: "ורווה טופן", room: "411", email: "user.411.17@laundry.app" },
+  { name: "נועה בלפור", room: "411", email: "user.411.18@laundry.app" },
+  { name: "שני זידמן", room: "411", email: "user.411.19@laundry.app" },
+  { name: "רננה ישראלוב", room: "411", email: "user.411.20@laundry.app" },
+  { name: "ענבר שלח", room: "411", email: "user.411.21@laundry.app" },
+  { name: "מעין מרדכי", room: "411", email: "user.411.22@laundry.app" },
+  { name: "דור מנשה קיפגן", room: "217", email: "user.217.23@laundry.app" },
+  { name: "אייל מזור", room: "217", email: "user.217.24@laundry.app" },
+  { name: "עידן סימנטוב", room: "217", email: "user.217.25@laundry.app" },
+  { name: "יניב גופמן", room: "217", email: "user.217.26@laundry.app" },
+  { name: "יהלי לוי", room: "413", email: "user.413.27@laundry.app" },
+  { name: "רותם כוכבי", room: "413", email: "user.413.28@laundry.app" },
+  { name: "אלה פלד", room: "413", email: "user.413.29@laundry.app" },
+  { name: "יערה רחוביצקי", room: "413", email: "user.413.30@laundry.app" },
+  { name: "עדן בחרוף", room: "413", email: "user.413.31@laundry.app" },
+  { name: "כפיר ברמן", room: "305", email: "user.305.32@laundry.app" },
+  { name: "איתן אונגר", room: "305", email: "user.305.33@laundry.app" },
+  { name: "עידן טורקיה", room: "305", email: "user.305.34@laundry.app" },
+  { name: "אורי חדד", room: "305", email: "user.305.35@laundry.app" },
+  { name: "אוהד אבדי", room: "305", email: "user.305.36@laundry.app" },
+  { name: "הללי בר יוסף", room: "401", email: "user.401.37@laundry.app" },
+  { name: "כרמל מורן", room: "401", email: "user.401.38@laundry.app" },
+  { name: "יהלי כוכבא", room: "401", email: "user.401.39@laundry.app" },
+  { name: "יעל שושן", room: "401", email: "user.401.40@laundry.app" },
+  { name: "אלה בן גיא", room: "401", email: "user.401.41@laundry.app" },
+  { name: "שיר סוויסה", room: "401", email: "user.401.42@laundry.app" },
+  { name: "עמית שושנה", room: "405", email: "user.405.43@laundry.app" },
+  { name: "רוני קרפט", room: "405", email: "user.405.44@laundry.app" },
+  { name: "מאי אילארי", room: "405", email: "user.405.45@laundry.app" },
+  { name: "הודיה יעקובי", room: "405", email: "user.405.46@laundry.app" },
+  { name: "רוני מאריסון", room: "405", email: "user.405.47@laundry.app" },
+  { name: "ליאורה אייזק", room: "405", email: "user.405.48@laundry.app" },
+  { name: "דנה פרידמן", room: "409", email: "user.409.49@laundry.app" },
+  { name: "הגרה שווגר", room: "409", email: "user.409.50@laundry.app" },
+  { name: "רעות ניר", room: "409", email: "user.409.51@laundry.app" },
+  { name: "נגה ברק", room: "409", email: "user.409.52@laundry.app" },
+  { name: "נטע וילונסקי", room: "409", email: "user.409.53@laundry.app" },
+  { name: "עמנואל נמרודי", room: "409", email: "user.409.54@laundry.app" },
+  { name: "תמר נגר", room: "407", email: "user.407.55@laundry.app" },
+  { name: "ליה אלון", room: "407", email: "user.407.56@laundry.app" },
+  { name: "טליה פרסט", room: "407", email: "user.407.57@laundry.app" },
+  { name: "נעמה לוי", room: "407", email: "user.407.58@laundry.app" },
+  { name: "שילת נוימן", room: "407", email: "user.407.59@laundry.app" },
+  { name: "נעם שילה", room: "407", email: "user.407.60@laundry.app" },
+];
+
+const rows = users.map(u => ({
+  "שם": u.name,
+  "חדר": u.room,
+  "אימייל": u.email,
+  "סיסמה": "123456",
+}));
+
+const ws = XLSX.utils.json_to_sheet(rows);
+ws["!cols"] = [{ wch: 20 }, { wch: 8 }, { wch: 28 }, { wch: 10 }];
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, "משתמשים");
+XLSX.writeFile(wb, "/Users/gomodiin/Documents/VercelApps/laundry-schedule/users-login-list.xlsx");
+console.log("Done!");

@@ -116,11 +116,10 @@ export default function SchedulePage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">לוח זמנים</h1>
+      <h1 className="text-3xl font-bold text-dotan-green-dark mb-6">לוח זמנים</h1>
 
       {/* Controls */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border mb-6 flex flex-wrap gap-4 items-center">
-        {/* Date picker */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {dates.map((date) => {
             const d = new Date(date + "T00:00:00");
@@ -132,8 +131,8 @@ export default function SchedulePage() {
                 onClick={() => setSelectedDate(date)}
                 className={`flex flex-col items-center px-4 py-2 rounded-lg min-w-[60px] transition ${
                   selectedDate === date
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? "bg-dotan-green-dark text-white"
+                    : "bg-dotan-mint-light text-gray-700 hover:bg-dotan-mint"
                 }`}
               >
                 <span className="text-xs">{dayName}</span>
@@ -143,14 +142,13 @@ export default function SchedulePage() {
           })}
         </div>
 
-        {/* Type toggle */}
         <div className="flex gap-2 mr-auto">
           <button
             onClick={() => setSelectedType("washer")}
             className={`px-4 py-2 rounded-lg transition font-medium flex items-center gap-2 ${
               selectedType === "washer"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-dotan-green-dark text-white"
+                : "bg-dotan-mint-light text-gray-700 hover:bg-dotan-mint"
             }`}
           >
             <MdLocalLaundryService className="text-lg" />
@@ -160,8 +158,8 @@ export default function SchedulePage() {
             onClick={() => setSelectedType("dryer")}
             className={`px-4 py-2 rounded-lg transition font-medium flex items-center gap-2 ${
               selectedType === "dryer"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-dotan-green-dark text-white"
+                : "bg-dotan-mint-light text-gray-700 hover:bg-dotan-mint"
             }`}
           >
             <MdDry className="text-lg" />
@@ -176,17 +174,17 @@ export default function SchedulePage() {
           <p className="text-lg">אין מכונות מסוג זה</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-dotan-mint overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="p-3 text-right font-medium text-gray-600 sticky right-0 bg-gray-50 min-w-[100px]">
+              <tr className="border-b bg-dotan-mint-light">
+                <th className="p-3 text-right font-medium text-dotan-green-dark sticky right-0 bg-dotan-mint-light min-w-[100px]">
                   שעה
                 </th>
                 {filteredMachines.map((machine) => (
                   <th
                     key={machine.id}
-                    className="p-3 text-center font-medium text-gray-600 min-w-[150px]"
+                    className="p-3 text-center font-medium text-dotan-green-dark min-w-[150px]"
                   >
                     {machine.name}
                   </th>
@@ -195,15 +193,14 @@ export default function SchedulePage() {
             </thead>
             <tbody>
               {TIME_SLOTS.map((slot) => (
-                <tr key={slot} className="border-b hover:bg-gray-50">
+                <tr key={slot} className="border-b hover:bg-dotan-mint-light/50">
                   <td className="p-3 font-medium text-gray-700 sticky right-0 bg-white">
                     {slot}
                   </td>
                   {filteredMachines.map((machine) => {
                     const booking = getBooking(machine.id, slot);
                     const isMyBooking = booking?.user.id === userId;
-                    const isLoading =
-                      bookingLoading === `${machine.id}-${slot}`;
+                    const isLoading = bookingLoading === `${machine.id}-${slot}`;
 
                     return (
                       <td key={machine.id} className="p-2 text-center">
@@ -211,8 +208,8 @@ export default function SchedulePage() {
                           <div
                             className={`p-2 rounded-lg text-sm ${
                               isMyBooking
-                                ? "bg-blue-100 border border-blue-300"
-                                : "bg-red-100 border border-red-300"
+                                ? "bg-dotan-mint border border-dotan-green"
+                                : "bg-red-50 border border-red-300"
                             }`}
                           >
                             <div className="font-medium">
@@ -236,7 +233,7 @@ export default function SchedulePage() {
                           <button
                             onClick={() => handleBook(machine.id, slot)}
                             disabled={isLoading}
-                            className="w-full py-2 px-3 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 border border-green-200 transition disabled:opacity-50"
+                            className="w-full py-2 px-3 text-sm bg-dotan-mint-light text-dotan-green-dark rounded-lg hover:bg-dotan-mint border border-dotan-green/30 transition disabled:opacity-50 font-medium"
                           >
                             {isLoading ? "..." : "הזמן"}
                           </button>
@@ -251,19 +248,19 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {/* My bookings today */}
+      {/* My bookings */}
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">ההזמנות שלי</h2>
+        <h2 className="text-xl font-bold text-dotan-green-dark mb-4">ההזמנות שלי</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {bookings
             .filter((b) => b.user.id === userId && b.date === selectedDate)
             .map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center"
+                className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint flex justify-between items-center"
               >
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl text-blue-600">
+                  <div className="text-2xl text-dotan-green">
                     {booking.machine.type === "washer" ? <MdLocalLaundryService /> : <MdDry />}
                   </div>
                   <div>

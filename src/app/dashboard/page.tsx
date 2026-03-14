@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MdLocalLaundryService, MdDry, MdCalendarMonth, MdCheckCircle, MdCancel, MdBuild, MdPerson } from "react-icons/md";
 
 interface Machine {
@@ -83,7 +84,7 @@ export default function DashboardPage() {
           machine.status === "maintenance"
             ? "bg-yellow-50 border-yellow-300"
             : available
-            ? "bg-green-50 border-green-300"
+            ? "bg-dotan-mint-light border-dotan-green"
             : "bg-red-50 border-red-300"
         }`}
       >
@@ -95,7 +96,7 @@ export default function DashboardPage() {
                 machine.status === "maintenance"
                   ? "text-yellow-600"
                   : available
-                  ? "text-green-600"
+                  ? "text-dotan-green"
                   : "text-red-600"
               }`}
             >
@@ -112,7 +113,7 @@ export default function DashboardPage() {
             machine.status === "maintenance"
               ? "text-yellow-500"
               : available
-              ? "text-green-500"
+              ? "text-dotan-green"
               : "text-red-500"
           }`}>
             {isWasher ? <MdLocalLaundryService /> : <MdDry />}
@@ -130,13 +131,17 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          שלום, {session?.user?.name}!
-        </h1>
-        <p className="text-gray-500 mt-2">
-          סטטוס המכונות כרגע - {new Date().toLocaleDateString("he-IL")}
-        </p>
+      {/* Header with logos */}
+      <div className="mb-8 flex items-center gap-4">
+        <Image src="/dotanLogo.jpeg" alt="דותן" width={56} height={56} className="rounded-full shadow" />
+        <div>
+          <h1 className="text-3xl font-bold text-dotan-green-dark">
+            שלום, {session?.user?.name}!
+          </h1>
+          <p className="text-gray-500 mt-1">
+            סטטוס המכונות כרגע - {new Date().toLocaleDateString("he-IL")}
+          </p>
+        </div>
       </div>
 
       {/* Machine Status Cards */}
@@ -145,9 +150,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Action */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border text-center">
-        <MdCalendarMonth className="text-4xl text-blue-600 mx-auto mb-3" />
-        <Link href="/schedule" className="text-blue-600 hover:underline text-lg font-medium">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-dotan-mint text-center">
+        <MdCalendarMonth className="text-4xl text-dotan-green mx-auto mb-3" />
+        <Link href="/schedule" className="text-dotan-green-dark hover:text-dotan-green text-lg font-bold">
           קבע תור עכשיו
         </Link>
         <p className="text-gray-500 mt-1 text-sm">בחר זמן מתאים לכביסה או מייבש</p>
@@ -160,6 +165,12 @@ export default function DashboardPage() {
           <p className="text-sm mt-2">פנה למנהל המערכת</p>
         </div>
       )}
+
+      {/* Footer logos */}
+      <div className="mt-12 pt-6 border-t border-dotan-mint flex items-center justify-center gap-8 opacity-60">
+        <Image src="/bahad1Logo.png" alt="בהד 1" width={40} height={40} className="rounded-full" />
+        <Image src="/erezLogo.png" alt="ארז" width={40} height={40} className="rounded-full" />
+      </div>
     </div>
   );
 }

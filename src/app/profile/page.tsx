@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Avatar from "@/components/Avatar";
+import { MdCameraAlt } from "react-icons/md";
 
 interface UserProfile {
   id: string;
@@ -99,15 +100,15 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">הפרופיל שלי</h1>
+      <h1 className="text-3xl font-bold text-dotan-green-dark mb-6">הפרופיל שלי</h1>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border">
-        {/* Avatar */}
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-dotan-mint">
         <div className="flex flex-col items-center mb-8">
           <div className="mb-4">
             <Avatar name={user?.name || ""} image={user?.image} size="lg" />
           </div>
-          <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+          <label className="cursor-pointer bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition text-sm font-medium flex items-center gap-2">
+            <MdCameraAlt />
             {uploading ? "מעלה..." : "העלה תמונה"}
             <input
               type="file"
@@ -119,66 +120,38 @@ export default function ProfilePage() {
           </label>
         </div>
 
-        {/* Message */}
         {message && (
           <div
             className={`px-4 py-3 rounded-lg mb-6 ${
               message.includes("שגיאה")
                 ? "bg-red-50 text-red-700 border border-red-200"
-                : "bg-green-50 text-green-700 border border-green-200"
+                : "bg-dotan-mint-light text-dotan-green-dark border border-dotan-green/30"
             }`}
           >
             {message}
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSave} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              אימייל
-            </label>
-            <input
-              type="email"
-              value={user?.email || ""}
-              disabled
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
-              dir="ltr"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">אימייל</label>
+            <input type="email" value={user?.email || ""} disabled
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500" dir="ltr" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              שם מלא
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">שם מלא</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none transition" required />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              מספר חדר
-            </label>
-            <input
-              type="text"
-              value={roomNumber}
-              onChange={(e) => setRoomNumber(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="לדוגמה: 205"
-              dir="ltr"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">מספר חדר</label>
+            <input type="text" value={roomNumber} onChange={(e) => setRoomNumber(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none transition"
+              placeholder="לדוגמה: 205" dir="ltr" />
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
-          >
+          <button type="submit" disabled={saving}
+            className="w-full bg-dotan-green-dark text-white py-3 rounded-lg hover:bg-dotan-green transition font-medium disabled:opacity-50">
             {saving ? "שומר..." : "שמור שינויים"}
           </button>
         </form>
