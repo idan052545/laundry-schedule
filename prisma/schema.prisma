@@ -33,6 +33,7 @@ model User {
   attendances       Attendance[]
   commanderPosts    CommanderPost[]
   formLinks         FormLink[] @relation("formLinks")
+  formSubmissions   FormSubmission[] @relation("formSubmissions")
   materials         ProfessionalMaterial[] @relation("materials")
   taskFormats       TaskFormat[] @relation("taskFormats")
 }
@@ -140,9 +141,22 @@ model FormLink {
   description String?
   url         String
   category    String   @default("general") // "general", "personnel", "operations", "training", "logistics"
+  deadline    String?  // deadline date string YYYY-MM-DD
   authorId    String
   createdAt   DateTime @default(now())
   author      User     @relation("formLinks", fields: [authorId], references: [id])
+  submissions FormSubmission[]
+}
+
+model FormSubmission {
+  id        String   @id @default(uuid())
+  formId    String
+  userId    String
+  createdAt DateTime @default(now())
+  form      FormLink @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user      User     @relation("formSubmissions", fields: [userId], references: [id])
+
+  @@unique([formId, userId])
 }
 
 model ProfessionalMaterial {

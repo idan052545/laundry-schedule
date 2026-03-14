@@ -3,8 +3,25 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { MdDescription, MdAdd, MdClose, MdDelete, MdOpenInNew, MdFilterList, MdLink } from "react-icons/md";
+import {
+  MdDescription, MdAdd, MdClose, MdDelete, MdOpenInNew, MdFilterList,
+  MdLink, MdCheckCircle, MdCancel, MdSchedule, MdExpandMore, MdExpandLess,
+  MdWarning,
+} from "react-icons/md";
 import Avatar from "@/components/Avatar";
+
+interface UserBasic {
+  id: string;
+  name: string;
+  image: string | null;
+  team: number | null;
+}
+
+interface Submission {
+  id: string;
+  userId: string;
+  user: UserBasic;
+}
 
 interface FormLink {
   id: string;
@@ -12,8 +29,10 @@ interface FormLink {
   description: string | null;
   url: string;
   category: string;
+  deadline: string | null;
   createdAt: string;
   author: { id: string; name: string; image: string | null };
+  submissions: Submission[];
 }
 
 const CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
@@ -24,24 +43,51 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string }> =
   logistics: { label: "לוגיסטיקה", color: "text-amber-600", bg: "bg-amber-50 border-amber-300" },
 };
 
+function isOverdue(deadline: string | null): boolean {
+  if (!deadline) return false;
+  const today = new Date().toISOString().split("T")[0];
+  return deadline < today;
+}
+
+function isDueSoon(deadline: string | null): boolean {
+  if (!deadline) return false;
+  const today = new Date();
+  const dl = new Date(deadline + "T23:59:59");
+  const diff = dl.getTime() - today.getTime();
+  return diff > 0 && diff < 2 * 24 * 60 * 60 * 1000; // within 2 days
+}
+
+function formatDeadline(deadline: string): string {
+  const d = new Date(deadline + "T12:00:00");
+  return d.toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default function FormsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [forms, setForms] = useState<FormLink[]>([]);
+  const [allUsers, setAllUsers] = useState<UserBasic[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState("general");
+  const [deadline, setDeadline] = useState("");
   const [filter, setFilter] = useState("all");
   const [sending, setSending] = useState(false);
+  const [expandedForm, setExpandedForm] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState<string | null>(null);
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
   const fetchForms = useCallback(async () => {
     const res = await fetch("/api/forms");
-    if (res.ok) setForms(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setForms(data.forms);
+      setAllUsers(data.allUsers);
+    }
     setLoading(false);
   }, []);
 
@@ -56,17 +102,44 @@ export default function FormsPage() {
     const res = await fetch("/api/forms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, url, category }),
+      body: JSON.stringify({ title, description, url, category, deadline: deadline || null }),
     });
     if (res.ok) {
       const newForm = await res.json();
       setForms((prev) => [newForm, ...prev]);
-      setTitle(""); setDescription(""); setUrl(""); setCategory("general"); setShowForm(false);
+      setTitle(""); setDescription(""); setUrl(""); setCategory("general"); setDeadline(""); setShowForm(false);
     } else {
       const err = await res.json();
       alert(err.error || "שגיאה");
     }
     setSending(false);
+  };
+
+  const handleToggleSubmission = async (formId: string) => {
+    setSubmitting(formId);
+    const res = await fetch("/api/forms", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formId }),
+    });
+    if (res.ok) {
+      const { submitted } = await res.json();
+      setForms((prev) => prev.map((f) => {
+        if (f.id !== formId) return f;
+        if (submitted) {
+          return {
+            ...f,
+            submissions: [...f.submissions, {
+              id: "temp",
+              userId: userId!,
+              user: { id: userId!, name: session?.user?.name || "", image: (session?.user as { image?: string })?.image || null, team: null },
+            }],
+          };
+        }
+        return { ...f, submissions: f.submissions.filter((s) => s.userId !== userId) };
+      }));
+    }
+    setSubmitting(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -108,12 +181,19 @@ export default function FormsPage() {
           <textarea value={description} onChange={(e) => setDescription(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none min-h-[80px] text-sm"
             placeholder="תיאור (אופציונלי)" />
-          <select value={category} onChange={(e) => setCategory(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm">
-            {Object.entries(CATEGORIES).map(([key, { label }]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-3">
+            <select value={category} onChange={(e) => setCategory(e.target.value)}
+              className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm">
+              {Object.entries(CATEGORIES).map(([key, { label }]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">דדליין:</label>
+              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
+                className="px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm" />
+            </div>
+          </div>
           <button type="submit" disabled={sending}
             className="bg-dotan-green-dark text-white px-6 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
             <MdAdd /> {sending ? "מוסיף..." : "הוסף טופס"}
@@ -136,42 +216,150 @@ export default function FormsPage() {
         ))}
       </div>
 
-      {/* Forms grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Forms list */}
+      <div className="space-y-3">
         {filtered.map((form) => {
           const cat = CATEGORIES[form.category] || CATEGORIES.general;
+          const iSubmitted = form.submissions.some((s) => s.userId === userId);
+          const overdue = isOverdue(form.deadline);
+          const dueSoon = isDueSoon(form.deadline);
+          const submittedCount = form.submissions.length;
+          const isExpanded = expandedForm === form.id;
+          const isSubmitting = submitting === form.id;
+
           return (
-            <div key={form.id} className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint hover:shadow-md transition group">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-dotan-mint-light flex items-center justify-center shrink-0">
-                    <MdLink className="text-xl text-dotan-green" />
+            <div key={form.id} className={`bg-white rounded-xl shadow-sm border-2 transition ${
+              overdue && !iSubmitted ? "border-red-300" : dueSoon && !iSubmitted ? "border-amber-300" : "border-dotan-mint"
+            }`}>
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                    iSubmitted ? "bg-green-100" : overdue ? "bg-red-100" : "bg-dotan-mint-light"
+                  }`}>
+                    {iSubmitted ? <MdCheckCircle className="text-xl text-green-600" /> : <MdLink className="text-xl text-dotan-green" />}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-gray-800 text-sm truncate">{form.title}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${cat.bg} ${cat.color}`}>{cat.label}</span>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-bold text-gray-800 text-sm">{form.title}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${cat.bg} ${cat.color}`}>{cat.label}</span>
+                      {iSubmitted && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300 font-medium">הוגש</span>}
+                    </div>
+
+                    {form.description && (
+                      <p className="text-xs text-gray-500 mb-2">{form.description}</p>
+                    )}
+
+                    {/* Deadline & stats row */}
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                      {form.deadline && (
+                        <span className={`flex items-center gap-1 font-medium ${
+                          overdue ? "text-red-600" : dueSoon ? "text-amber-600" : "text-gray-500"
+                        }`}>
+                          {overdue ? <MdWarning /> : <MdSchedule />}
+                          דדליין: {formatDeadline(form.deadline)}
+                          {overdue && " (עבר)"}
+                          {dueSoon && !overdue && " (בקרוב!)"}
+                        </span>
+                      )}
+                      <span className="text-gray-400">
+                        {submittedCount}/{allUsers.length} הגישו
+                      </span>
+                      <span className="text-gray-400">
+                        <Avatar name={form.author.name} image={form.author.image} size="xs" /> {form.author.name} | {formatDate(form.createdAt)}
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all ${submittedCount === allUsers.length ? "bg-green-500" : submittedCount > 0 ? "bg-dotan-green" : "bg-gray-200"}`}
+                        style={{ width: `${allUsers.length > 0 ? (submittedCount / allUsers.length) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <a href={form.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-1.5 rounded-lg">
+                      <MdOpenInNew /> פתח
+                    </a>
+                    <button onClick={() => handleToggleSubmission(form.id)} disabled={isSubmitting}
+                      className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition disabled:opacity-50 ${
+                        iSubmitted
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                      }`}>
+                      {iSubmitted ? <><MdCheckCircle /> הוגש</> : <><MdDescription /> סמן הגשתי</>}
+                    </button>
                   </div>
                 </div>
-                {form.author.id === userId && (
-                  <button onClick={() => handleDelete(form.id)} className="text-red-400 hover:text-red-600 transition opacity-0 group-hover:opacity-100 shrink-0">
-                    <MdDelete />
-                  </button>
-                )}
+
+                {/* Expand toggle */}
+                <button onClick={() => setExpandedForm(isExpanded ? null : form.id)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mt-2 transition">
+                  {isExpanded ? <MdExpandLess /> : <MdExpandMore />}
+                  {isExpanded ? "הסתר" : "הצג"} מי הגיש ({submittedCount}/{allUsers.length})
+                </button>
               </div>
-              {form.description && (
-                <p className="text-xs text-gray-500 mb-3 line-clamp-2">{form.description}</p>
+
+              {/* Expanded: who submitted / who didn't */}
+              {isExpanded && (
+                <div className="border-t border-gray-100 p-4 bg-gray-50 rounded-b-xl">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Submitted */}
+                    <div>
+                      <h4 className="text-xs font-bold text-green-700 mb-2 flex items-center gap-1">
+                        <MdCheckCircle /> הגישו ({submittedCount})
+                      </h4>
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                        {form.submissions.length === 0 && (
+                          <p className="text-xs text-gray-400">אף אחד עדיין</p>
+                        )}
+                        {form.submissions.map((s) => (
+                          <div key={s.id} className="flex items-center gap-2 text-xs bg-green-50 px-2 py-1.5 rounded-lg">
+                            <Avatar name={s.user.name} image={s.user.image} size="xs" />
+                            <span className="text-gray-700">{s.user.name}</span>
+                            {s.user.team && <span className="text-gray-400">צוות {s.user.team}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Not submitted */}
+                    <div>
+                      <h4 className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                        <MdCancel /> לא הגישו ({allUsers.length - submittedCount})
+                      </h4>
+                      <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                        {allUsers.length - submittedCount === 0 && (
+                          <p className="text-xs text-green-600 font-medium">כולם הגישו!</p>
+                        )}
+                        {allUsers
+                          .filter((u) => !form.submissions.some((s) => s.userId === u.id))
+                          .map((u) => (
+                            <div key={u.id} className="flex items-center gap-2 text-xs bg-red-50 px-2 py-1.5 rounded-lg">
+                              <Avatar name={u.name} image={u.image} size="xs" />
+                              <span className="text-gray-700">{u.name}</span>
+                              {u.team && <span className="text-gray-400">צוות {u.team}</span>}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delete button for author */}
+                  {form.author.id === userId && (
+                    <button onClick={() => handleDelete(form.id)}
+                      className="mt-3 flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition">
+                      <MdDelete /> מחק טופס
+                    </button>
+                  )}
+                </div>
               )}
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <Avatar name={form.author.name} image={form.author.image} size="xs" />
-                  <span>{form.author.name}</span>
-                  <span>| {formatDate(form.createdAt)}</span>
-                </div>
-                <a href={form.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-1.5 rounded-lg">
-                  <MdOpenInNew /> פתח
-                </a>
-              </div>
             </div>
           );
         })}

@@ -3,6 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+const formInclude = {
+  author: { select: { id: true, name: true, image: true } },
+  submissions: {
+    include: { user: { select: { id: true, name: true, image: true, team: true } } },
+    orderBy: { createdAt: "desc" as const },
+  },
+};
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -10,11 +18,17 @@ export async function GET() {
   }
 
   const forms = await prisma.formLink.findMany({
-    include: { author: { select: { id: true, name: true, image: true } } },
+    include: formInclude,
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(forms);
+  // Get all users for completion tracking
+  const allUsers = await prisma.user.findMany({
+    select: { id: true, name: true, image: true, team: true },
+    orderBy: [{ team: "asc" }, { name: "asc" }],
+  });
+
+  return NextResponse.json({ forms, allUsers });
 }
 
 export async function POST(request: Request) {
@@ -24,18 +38,55 @@ export async function POST(request: Request) {
   }
 
   const userId = (session.user as { id: string }).id;
-  const { title, description, url, category } = await request.json();
+  const { title, description, url, category, deadline } = await request.json();
 
   if (!title || !url) {
     return NextResponse.json({ error: "נא למלא כותרת וקישור" }, { status: 400 });
   }
 
   const form = await prisma.formLink.create({
-    data: { title, description: description || null, url, category: category || "general", authorId: userId },
-    include: { author: { select: { id: true, name: true, image: true } } },
+    data: {
+      title,
+      description: description || null,
+      url,
+      category: category || "general",
+      deadline: deadline || null,
+      authorId: userId,
+    },
+    include: formInclude,
   });
 
   return NextResponse.json(form);
+}
+
+export async function PUT(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
+  }
+
+  const userId = (session.user as { id: string }).id;
+  const { formId } = await request.json();
+
+  if (!formId) {
+    return NextResponse.json({ error: "חסר מזהה טופס" }, { status: 400 });
+  }
+
+  // Toggle: if already submitted, remove; if not, add
+  const existing = await prisma.formSubmission.findUnique({
+    where: { formId_userId: { formId, userId } },
+  });
+
+  if (existing) {
+    await prisma.formSubmission.delete({ where: { id: existing.id } });
+    return NextResponse.json({ submitted: false });
+  }
+
+  await prisma.formSubmission.create({
+    data: { formId, userId },
+  });
+
+  return NextResponse.json({ submitted: true });
 }
 
 export async function DELETE(request: Request) {
