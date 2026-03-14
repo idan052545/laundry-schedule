@@ -4,11 +4,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
-import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd } from "react-icons/md";
+import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService, MdCake, MdAssignment, MdPeople, MdStar } from "react-icons/md";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const navLinks = [
+    { href: "/dashboard", label: "דף הבית", icon: MdHome },
+    { href: "/schedule", label: "מכבסה", icon: MdLocalLaundryService },
+    { href: "/messages", label: "הודעות", icon: MdMessage },
+    { href: "/attendance", label: "מצל", icon: MdFactCheck },
+    { href: "/birthdays", label: "ימי הולדת", icon: MdCake },
+    { href: "/tasks", label: "משימות", icon: MdAssignment },
+    { href: "/commander", label: "מפקדים", icon: MdStar },
+    { href: "/users-wall", label: "חיילים", icon: MdPeople },
+    { href: "/profile", label: "פרופיל", icon: MdPerson },
+  ];
 
   return (
     <nav className="bg-dotan-green-dark text-white shadow-lg">
@@ -16,7 +28,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link href="/dashboard" className="flex items-center gap-3">
             <Image src="/dotanLogo.jpeg" alt="פלוגת דותן" width={40} height={40} className="rounded-full" />
-            <span className="text-lg font-bold">מכבסת דותן</span>
+            <span className="text-lg font-bold hidden sm:block">פלוגת דותן</span>
           </Link>
 
           <button
@@ -26,22 +38,16 @@ export default function Navbar() {
             {menuOpen ? <MdClose className="w-6 h-6" /> : <MdMenu className="w-6 h-6" />}
           </button>
 
-          <div className="hidden md:flex items-center gap-5">
+          <div className="hidden md:flex items-center gap-4">
             {session ? (
               <>
-                <Link href="/dashboard" className="hover:text-dotan-gold transition flex items-center gap-1 text-sm">
-                  <MdHome className="text-lg" />
-                  דף הבית
-                </Link>
-                <Link href="/schedule" className="hover:text-dotan-gold transition flex items-center gap-1 text-sm">
-                  <MdCalendarMonth className="text-lg" />
-                  לוח זמנים
-                </Link>
-                <Link href="/profile" className="hover:text-dotan-gold transition flex items-center gap-1 text-sm">
-                  <MdPerson className="text-lg" />
-                  פרופיל
-                </Link>
-                <span className="text-dotan-mint text-sm">
+                {navLinks.map(({ href, label, icon: Icon }) => (
+                  <Link key={href} href={href} className="hover:text-dotan-gold transition flex items-center gap-1 text-sm">
+                    <Icon className="text-lg" />
+                    {label}
+                  </Link>
+                ))}
+                <span className="text-dotan-mint text-sm mr-2">
                   {session.user?.name}
                 </span>
                 <button
@@ -58,10 +64,7 @@ export default function Navbar() {
                   <MdLogin className="text-lg" />
                   התחברות
                 </Link>
-                <Link
-                  href="/register"
-                  className="bg-dotan-gold text-dotan-green-dark px-4 py-2 rounded-lg hover:bg-dotan-gold-dark transition font-medium flex items-center gap-1"
-                >
+                <Link href="/register" className="bg-dotan-gold text-dotan-green-dark px-4 py-2 rounded-lg hover:bg-dotan-gold-dark transition font-medium flex items-center gap-1">
                   <MdPersonAdd className="text-lg" />
                   הרשמה
                 </Link>
@@ -74,15 +77,11 @@ export default function Navbar() {
           <div className="md:hidden pb-4 space-y-2">
             {session ? (
               <>
-                <Link href="/dashboard" className="flex items-center gap-2 py-2 hover:text-dotan-gold" onClick={() => setMenuOpen(false)}>
-                  <MdHome /> דף הבית
-                </Link>
-                <Link href="/schedule" className="flex items-center gap-2 py-2 hover:text-dotan-gold" onClick={() => setMenuOpen(false)}>
-                  <MdCalendarMonth /> לוח זמנים
-                </Link>
-                <Link href="/profile" className="flex items-center gap-2 py-2 hover:text-dotan-gold" onClick={() => setMenuOpen(false)}>
-                  <MdPerson /> פרופיל
-                </Link>
+                {navLinks.map(({ href, label, icon: Icon }) => (
+                  <Link key={href} href={href} className="flex items-center gap-2 py-2 hover:text-dotan-gold" onClick={() => setMenuOpen(false)}>
+                    <Icon /> {label}
+                  </Link>
+                ))}
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
                   className="flex items-center gap-2 w-full text-right py-2 text-dotan-gold hover:text-dotan-gold-dark"

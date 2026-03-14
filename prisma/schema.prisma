@@ -9,22 +9,35 @@ datasource db {
 }
 
 model User {
-  id         String    @id @default(uuid())
-  name       String
-  email      String    @unique
-  password   String
-  image      String?
-  roomNumber String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  bookings   Booking[]
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String
+  image             String?
+  roomNumber        String?
+  personalId        String?   // מספר אישי
+  phone             String?   // טלפון
+  team              Int?      // צוות (14-17)
+  birthDate         String?   // תאריך לידה
+  foodPreference    String?   // העדפות אוכל
+  allergies         String?   // אלרגיות
+  medicalExemptions String?   // פטורים רפואיים
+  otherExemptions   String?   // פטורים נוספים
+  role              String    @default("user") // "user", "admin", "commander"
+  roleTitle         String?   // תפקיד מפקד, e.g. "קהדית פלוגתית"
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bookings          Booking[]
+  messages          Message[]
+  attendances       Attendance[]
+  commanderPosts    CommanderPost[]
 }
 
 model Machine {
   id        String    @id @default(uuid())
   name      String
   type      String    // "washer" or "dryer"
-  status    String    @default("available") // "available", "in_use", "maintenance"
+  status    String    @default("available")
   createdAt DateTime  @default(now())
   bookings  Booking[]
 }
@@ -35,10 +48,62 @@ model Booking {
   machineId String
   date      String
   timeSlot  String
-  status    String   @default("active") // "active", "completed", "cancelled"
+  status    String   @default("active")
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
   machine   Machine  @relation(fields: [machineId], references: [id])
 
   @@unique([machineId, date, timeSlot])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+model Attendance {
+  id        String   @id @default(uuid())
+  userId    String
+  date      String
+  session   String   // "morning", "afternoon", "evening" or custom class name
+  present   Boolean  @default(false)
+  markedBy  String?  // who marked attendance
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, session])
+}
+
+model CommanderPost {
+  id          String   @id @default(uuid())
+  authorId    String
+  type        String   // "message", "task", "reminder", "image"
+  title       String
+  content     String
+  imageUrl    String?
+  pinned      Boolean  @default(false)
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  author      User     @relation(fields: [authorId], references: [id])
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String   // "task", "deadline", "reminder", "weekly", "daily"
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean  @default(false)
+  priority    String   @default("normal") // "low", "normal", "high", "urgent"
+  recurring   Boolean  @default(false)
+  rrule       String?  // recurrence rule if recurring
+  createdAt   DateTime @default(now())
 }

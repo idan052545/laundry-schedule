@@ -20,21 +20,31 @@ export default function Home() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="text-center max-w-lg">
-        {/* Logos */}
-        <div className="flex items-center justify-center gap-6 mb-8">
-          <Image src="/bahad1Logo.png" alt="בהד 1" width={64} height={64} className="rounded-full" />
-          <Image src="/dotanLogo.jpeg" alt="פלוגת דותן" width={96} height={96} className="rounded-full shadow-lg" />
-          <Image src="/erezLogo.png" alt="ארז" width={64} height={64} className="rounded-full" />
+        {/* Main logo */}
+        <div className="flex items-center justify-center mb-8">
+          <Image
+            src="/dotanLogo.jpeg"
+            alt="פלוגת דותן"
+            width={140}
+            height={140}
+            className="rounded-full shadow-xl border-4 border-white"
+          />
+        </div>
+
+        {/* Side logos */}
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <Image src="/erezLogo.png" alt="ארז" width={48} height={48} className="rounded-full shadow border-2 border-white bg-white p-0.5" />
+          <Image src="/bahad1Logo.png" alt="בהד 1" width={48} height={48} className="rounded-full shadow border-2 border-white bg-white p-0.5" />
         </div>
 
         <h1 className="text-4xl font-bold text-dotan-green-dark mb-2">
           פלוגת דותן
         </h1>
-        <h2 className="text-2xl font-semibold text-dotan-green mb-4">
-          מכבסה - לוח זמנים
+        <h2 className="text-xl font-semibold text-dotan-green mb-4">
+          מערכת ניהול הפלוגה
         </h2>
         <p className="text-lg text-gray-600 mb-8">
-          מערכת ניהול תורות למכבסה ומייבש. קבע תור, בדוק זמינות, ודע מתי המכונה פנויה!
+          מכבסה, הודעות, מצל, ימי הולדת ועוד - הכל במקום אחד
         </p>
         <div className="flex gap-4 justify-center">
           <Link

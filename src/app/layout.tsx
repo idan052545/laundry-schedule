@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "מכבסה - לוח זמנים",
-  description: "מערכת לניהול תורות מכבסה ומייבש",
+  title: "פלוגת דותן",
+  description: "מערכת ניהול פלוגת דותן - מכבסה, הודעות, מצל ועוד",
 };
 
 export default function RootLayout({
@@ -27,13 +27,16 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <Providers>
           <Navbar />
           <main className="max-w-7xl mx-auto px-4 py-8">
             {children}
           </main>
+          <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100">
+            Made by עידן סימנטוב צוות 16
+          </footer>
         </Providers>
       </body>
     </html>
