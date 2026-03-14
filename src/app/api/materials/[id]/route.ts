@@ -18,5 +18,11 @@ export async function GET(
     return NextResponse.json({ error: "לא נמצא" }, { status: 404 });
   }
 
+  // If fileData is a blob URL, return it directly for client-side redirect
+  if (material.fileData.startsWith("http")) {
+    return NextResponse.json({ blobUrl: material.fileData, fileName: material.fileName, fileType: material.fileType });
+  }
+
+  // Legacy base64 support
   return NextResponse.json({ fileData: material.fileData, fileName: material.fileName, fileType: material.fileType });
 }

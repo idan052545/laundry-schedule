@@ -3,8 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sendPushToAll } from "@/lib/push";
+import { put, del } from "@vercel/blob";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -43,19 +44,21 @@ export async function POST(request: Request) {
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: "הקובץ גדול מדי (מקסימום 5MB)" }, { status: 400 });
+    return NextResponse.json({ error: "הקובץ גדול מדי (מקסימום 30MB)" }, { status: 400 });
   }
 
-  const bytes = await file.arrayBuffer();
-  const base64 = Buffer.from(bytes).toString("base64");
-  const fileData = `data:${file.type};base64,${base64}`;
+  // Upload to Vercel Blob
+  const blob = await put(`formats/${Date.now()}-${file.name}`, file, {
+    access: "public",
+    contentType: file.type,
+  });
 
   const format = await prisma.taskFormat.create({
     data: {
       title,
       description: description || null,
       category: category || "general",
-      fileData,
+      fileData: blob.url,
       fileName: file.name,
       fileType: file.type,
       authorId: userId,
@@ -90,6 +93,11 @@ export async function DELETE(request: Request) {
   const format = await prisma.taskFormat.findUnique({ where: { id } });
   if (!format || (format.authorId !== userId && user?.role !== "admin")) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+
+  // Delete blob if it's a URL
+  if (format.fileData.startsWith("http")) {
+    try { await del(format.fileData); } catch {}
   }
 
   await prisma.taskFormat.delete({ where: { id } });

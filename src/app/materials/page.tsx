@@ -93,21 +93,35 @@ export default function MaterialsPage() {
     const res = await fetch(`/api/materials/${material.id}`);
     if (res.ok) {
       const data = await res.json();
-      // Convert base64 data URL to Blob for mobile compatibility
-      const [header, base64] = data.fileData.split(",");
-      const mime = header.match(/:(.*?);/)?.[1] || data.fileType;
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: mime });
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = data.fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      if (data.blobUrl) {
+        // Vercel Blob URL - fetch and download
+        const fileRes = await fetch(data.blobUrl);
+        const blob = await fileRes.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = data.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        // Legacy base64 data URL
+        const [header, base64] = data.fileData.split(",");
+        const mime = header.match(/:(.*?);/)?.[1] || data.fileType;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = data.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }
     }
     setDownloading(null);
   };
@@ -162,7 +176,7 @@ export default function MaterialsPage() {
             </button>
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp"
               onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
-            <p className="text-xs text-gray-400 mt-1">מקסימום 5MB</p>
+            <p className="text-xs text-gray-400 mt-1">מקסימום 30MB</p>
           </div>
           <button type="submit" disabled={sending || !file}
             className="bg-dotan-green-dark text-white px-6 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
