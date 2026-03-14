@@ -36,7 +36,7 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-dotan-mint">
         <div className="text-center mb-8">
-          <Image src="/dotanLogo.jpeg" alt="פלוגת דותן" width={72} height={72} className="rounded-full mx-auto mb-4 shadow" />
+          <Image src="/dotanLogo.png" alt="פלוגת דותן" width={72} height={72} className="rounded-full mx-auto mb-4 shadow" />
           <h1 className="text-3xl font-bold text-dotan-green-dark">התחברות</h1>
           <p className="text-gray-500 mt-2">היכנס לחשבון שלך</p>
         </div>

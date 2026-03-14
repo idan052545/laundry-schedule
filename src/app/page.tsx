@@ -23,7 +23,7 @@ export default function Home() {
         {/* Main logo */}
         <div className="flex items-center justify-center mb-8">
           <Image
-            src="/dotanLogo.jpeg"
+            src="/dotanLogo.png"
             alt="פלוגת דותן"
             width={140}
             height={140}
