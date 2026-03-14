@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { MdCheckCircle, MdCancel, MdGroup, MdAdd, MdDelete, MdLock } from "react-icons/md";
+import { MdCheckCircle, MdCancel, MdGroup, MdAdd, MdDelete, MdLock, MdFactCheck } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
 interface UserWithAttendance {
@@ -41,34 +41,35 @@ export default function AttendancePage() {
   const [users, setUsers] = useState<UserWithAttendance[]>([]);
   const [sessions, setSessions] = useState<AttSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedSession, setSelectedSession] = useState("");
   const [newSessionName, setNewSessionName] = useState("");
   const [showNewSession, setShowNewSession] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
-
-  const userName = session?.user?.name || "";
-  const isOhad = userName === "אוהד אבדי" ||
-    (session?.user && (session.user as { id?: string }).id &&
-      users.length > 0 && false); // fallback check via role
-  const userId = session?.user ? (session.user as { id: string }).id : null;
-
-  // Check if current user is authorized (אוהד or admin)
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const fetchSessions = useCallback(async () => {
+    setSessionsLoaded(false);
     const res = await fetch(`/api/attendance-sessions?date=${selectedDate}`);
     if (res.ok) {
       const data = await res.json();
       setSessions(data);
       if (data.length > 0) {
         setSelectedSession((prev) => prev || data[data.length - 1].name);
+      } else {
+        // No sessions for this date — stop loading
+        setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
+    setSessionsLoaded(true);
   }, [selectedDate]);
 
   const fetchData = useCallback(async () => {
     if (!selectedSession) { setLoading(false); return; }
+    setLoading(true);
     const res = await fetch(`/api/attendance?date=${selectedDate}&session=${selectedSession}`);
     if (res.ok) setUsers(await res.json());
     setLoading(false);
@@ -78,13 +79,8 @@ export default function AttendancePage() {
     const res = await fetch("/api/user");
     if (res.ok) {
       const data = await res.json();
-      // Check by trying to see if this user can create sessions
-      const user = await fetch("/api/users-wall?team=all");
-      if (user.ok) {
-        const allUsers = await user.json();
-        const me = allUsers.find((u: { id: string }) => u.id === data.id);
-        setIsAuthorized(me?.name === "אוהד אבדי" || me?.role === "admin");
-      }
+      // Use the user API which now returns role info
+      setIsAuthorized(data.name === "אוהד אבדי" || data.role === "admin");
     }
   }, []);
 
@@ -148,7 +144,8 @@ export default function AttendancePage() {
     setUpdating(null);
   };
 
-  if (status === "loading" || loading) {
+  // Show loading only during initial load
+  if (status === "loading" || (loading && !sessionsLoaded)) {
     return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
   }
 
@@ -162,12 +159,15 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-4 sm:mb-6">מצל - נוכחות</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-4 sm:mb-6 flex items-center gap-3">
+        <MdFactCheck className="text-dotan-green" />
+        מצל - נוכחות
+      </h1>
 
       {/* Controls */}
       <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-dotan-mint mb-4 sm:mb-6 space-y-3">
         <div className="flex flex-wrap gap-3 items-center">
-          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setSelectedSession(""); }}
+          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setSelectedSession(""); setSessions([]); setUsers([]); }}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm" />
 
           {isAuthorized && (
@@ -207,14 +207,21 @@ export default function AttendancePage() {
           </div>
         )}
 
-        {!isAuthorized && (
+        {!isAuthorized && sessionsLoaded && (
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <MdLock /> רק אוהד אבדי יכול לפתוח ולנהל מצלים
           </div>
         )}
       </div>
 
-      {sessions.length === 0 && (
+      {/* Loading attendance data for selected session */}
+      {loading && sessionsLoaded && selectedSession && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">טוען נתוני נוכחות...</div>
+        </div>
+      )}
+
+      {sessionsLoaded && sessions.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <MdGroup className="text-5xl mx-auto mb-4 text-gray-300" />
           <p>אין מצלים ליום זה</p>
@@ -222,7 +229,7 @@ export default function AttendancePage() {
         </div>
       )}
 
-      {selectedSession && sessions.length > 0 && (
+      {!loading && selectedSession && sessions.length > 0 && (
         <>
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">

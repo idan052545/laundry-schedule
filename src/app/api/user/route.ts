@@ -16,6 +16,7 @@ const userSelect = {
   allergies: true,
   medicalExemptions: true,
   otherExemptions: true,
+  role: true,
 };
 
 export async function GET() {
