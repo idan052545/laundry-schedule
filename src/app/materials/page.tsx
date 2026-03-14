@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage } from "react-icons/md";
+import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdEdit, MdCheck } from "react-icons/md";
 import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
 
@@ -51,6 +51,9 @@ export default function MaterialsPage() {
   const [filter, setFilter] = useState("all");
   const [sending, setSending] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
@@ -150,6 +153,26 @@ export default function MaterialsPage() {
     if (res.ok) setMaterials((prev) => prev.filter((m) => m.id !== id));
   };
 
+  const startEdit = (material: Material) => {
+    setEditingId(material.id);
+    setEditTitle(material.title);
+    setEditDescription(material.description || "");
+  };
+
+  const handleEdit = async (id: string) => {
+    if (!editTitle.trim()) return;
+    const res = await fetch("/api/materials", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, title: editTitle, description: editDescription }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setMaterials((prev) => prev.map((m) => m.id === id ? updated : m));
+      setEditingId(null);
+    }
+  };
+
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
 
@@ -223,41 +246,70 @@ export default function MaterialsPage() {
         {filtered.map((material) => {
           const cat = CATEGORIES[material.category] || CATEGORIES.general;
           const isDownloading = downloading === material.id;
+          const isEditing = editingId === material.id;
+          const canEdit = material.author.id === userId;
 
           return (
             <div key={material.id} className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint hover:shadow-md transition group">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
-                  {getFileIcon(material.fileType)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <h3 className="font-bold text-gray-800 text-sm truncate">{material.title}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${cat.bg} ${cat.color}`}>{cat.label}</span>
-                  </div>
-                  {material.description && (
-                    <p className="text-xs text-gray-500 line-clamp-1 mb-1">{material.description}</p>
-                  )}
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Avatar name={material.author.name} image={material.author.image} size="xs" />
-                    <span>{material.author.name}</span>
-                    <span>| {formatDate(material.createdAt)}</span>
-                    <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{getFileExtension(material.fileName)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => handleDownload(material)} disabled={isDownloading}
-                    className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-2 rounded-lg disabled:opacity-50">
-                    <MdDownload /> {isDownloading ? "מוריד..." : "הורד"}
-                  </button>
-                  {material.author.id === userId && (
-                    <button onClick={() => handleDelete(material.id)}
-                      className="text-red-400 hover:text-red-600 transition p-2 opacity-0 group-hover:opacity-100">
-                      <MdDelete />
+              {isEditing ? (
+                <div className="space-y-2">
+                  <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
+                    placeholder="שם החומר" />
+                  <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm min-h-[60px]"
+                    placeholder="תיאור (אופציונלי)" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEdit(material.id)}
+                      className="flex items-center gap-1 text-xs font-medium text-white bg-dotan-green-dark hover:bg-dotan-green px-3 py-1.5 rounded-lg transition">
+                      <MdCheck /> שמור
                     </button>
-                  )}
+                    <button onClick={() => setEditingId(null)}
+                      className="flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">
+                      <MdClose /> ביטול
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
+                    {getFileIcon(material.fileType)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="font-bold text-gray-800 text-sm truncate">{material.title}</h3>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${cat.bg} ${cat.color}`}>{cat.label}</span>
+                    </div>
+                    {material.description && (
+                      <p className="text-xs text-gray-500 line-clamp-1 mb-1">{material.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <Avatar name={material.author.name} image={material.author.image} size="xs" />
+                      <span>{material.author.name}</span>
+                      <span>| {formatDate(material.createdAt)}</span>
+                      <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{getFileExtension(material.fileName)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => handleDownload(material)} disabled={isDownloading}
+                      className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-2 rounded-lg disabled:opacity-50">
+                      <MdDownload /> {isDownloading ? "מוריד..." : "הורד"}
+                    </button>
+                    {canEdit && (
+                      <button onClick={() => startEdit(material)}
+                        className="text-blue-400 hover:text-blue-600 transition p-2 opacity-0 group-hover:opacity-100">
+                        <MdEdit />
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button onClick={() => handleDelete(material.id)}
+                        className="text-red-400 hover:text-red-600 transition p-2 opacity-0 group-hover:opacity-100">
+                        <MdDelete />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}

@@ -62,6 +62,34 @@ export async function POST(request: Request) {
   return NextResponse.json({ ...result, hasFile: true });
 }
 
+export async function PUT(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
+  }
+
+  const userId = (session.user as { id: string }).id;
+  const { id, title, description } = await request.json();
+  if (!id || !title) {
+    return NextResponse.json({ error: "נא למלא כותרת" }, { status: 400 });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const material = await prisma.professionalMaterial.findUnique({ where: { id } });
+  if (!material || (material.authorId !== userId && user?.role !== "admin")) {
+    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+
+  const updated = await prisma.professionalMaterial.update({
+    where: { id },
+    data: { title, description: description || null },
+    include: { author: { select: { id: true, name: true, image: true } } },
+  });
+
+  const { fileData: _, ...result } = updated;
+  return NextResponse.json({ ...result, hasFile: !!updated.fileData });
+}
+
 export async function DELETE(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
