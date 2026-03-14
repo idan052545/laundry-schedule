@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage } from "react-icons/md";
+import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
 
 interface Material {
@@ -70,20 +71,37 @@ export default function MaterialsPage() {
     if (!file) return;
     setSending(true);
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("category", category);
-    formData.append("file", file);
+    try {
+      // Upload file directly to Vercel Blob from client
+      const blob = await upload(`materials/${Date.now()}-${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
 
-    const res = await fetch("/api/materials", { method: "POST", body: formData });
-    if (res.ok) {
-      const newMaterial = await res.json();
-      setMaterials((prev) => [newMaterial, ...prev]);
-      setTitle(""); setDescription(""); setCategory("general"); setFile(null); setShowForm(false);
-    } else {
-      const err = await res.json();
-      alert(err.error || "שגיאה");
+      // Save metadata to DB
+      const res = await fetch("/api/materials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          category,
+          blobUrl: blob.url,
+          fileName: file.name,
+          fileType: file.type,
+        }),
+      });
+
+      if (res.ok) {
+        const newMaterial = await res.json();
+        setMaterials((prev) => [newMaterial, ...prev]);
+        setTitle(""); setDescription(""); setCategory("general"); setFile(null); setShowForm(false);
+      } else {
+        const err = await res.json();
+        alert(err.error || "שגיאה");
+      }
+    } catch {
+      alert("שגיאה בהעלאת הקובץ");
     }
     setSending(false);
   };

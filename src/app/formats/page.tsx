@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MdFolder, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdArticle } from "react-icons/md";
+import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
 
 interface TaskFormat {
@@ -71,20 +72,37 @@ export default function FormatsPage() {
     if (!file) return;
     setSending(true);
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("category", category);
-    formData.append("file", file);
+    try {
+      // Upload file directly to Vercel Blob from client
+      const blob = await upload(`formats/${Date.now()}-${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
 
-    const res = await fetch("/api/task-formats", { method: "POST", body: formData });
-    if (res.ok) {
-      const newFormat = await res.json();
-      setFormats((prev) => [newFormat, ...prev]);
-      setTitle(""); setDescription(""); setCategory("general"); setFile(null); setShowForm(false);
-    } else {
-      const err = await res.json();
-      alert(err.error || "שגיאה");
+      // Save metadata to DB
+      const res = await fetch("/api/task-formats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          category,
+          blobUrl: blob.url,
+          fileName: file.name,
+          fileType: file.type,
+        }),
+      });
+
+      if (res.ok) {
+        const newFormat = await res.json();
+        setFormats((prev) => [newFormat, ...prev]);
+        setTitle(""); setDescription(""); setCategory("general"); setFile(null); setShowForm(false);
+      } else {
+        const err = await res.json();
+        alert(err.error || "שגיאה");
+      }
+    } catch {
+      alert("שגיאה בהעלאת הקובץ");
     }
     setSending(false);
   };
