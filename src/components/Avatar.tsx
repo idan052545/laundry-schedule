@@ -27,10 +27,11 @@ function getColor(name: string): string {
 interface AvatarProps {
   name: string;
   image?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 }
 
 const sizeClasses = {
+  xs: "w-5 h-5 text-[8px]",
   sm: "w-8 h-8 text-xs",
   md: "w-12 h-12 text-base",
   lg: "w-32 h-32 text-5xl",

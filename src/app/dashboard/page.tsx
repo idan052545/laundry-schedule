@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson, MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople, MdStar } from "react-icons/md";
+import { MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson, MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook, MdFolder } from "react-icons/md";
 
 interface Machine {
   id: string;
@@ -62,6 +62,9 @@ export default function DashboardPage() {
     { href: "/tasks", icon: MdAssignment, title: "לוח משימות", desc: "משימות, דדליינים ותזכורות", color: "text-purple-600" },
     { href: "/commander", icon: MdStar, title: "לוח מפקדים", desc: "הודעות ומשימות מהמפקדים", color: "text-amber-600" },
     { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", desc: "מידע על כל חיילי הפלוגה", color: "text-teal-600" },
+    { href: "/forms", icon: MdDescription, title: "טפסים", desc: "קישורים לטפסים שיש למלא", color: "text-indigo-600" },
+    { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: "ל\"ע, נהלים וחומרי לימוד", color: "text-rose-600" },
+    { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
   ];
 
   return (

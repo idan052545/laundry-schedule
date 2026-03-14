@@ -32,6 +32,9 @@ model User {
   assignedMessages  MessageAssignee[]
   attendances       Attendance[]
   commanderPosts    CommanderPost[]
+  formLinks         FormLink[] @relation("formLinks")
+  materials         ProfessionalMaterial[] @relation("materials")
+  taskFormats       TaskFormat[] @relation("taskFormats")
 }
 
 model Machine {
@@ -129,4 +132,41 @@ model Task {
   recurring   Boolean  @default(false)
   rrule       String?  // recurrence rule if recurring
   createdAt   DateTime @default(now())
+}
+
+model FormLink {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  url         String
+  category    String   @default("general") // "general", "personnel", "operations", "training", "logistics"
+  authorId    String
+  createdAt   DateTime @default(now())
+  author      User     @relation("formLinks", fields: [authorId], references: [id])
+}
+
+model ProfessionalMaterial {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String   @default("general") // "general", "weapons", "navigation", "first-aid", "procedures", "other"
+  fileData    String   // base64 encoded file
+  fileName    String
+  fileType    String   // mime type
+  authorId    String
+  createdAt   DateTime @default(now())
+  author      User     @relation("materials", fields: [authorId], references: [id])
+}
+
+model TaskFormat {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String   @default("general") // "general", "guard", "operations", "training", "logistics", "other"
+  fileData    String   // base64 encoded file
+  fileName    String
+  fileType    String   // mime type
+  authorId    String
+  createdAt   DateTime @default(now())
+  author      User     @relation("taskFormats", fields: [authorId], references: [id])
 }

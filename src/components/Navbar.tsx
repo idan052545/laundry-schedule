@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
-import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService, MdCake, MdAssignment, MdPeople, MdStar } from "react-icons/md";
+import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService, MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook, MdFolder } from "react-icons/md";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -19,6 +19,9 @@ export default function Navbar() {
     { href: "/tasks", label: "משימות", icon: MdAssignment },
     { href: "/commander", label: "מפקדים", icon: MdStar },
     { href: "/users-wall", label: "חיילים", icon: MdPeople },
+    { href: "/forms", label: "טפסים", icon: MdDescription },
+    { href: "/materials", label: "חומר מקצועי", icon: MdMenuBook },
+    { href: "/formats", label: "פורמטים", icon: MdFolder },
     { href: "/profile", label: "פרופיל", icon: MdPerson },
   ];
 
