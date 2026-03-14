@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { MdLocalLaundryService } from "react-icons/md";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🧺</div>
+          <MdLocalLaundryService className="text-5xl text-blue-600 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-800">הרשמה</h1>
           <p className="text-gray-500 mt-2">צור חשבון חדש</p>
         </div>
@@ -94,7 +95,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="••••••••"
+              placeholder="********"
               required
               minLength={6}
               dir="ltr"

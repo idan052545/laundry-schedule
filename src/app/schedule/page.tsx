@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { MdLocalLaundryService, MdDry, MdDelete, MdAccessTime } from "react-icons/md";
 
 interface Machine {
   id: string;
@@ -99,7 +100,6 @@ export default function SchedulePage() {
 
   const filteredMachines = machines.filter((m) => m.type === selectedType);
 
-  // Generate dates for the next 7 days
   const dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -147,23 +147,25 @@ export default function SchedulePage() {
         <div className="flex gap-2 mr-auto">
           <button
             onClick={() => setSelectedType("washer")}
-            className={`px-4 py-2 rounded-lg transition font-medium ${
+            className={`px-4 py-2 rounded-lg transition font-medium flex items-center gap-2 ${
               selectedType === "washer"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            🧺 כביסה
+            <MdLocalLaundryService className="text-lg" />
+            כביסה
           </button>
           <button
             onClick={() => setSelectedType("dryer")}
-            className={`px-4 py-2 rounded-lg transition font-medium ${
+            className={`px-4 py-2 rounded-lg transition font-medium flex items-center gap-2 ${
               selectedType === "dryer"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            🌀 מייבש
+            <MdDry className="text-lg" />
+            מייבש
           </button>
         </div>
       </div>
@@ -224,9 +226,9 @@ export default function SchedulePage() {
                             {isMyBooking && (
                               <button
                                 onClick={() => handleCancel(booking.id)}
-                                className="text-xs text-red-600 hover:underline mt-1"
+                                className="text-xs text-red-600 hover:underline mt-1 flex items-center gap-1 mx-auto"
                               >
-                                בטל
+                                <MdDelete /> בטל
                               </button>
                             )}
                           </div>
@@ -251,7 +253,7 @@ export default function SchedulePage() {
 
       {/* My bookings today */}
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">ההזמנות שלי להיום</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">ההזמנות שלי</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {bookings
             .filter((b) => b.user.id === userId && b.date === selectedDate)
@@ -260,19 +262,25 @@ export default function SchedulePage() {
                 key={booking.id}
                 className="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center"
               >
-                <div>
-                  <div className="font-bold text-gray-800">
-                    {booking.machine.name}
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl text-blue-600">
+                    {booking.machine.type === "washer" ? <MdLocalLaundryService /> : <MdDry />}
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {booking.machine.type === "washer" ? "🧺 כביסה" : "🌀 מייבש"}{" "}
-                    | שעה {booking.timeSlot}
+                  <div>
+                    <div className="font-bold text-gray-800">
+                      {booking.machine.name}
+                    </div>
+                    <div className="text-sm text-gray-500 flex items-center gap-1">
+                      <MdAccessTime />
+                      שעה {booking.timeSlot}
+                    </div>
                   </div>
                 </div>
                 <button
                   onClick={() => handleCancel(booking.id)}
-                  className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"
                 >
+                  <MdDelete />
                   בטל הזמנה
                 </button>
               </div>
