@@ -29,6 +29,7 @@ model User {
   updatedAt         DateTime  @updatedAt
   bookings          Booking[]
   messages          Message[]
+  assignedMessages  MessageAssignee[]
   attendances       Attendance[]
   commanderPosts    CommanderPost[]
 }
@@ -60,18 +61,40 @@ model Message {
   id        String   @id @default(uuid())
   title     String
   content   String
+  imageData String?  // base64 image data
   authorId  String
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   author    User     @relation(fields: [authorId], references: [id])
+  assignees MessageAssignee[]
+}
+
+model MessageAssignee {
+  id        String  @id @default(uuid())
+  messageId String
+  userId    String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId])
+}
+
+model AttendanceSession {
+  id        String   @id @default(uuid())
+  name      String
+  date      String
+  createdBy String   // user id of who created (אוהד)
+  createdAt DateTime @default(now())
+
+  @@unique([name, date])
 }
 
 model Attendance {
   id        String   @id @default(uuid())
   userId    String
   date      String
-  session   String   // "morning", "afternoon", "evening" or custom class name
+  session   String   // custom session name
   present   Boolean  @default(false)
   markedBy  String?  // who marked attendance
   createdAt DateTime @default(now())

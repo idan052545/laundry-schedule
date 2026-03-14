@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { writeFile } from "fs/promises";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -20,21 +17,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "לא נבחרה תמונה" }, { status: 400 });
   }
 
+  if (file.size > 2 * 1024 * 1024) {
+    return NextResponse.json({ error: "התמונה גדולה מדי (מקסימום 2MB)" }, { status: 400 });
+  }
+
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-
-  const ext = file.name.split(".").pop() || "jpg";
-  const filename = `${uuidv4()}.${ext}`;
-  const filepath = path.join(process.cwd(), "public", "avatars", filename);
-
-  await writeFile(filepath, buffer);
-
-  const imageUrl = `/avatars/${filename}`;
+  const base64 = buffer.toString("base64");
+  const mimeType = file.type || "image/jpeg";
+  const dataUrl = `data:${mimeType};base64,${base64}`;
 
   await prisma.user.update({
     where: { id: userId },
-    data: { image: imageUrl },
+    data: { image: dataUrl },
   });
 
-  return NextResponse.json({ image: imageUrl });
+  return NextResponse.json({ image: dataUrl });
 }

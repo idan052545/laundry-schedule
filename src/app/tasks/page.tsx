@@ -75,16 +75,20 @@ function isPast(dateStr: string): boolean {
   return new Date(dateStr) < new Date();
 }
 
-function getWeekDates(offset: number): { start: Date; end: Date } {
+function getWeekDates(offset: number): { start: Date; end: Date; startStr: string; endStr: string } {
   const now = new Date();
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = now.getDay(); // Sunday = 0
   const start = new Date(now);
   start.setDate(now.getDate() - dayOfWeek + offset * 7);
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
   end.setHours(23, 59, 59, 999);
-  return { start, end };
+  // Use local date strings to avoid timezone shifts
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const startStr = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+  const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
+  return { start, end, startStr, endStr };
 }
 
 export default function TasksPage() {
@@ -97,17 +101,17 @@ export default function TasksPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
 
-  const { start: weekStart, end: weekEnd } = getWeekDates(weekOffset);
+  const { start: weekStart, end: weekEnd, startStr: weekStartStr, endStr: weekEndStr } = getWeekDates(weekOffset);
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
-    const from = weekStart.toISOString();
-    const to = weekEnd.toISOString();
+    const from = `${weekStartStr}T00:00:00`;
+    const to = `${weekEndStr}T23:59:59`;
     const catParam = categoryFilter !== "all" ? `&category=${categoryFilter}` : "";
     const res = await fetch(`/api/tasks?from=${from}&to=${to}${catParam}`);
     if (res.ok) setTasks(await res.json());
     setLoading(false);
-  }, [weekStart.toISOString(), weekEnd.toISOString(), categoryFilter]);
+  }, [weekStartStr, weekEndStr, categoryFilter]);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }

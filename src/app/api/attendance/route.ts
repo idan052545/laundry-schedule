@@ -3,6 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+async function isAuthorized(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return false;
+  return user.name === "אוהד אבדי" || user.role === "admin";
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -39,6 +45,11 @@ export async function POST(request: Request) {
   }
 
   const markedById = (session.user as { id: string }).id;
+
+  if (!(await isAuthorized(markedById))) {
+    return NextResponse.json({ error: "רק אוהד אבדי יכול לסמן נוכחות" }, { status: 403 });
+  }
+
   const { userId, date, session: sessionName, present } = await request.json();
 
   const attendance = await prisma.attendance.upsert({

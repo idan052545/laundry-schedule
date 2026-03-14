@@ -66,10 +66,10 @@ export default function UsersWallPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/users-wall?team=${teamFilter}`);
+    const res = await fetch("/api/users-wall?team=all");
     if (res.ok) setUsers(await res.json());
     setLoading(false);
-  }, [teamFilter]);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
@@ -80,11 +80,13 @@ export default function UsersWallPage() {
     return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
   }
 
-  const filteredUsers = users.filter((u) =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.roomNumber?.includes(searchQuery) ||
-    u.phone?.includes(searchQuery)
-  );
+  const filteredUsers = users.filter((u) => {
+    const matchesTeam = teamFilter === "all" || u.team === parseInt(teamFilter);
+    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.roomNumber?.includes(searchQuery) ||
+      u.phone?.includes(searchQuery);
+    return matchesTeam && matchesSearch;
+  });
 
   const teams = [14, 15, 16, 17];
   const teamStats = teams.map((team) => ({

@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { MdCheckCircle, MdCancel, MdGroup } from "react-icons/md";
+import { MdCheckCircle, MdCancel, MdGroup, MdAdd, MdDelete, MdLock } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
 interface UserWithAttendance {
@@ -15,11 +15,11 @@ interface UserWithAttendance {
   attendance: { id: string; present: boolean } | null;
 }
 
-const SESSIONS = [
-  { value: "morning", label: "בוקר" },
-  { value: "afternoon", label: "צהריים" },
-  { value: "evening", label: "ערב" },
-];
+interface AttSession {
+  id: string;
+  name: string;
+  date: string;
+}
 
 const TEAM_COLORS: Record<number, string> = {
   14: "border-red-400 bg-red-50",
@@ -36,39 +36,115 @@ const TEAM_NAMES: Record<number, string> = {
 };
 
 export default function AttendancePage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [users, setUsers] = useState<UserWithAttendance[]>([]);
+  const [sessions, setSessions] = useState<AttSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-  const [selectedSession, setSelectedSession] = useState("morning");
+  const [selectedSession, setSelectedSession] = useState("");
+  const [newSessionName, setNewSessionName] = useState("");
+  const [showNewSession, setShowNewSession] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
 
+  const userName = session?.user?.name || "";
+  const isOhad = userName === "אוהד אבדי" ||
+    (session?.user && (session.user as { id?: string }).id &&
+      users.length > 0 && false); // fallback check via role
+  const userId = session?.user ? (session.user as { id: string }).id : null;
+
+  // Check if current user is authorized (אוהד or admin)
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  const fetchSessions = useCallback(async () => {
+    const res = await fetch(`/api/attendance-sessions?date=${selectedDate}`);
+    if (res.ok) {
+      const data = await res.json();
+      setSessions(data);
+      if (data.length > 0) {
+        setSelectedSession((prev) => prev || data[data.length - 1].name);
+      }
+    }
+  }, [selectedDate]);
+
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    if (!selectedSession) { setLoading(false); return; }
     const res = await fetch(`/api/attendance?date=${selectedDate}&session=${selectedSession}`);
     if (res.ok) setUsers(await res.json());
     setLoading(false);
   }, [selectedDate, selectedSession]);
 
+  const checkAuth = useCallback(async () => {
+    const res = await fetch("/api/user");
+    if (res.ok) {
+      const data = await res.json();
+      // Check by trying to see if this user can create sessions
+      const user = await fetch("/api/users-wall?team=all");
+      if (user.ok) {
+        const allUsers = await user.json();
+        const me = allUsers.find((u: { id: string }) => u.id === data.id);
+        setIsAuthorized(me?.name === "אוהד אבדי" || me?.role === "admin");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated") fetchData();
-  }, [status, router, fetchData]);
+    if (status === "authenticated") { fetchSessions(); checkAuth(); }
+  }, [status, router, fetchSessions, checkAuth]);
 
-  const toggleAttendance = async (userId: string, currentPresent: boolean | null) => {
-    setUpdating(userId);
+  useEffect(() => {
+    if (selectedSession) fetchData();
+  }, [selectedSession, fetchData]);
+
+  const createSession = async () => {
+    if (!newSessionName.trim()) return;
+    const res = await fetch("/api/attendance-sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newSessionName.trim(), date: selectedDate }),
+    });
+    if (res.ok) {
+      setSelectedSession(newSessionName.trim());
+      setNewSessionName("");
+      setShowNewSession(false);
+      await fetchSessions();
+      await fetchData();
+    } else {
+      const err = await res.json();
+      alert(err.error || "שגיאה");
+    }
+  };
+
+  const deleteSession = async (sess: AttSession) => {
+    if (!confirm(`למחוק מצל "${sess.name}"?`)) return;
+    await fetch(`/api/attendance-sessions?id=${sess.id}`, { method: "DELETE" });
+    setSessions((prev) => prev.filter((s) => s.id !== sess.id));
+    if (selectedSession === sess.name) {
+      setSelectedSession(sessions.length > 1 ? sessions[0].name : "");
+    }
+  };
+
+  const toggleAttendance = async (uid: string, currentPresent: boolean | null) => {
+    if (!isAuthorized) return;
+    const newPresent = currentPresent === null ? true : !currentPresent;
+
+    // Optimistic update
+    setUsers((prev) => prev.map((u) =>
+      u.id === uid ? { ...u, attendance: { id: u.attendance?.id || "temp", present: newPresent } } : u
+    ));
+    setUpdating(uid);
+
     await fetch("/api/attendance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId,
+        userId: uid,
         date: selectedDate,
         session: selectedSession,
-        present: currentPresent === null ? true : !currentPresent,
+        present: newPresent,
       }),
     });
-    await fetchData();
     setUpdating(null);
   };
 
@@ -82,87 +158,132 @@ export default function AttendancePage() {
     const present = teamUsers.filter((u) => u.attendance?.present).length;
     return { team, total: teamUsers.length, present };
   });
-
   const totalPresent = users.filter((u) => u.attendance?.present).length;
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-dotan-green-dark mb-6">מצל - נוכחות</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-4 sm:mb-6">מצל - נוכחות</h1>
 
       {/* Controls */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint mb-6 flex flex-wrap gap-4 items-center">
-        <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none" />
-        <div className="flex gap-2">
-          {SESSIONS.map(({ value, label }) => (
-            <button key={value} onClick={() => setSelectedSession(value)}
-              className={`px-4 py-2 rounded-lg transition font-medium ${
-                selectedSession === value ? "bg-dotan-green-dark text-white" : "bg-dotan-mint-light text-gray-700 hover:bg-dotan-mint"
-              }`}>
-              {label}
+      <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-dotan-mint mb-4 sm:mb-6 space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setSelectedSession(""); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm" />
+
+          {isAuthorized && (
+            <button onClick={() => setShowNewSession(!showNewSession)}
+              className="bg-dotan-green-dark text-white px-3 py-2 rounded-lg hover:bg-dotan-green transition text-sm font-medium flex items-center gap-1">
+              <MdAdd /> פתח מצל חדש
             </button>
-          ))}
+          )}
         </div>
-      </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint text-center">
-          <div className="text-2xl font-bold text-dotan-green-dark">{totalPresent}/{users.length}</div>
-          <div className="text-xs text-gray-500">סה&quot;כ</div>
-        </div>
-        {teamStats.map(({ team, total, present }) => (
-          <div key={team} className={`p-4 rounded-xl shadow-sm border-2 text-center ${TEAM_COLORS[team]}`}>
-            <div className="text-2xl font-bold">{present}/{total}</div>
-            <div className="text-xs text-gray-600">{TEAM_NAMES[team]}</div>
+        {showNewSession && isAuthorized && (
+          <div className="flex gap-2 items-center">
+            <input type="text" value={newSessionName} onChange={(e) => setNewSessionName(e.target.value)}
+              placeholder="שם המצל (למשל: מסדר בוקר, שיעור 3...)"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-dotan-green" />
+            <button onClick={createSession}
+              className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-dotan-green transition">צור</button>
           </div>
-        ))}
+        )}
+
+        {/* Session tabs */}
+        {sessions.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {sessions.map((sess) => (
+              <div key={sess.id} className="flex items-center">
+                <button onClick={() => setSelectedSession(sess.name)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                    selectedSession === sess.name ? "bg-dotan-green-dark text-white" : "bg-dotan-mint-light text-gray-700 hover:bg-dotan-mint"
+                  }`}>
+                  {sess.name}
+                </button>
+                {isAuthorized && (
+                  <button onClick={() => deleteSession(sess)} className="text-red-400 hover:text-red-600 mr-0.5 text-xs"><MdDelete /></button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isAuthorized && (
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <MdLock /> רק אוהד אבדי יכול לפתוח ולנהל מצלים
+          </div>
+        )}
       </div>
 
-      {/* Teams */}
-      {teams.map((team) => {
-        const teamUsers = users.filter((u) => u.team === team);
-        if (teamUsers.length === 0) return null;
+      {sessions.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          <MdGroup className="text-5xl mx-auto mb-4 text-gray-300" />
+          <p>אין מצלים ליום זה</p>
+          {isAuthorized && <p className="text-sm mt-2">לחץ &quot;פתח מצל חדש&quot; כדי להתחיל</p>}
+        </div>
+      )}
 
-        return (
-          <div key={team} className="mb-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <MdGroup className="text-dotan-green" />
-              {TEAM_NAMES[team]}
-              <span className="text-sm font-normal text-gray-500">
-                ({teamUsers.filter((u) => u.attendance?.present).length}/{teamUsers.length})
-              </span>
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {teamUsers.map((user) => {
-                const isPresent = user.attendance?.present ?? null;
-                const isUpdating = updating === user.id;
-
-                return (
-                  <button key={user.id} onClick={() => toggleAttendance(user.id, isPresent)}
-                    disabled={isUpdating}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition text-right ${
-                      isPresent === true ? "bg-dotan-mint-light border-dotan-green"
-                      : isPresent === false ? "bg-red-50 border-red-300"
-                      : "bg-white border-gray-200 hover:border-gray-300"
-                    } ${isUpdating ? "opacity-50" : ""}`}>
-                    <Avatar name={user.name} image={user.image} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-800 text-sm truncate">{user.name}</div>
-                      {user.roomNumber && <div className="text-xs text-gray-500">חדר {user.roomNumber}</div>}
-                    </div>
-                    <div className="text-xl">
-                      {isPresent === true ? <MdCheckCircle className="text-dotan-green" />
-                      : isPresent === false ? <MdCancel className="text-red-500" />
-                      : <div className="w-5 h-5 rounded-full border-2 border-gray-300" />}
-                    </div>
-                  </button>
-                );
-              })}
+      {selectedSession && sessions.length > 0 && (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-dotan-mint text-center">
+              <div className="text-xl sm:text-2xl font-bold text-dotan-green-dark">{totalPresent}/{users.length}</div>
+              <div className="text-xs text-gray-500">סה&quot;כ</div>
             </div>
+            {teamStats.map(({ team, total, present }) => (
+              <div key={team} className={`p-3 sm:p-4 rounded-xl shadow-sm border-2 text-center ${TEAM_COLORS[team]}`}>
+                <div className="text-xl sm:text-2xl font-bold">{present}/{total}</div>
+                <div className="text-xs text-gray-600">{TEAM_NAMES[team]}</div>
+              </div>
+            ))}
           </div>
-        );
-      })}
+
+          {/* Teams */}
+          {teams.map((team) => {
+            const teamUsers = users.filter((u) => u.team === team);
+            if (teamUsers.length === 0) return null;
+
+            return (
+              <div key={team} className="mb-4 sm:mb-6">
+                <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-2 sm:mb-3 flex items-center gap-2">
+                  <MdGroup className="text-dotan-green" />
+                  {TEAM_NAMES[team]}
+                  <span className="text-sm font-normal text-gray-500">
+                    ({teamUsers.filter((u) => u.attendance?.present).length}/{teamUsers.length})
+                  </span>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {teamUsers.map((user) => {
+                    const isPresent = user.attendance?.present ?? null;
+                    const isUpdating = updating === user.id;
+
+                    return (
+                      <button key={user.id} onClick={() => toggleAttendance(user.id, isPresent)}
+                        disabled={isUpdating || !isAuthorized}
+                        className={`flex items-center gap-3 p-3 rounded-lg border-2 transition text-right ${
+                          isPresent === true ? "bg-dotan-mint-light border-dotan-green"
+                          : isPresent === false ? "bg-red-50 border-red-300"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                        } ${isUpdating ? "opacity-50" : ""} ${!isAuthorized ? "cursor-default" : ""}`}>
+                        <Avatar name={user.name} image={user.image} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-800 text-sm truncate">{user.name}</div>
+                          {user.roomNumber && <div className="text-xs text-gray-500">חדר {user.roomNumber}</div>}
+                        </div>
+                        <div className="text-xl">
+                          {isPresent === true ? <MdCheckCircle className="text-dotan-green" />
+                          : isPresent === false ? <MdCancel className="text-red-500" />
+                          : <div className="w-5 h-5 rounded-full border-2 border-gray-300" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
