@@ -22,13 +22,15 @@ export default function Home() {
       <div className="text-center max-w-lg">
         {/* Main logo */}
         <div className="flex items-center justify-center mb-8">
-          <Image
-            src="/dotanLogo.png"
-            alt="פלוגת דותן"
-            width={140}
-            height={140}
-            className="rounded-full shadow-xl border-4 border-white"
-          />
+          <div className="w-[140px] h-[140px] rounded-full shadow-xl border-4 border-white overflow-hidden">
+            <Image
+              src="/dotanLogo.png"
+              alt="פלוגת דותן"
+              width={140}
+              height={140}
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
 
         {/* Side logos */}

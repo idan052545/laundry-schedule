@@ -68,7 +68,9 @@ export default function DashboardPage() {
     <div>
       {/* Header */}
       <div className="mb-8 flex items-center gap-4">
-        <Image src="/dotanLogo.png" alt="דותן" width={56} height={56} className="rounded-full shadow" />
+        <div className="w-14 h-14 rounded-full shadow overflow-hidden shrink-0">
+          <Image src="/dotanLogo.png" alt="דותן" width={56} height={56} className="w-full h-full object-cover" />
+        </div>
         <div>
           <h1 className="text-3xl font-bold text-dotan-green-dark">
             שלום, {session?.user?.name}!

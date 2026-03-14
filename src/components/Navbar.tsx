@@ -27,7 +27,9 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <Image src="/dotanLogo.png" alt="פלוגת דותן" width={40} height={40} className="rounded-full" />
+            <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+              <Image src="/dotanLogo.png" alt="פלוגת דותן" width={40} height={40} className="w-full h-full object-cover" />
+            </div>
             <span className="text-lg font-bold hidden sm:block">פלוגת דותן</span>
           </Link>
 
