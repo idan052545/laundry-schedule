@@ -58,21 +58,27 @@ function formatDate(dateStr: string): string {
   return `${d.getDate()} ${MONTHS_HE[d.getMonth()]}`;
 }
 
+function toLocalKey(d: Date): string {
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
+}
+
+const TODAY_KEY = toLocalKey(new Date());
+const TOMORROW_KEY = (() => { const t = new Date(); t.setDate(t.getDate() + 1); return toLocalKey(t); })();
+
 function isToday(dateStr: string): boolean {
-  const d = new Date(dateStr);
-  const today = new Date();
-  return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  return toLocalKey(new Date(dateStr)) === TODAY_KEY;
 }
 
 function isTomorrow(dateStr: string): boolean {
-  const d = new Date(dateStr);
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return d.getDate() === tomorrow.getDate() && d.getMonth() === tomorrow.getMonth() && d.getFullYear() === tomorrow.getFullYear();
+  return toLocalKey(new Date(dateStr)) === TOMORROW_KEY;
 }
 
 function isPast(dateStr: string): boolean {
   return new Date(dateStr) < new Date();
+}
+
+function isTodayKey(dateKey: string): boolean {
+  return dateKey === TODAY_KEY;
 }
 
 function getWeekDates(offset: number): { start: Date; end: Date; startStr: string; endStr: string } {
@@ -122,16 +128,19 @@ export default function TasksPage() {
     return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
   }
 
-  // Group tasks by day for week view
+  // Group tasks by day for week view (use local dates, not UTC)
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const toLocalDateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
   const tasksByDay: Record<string, Task[]> = {};
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
-    const key = d.toISOString().split("T")[0];
+    const key = toLocalDateStr(d);
     tasksByDay[key] = [];
   }
   tasks.forEach((task) => {
-    const key = new Date(task.startDate).toISOString().split("T")[0];
+    const key = toLocalDateStr(new Date(task.startDate));
     if (tasksByDay[key]) tasksByDay[key].push(task);
   });
 
@@ -248,7 +257,7 @@ export default function TasksPage() {
           {Object.entries(tasksByDay).map(([dateKey, dayTasks]) => {
             const d = new Date(dateKey + "T12:00:00");
             const dayIndex = d.getDay();
-            const today = isToday(dateKey + "T12:00:00");
+            const today = isTodayKey(dateKey);
 
             return (
               <div key={dateKey} className={`bg-white rounded-xl border overflow-hidden ${today ? "border-dotan-gold border-2 shadow-md" : "border-gray-200"}`}>

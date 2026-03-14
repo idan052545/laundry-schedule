@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { sendPushToAll } from "@/lib/push";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -64,6 +65,14 @@ export async function POST(request: Request) {
   });
 
   const { fileData: _, ...result } = material;
+
+  sendPushToAll({
+    title: "חומר מקצועי חדש",
+    body: title,
+    url: "/materials",
+    tag: `material-${material.id}`,
+  }, userId).catch(() => {});
+
   return NextResponse.json({ ...result, hasFile: true });
 }
 
