@@ -8,6 +8,7 @@ async function main() {
     select: {
       name: true,
       email: true,
+      personalId: true,
       team: true,
       roomNumber: true,
       phone: true,
@@ -20,7 +21,7 @@ async function main() {
   const data = users.map((u) => ({
     "שם": u.name,
     "אימייל (שם משתמש)": u.email,
-    "סיסמה": "123456",
+    "סיסמה (מספר אישי)": u.personalId || "dotan2026",
     "צוות": u.team,
     "חדר": u.roomNumber,
     "טלפון": u.phone,
