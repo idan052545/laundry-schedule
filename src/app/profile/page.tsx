@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
+import Avatar from "@/components/Avatar";
 
 interface UserProfile {
   id: string;
@@ -104,19 +104,8 @@ export default function ProfilePage() {
       <div className="bg-white p-8 rounded-2xl shadow-sm border">
         {/* Avatar */}
         <div className="flex flex-col items-center mb-8">
-          <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-200 mb-4">
-            {user?.image ? (
-              <Image
-                src={user.image}
-                alt="תמונת פרופיל"
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-5xl text-gray-400">
-                👤
-              </div>
-            )}
+          <div className="mb-4">
+            <Avatar name={user?.name || ""} image={user?.image} size="lg" />
           </div>
           <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
             {uploading ? "מעלה..." : "העלה תמונה"}
