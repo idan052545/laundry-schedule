@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   MdDescription, MdAdd, MdClose, MdDelete, MdOpenInNew, MdFilterList,
   MdLink, MdCheckCircle, MdCancel, MdSchedule, MdExpandMore, MdExpandLess,
-  MdWarning,
+  MdWarning, MdNotifications,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -78,6 +78,7 @@ export default function FormsPage() {
   const [sending, setSending] = useState(false);
   const [expandedForm, setExpandedForm] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [reminding, setReminding] = useState<string | null>(null);
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
@@ -146,6 +147,27 @@ export default function FormsPage() {
     if (!confirm("למחוק טופס זה?")) return;
     const res = await fetch(`/api/forms?id=${id}`, { method: "DELETE" });
     if (res.ok) setForms((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleRemind = async (formId: string) => {
+    setReminding(formId);
+    const res = await fetch("/api/forms/remind", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.sent === 0) {
+        alert("כולם כבר הגישו!");
+      } else {
+        alert(`תזכורת נשלחה ל-${data.sent} חיילים`);
+      }
+    } else {
+      const err = await res.json();
+      alert(err.error || "שגיאה");
+    }
+    setReminding(null);
   };
 
   const formatDate = (dateStr: string) =>
@@ -351,12 +373,18 @@ export default function FormsPage() {
                     </div>
                   </div>
 
-                  {/* Delete button for author */}
+                  {/* Author actions */}
                   {form.author.id === userId && (
-                    <button onClick={() => handleDelete(form.id)}
-                      className="mt-3 flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition">
-                      <MdDelete /> מחק טופס
-                    </button>
+                    <div className="mt-3 flex items-center gap-3">
+                      <button onClick={() => handleRemind(form.id)} disabled={reminding === form.id || submittedCount === allUsers.length}
+                        className="flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                        <MdNotifications /> {reminding === form.id ? "שולח..." : `שלח תזכורת (${allUsers.length - submittedCount})`}
+                      </button>
+                      <button onClick={() => handleDelete(form.id)}
+                        className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition">
+                        <MdDelete /> מחק טופס
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
