@@ -94,10 +94,20 @@ export default function FormatsPage() {
     const res = await fetch(`/api/task-formats/${format.id}`);
     if (res.ok) {
       const data = await res.json();
+      const [header, base64] = data.fileData.split(",");
+      const mime = header.match(/:(.*?);/)?.[1] || data.fileType;
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = data.fileData;
+      link.href = blobUrl;
       link.download = data.fileName;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
     }
     setDownloading(null);
   };
