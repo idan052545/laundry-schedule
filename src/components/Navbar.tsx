@@ -9,7 +9,7 @@ import {
   MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout,
   MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService,
   MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook,
-  MdFolder, MdNotifications, MdNewspaper, MdMoreHoriz,
+  MdFolder, MdNotifications, MdNewspaper, MdMoreHoriz, MdBuild,
 } from "react-icons/md";
 import NotificationBell from "./NotificationBell";
 
@@ -50,6 +50,7 @@ export default function Navbar() {
   // Secondary links in "more" dropdown
   const moreLinks = [
     { href: "/commander", label: "מפקדים", icon: MdStar },
+    { href: "/issues", label: "תקלות", icon: MdBuild },
     { href: "/users-wall", label: "חיילים", icon: MdPeople },
     { href: "/materials", label: "חומר מקצועי", icon: MdMenuBook },
     { href: "/formats", label: "פורמטים", icon: MdFolder },

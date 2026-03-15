@@ -16,6 +16,7 @@ import {
   MdMessage,
   MdArrowBack,
   MdCalendarToday,
+  MdBuild,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
@@ -161,6 +162,7 @@ function CommanderPageContent() {
 
   // Individual commander wall
   const commander = commanders.find((c) => c.id === selectedId);
+  const isKlap = commander?.roleTitle?.includes("קלפ");
 
   return (
     <div>
@@ -178,12 +180,20 @@ function CommanderPageContent() {
             </div>
           </div>
         )}
-        {(selectedId === userId || isCommanderUser) && selectedId === userId && (
-          <button onClick={() => setShowForm(!showForm)}
-            className="bg-dotan-green-dark text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 sm:gap-2 text-sm shrink-0">
-            {showForm ? <><MdClose /> סגור</> : <><MdAdd /> פוסט חדש</>}
-          </button>
-        )}
+        <div className="flex gap-2 shrink-0">
+          {isKlap && (
+            <button onClick={() => router.push("/issues")}
+              className="bg-amber-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-600 transition font-medium flex items-center gap-1 sm:gap-2 text-sm">
+              <MdBuild /> תקלות
+            </button>
+          )}
+          {(selectedId === userId || isCommanderUser) && selectedId === userId && (
+            <button onClick={() => setShowForm(!showForm)}
+              className="bg-dotan-green-dark text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 sm:gap-2 text-sm">
+              {showForm ? <><MdClose /> סגור</> : <><MdAdd /> פוסט חדש</>}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Post Form */}
