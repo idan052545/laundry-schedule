@@ -9,7 +9,7 @@ import {
   MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson,
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
-  MdPushPin, MdNewReleases,
+  MdPushPin, MdNewReleases, MdNewspaper,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -85,6 +85,7 @@ export default function DashboardPage() {
     { href: "/forms", icon: MdDescription, title: "טפסים", desc: "קישורים לטפסים שיש למלא", color: "text-indigo-600" },
     { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: 'ל"ע, נהלים וחומרי לימוד', color: "text-rose-600" },
     { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
+    { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", desc: "נושאי דיון יומי לכל חדר", color: "text-emerald-600" },
   ];
 
   const hasFeedItems = feed && (

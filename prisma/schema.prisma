@@ -36,6 +36,7 @@ model User {
   formSubmissions   FormSubmission[] @relation("formSubmissions")
   materials         ProfessionalMaterial[] @relation("materials")
   materialReads     MaterialRead[] @relation("materialReads")
+  aktualiaEntries   AktualiaEntry[] @relation("aktualiaEntries")
   taskFormats       TaskFormat[] @relation("taskFormats")
   pushSubscriptions PushSubscription[]
 }
@@ -207,4 +208,17 @@ model PushSubscription {
   auth      String
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AktualiaEntry {
+  id         String   @id @default(uuid())
+  roomNumber String
+  subject    String
+  date       String   // YYYY-MM-DD, resets daily
+  userId     String
+  createdAt  DateTime @default(now())
+  user       User     @relation("aktualiaEntries", fields: [userId], references: [id])
+
+  @@unique([roomNumber, date])
+  @@unique([userId, date])
 }

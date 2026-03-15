@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
-import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService, MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook, MdFolder, MdNotifications } from "react-icons/md";
+import { MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout, MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService, MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook, MdFolder, MdNotifications, MdNewspaper } from "react-icons/md";
 import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
@@ -23,6 +23,7 @@ export default function Navbar() {
     { href: "/forms", label: "טפסים", icon: MdDescription },
     { href: "/materials", label: "חומר מקצועי", icon: MdMenuBook },
     { href: "/formats", label: "פורמטים", icon: MdFolder },
+    { href: "/aktualia", label: "אקטואליה", icon: MdNewspaper },
     { href: "/notifications", label: "שליחת התראות", icon: MdNotifications },
     { href: "/profile", label: "פרופיל", icon: MdPerson },
   ];

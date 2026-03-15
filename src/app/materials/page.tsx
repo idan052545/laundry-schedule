@@ -286,29 +286,31 @@ export default function MaterialsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
-                    {getFileIcon(material.fileType)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className={`font-bold text-sm truncate ${material.isRead ? "text-gray-500" : "text-gray-800"}`}>{material.title}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${cat.bg} ${cat.color}`}>{cat.label}</span>
-                      {material.isRead && <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-600 border border-green-200 shrink-0">נקרא</span>}
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center shrink-0">
+                      {getFileIcon(material.fileType)}
                     </div>
-                    {material.description && (
-                      <p className="text-xs text-gray-500 line-clamp-1 mb-1">{material.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
-                      <Avatar name={material.author.name} image={material.author.image} size="xs" />
-                      <span>{material.author.name}</span>
-                      <span>| {formatDate(material.createdAt)}</span>
-                      <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{getFileExtension(material.fileName)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <h3 className={`font-bold text-sm ${material.isRead ? "text-gray-500" : "text-gray-800"}`}>{material.title}</h3>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 ${cat.bg} ${cat.color}`}>{cat.label}</span>
+                        {material.isRead && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600 border border-green-200 shrink-0">נקרא</span>}
+                      </div>
+                      {material.description && (
+                        <p className="text-xs text-gray-500 line-clamp-1 mb-1">{material.description}</p>
+                      )}
+                      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 flex-wrap">
+                        <Avatar name={material.author.name} image={material.author.image} size="xs" />
+                        <span>{material.author.name}</span>
+                        <span>| {formatDate(material.createdAt)}</span>
+                        <span className="bg-gray-100 px-1 py-0.5 rounded text-gray-500">{getFileExtension(material.fileName)}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                     <button onClick={() => handleToggleRead(material.id)}
-                      className={`flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg transition ${
+                      className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition ${
                         material.isRead
                           ? "bg-green-100 text-green-700 hover:bg-green-200"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -316,18 +318,18 @@ export default function MaterialsPage() {
                       {material.isRead ? <><MdVisibility /> נקרא</> : <><MdVisibilityOff /> סמן נקרא</>}
                     </button>
                     <button onClick={() => handleDownload(material)} disabled={isDownloading}
-                      className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-2 rounded-lg disabled:opacity-50">
+                      className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-2.5 py-1.5 rounded-lg disabled:opacity-50">
                       <MdDownload /> {isDownloading ? "מוריד..." : "הורד"}
                     </button>
                     {canEdit && (
                       <button onClick={() => startEdit(material)}
-                        className="text-blue-400 hover:text-blue-600 transition p-2 opacity-0 group-hover:opacity-100">
+                        className="text-blue-400 hover:text-blue-600 transition p-1.5">
                         <MdEdit />
                       </button>
                     )}
                     {canEdit && (
                       <button onClick={() => handleDelete(material.id)}
-                        className="text-red-400 hover:text-red-600 transition p-2 opacity-0 group-hover:opacity-100">
+                        className="text-red-400 hover:text-red-600 transition p-1.5">
                         <MdDelete />
                       </button>
                     )}
