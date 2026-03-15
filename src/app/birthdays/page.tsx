@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { MdCake } from "react-icons/md";
+import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
 
 interface UserBirthday {
@@ -77,7 +78,7 @@ export default function BirthdaysPage() {
   }, [status, router, fetchUsers]);
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   // Group by month

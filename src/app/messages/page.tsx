@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MdPushPin, MdDelete, MdAdd, MdClose, MdSend, MdImage, MdPerson, MdInbox } from "react-icons/md";
 import Avatar from "@/components/Avatar";
+import { InlineLoading } from "@/components/LoadingScreen";
 
 interface Assignee {
   id: string;
@@ -120,7 +121,7 @@ export default function MessagesPage() {
   );
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   return (

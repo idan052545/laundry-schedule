@@ -7,6 +7,7 @@ import {
   MdCalendarMonth, MdChevronRight, MdChevronLeft, MdAdd,
   MdEdit, MdDelete, MdFilterList, MdToday,
 } from "react-icons/md";
+import { InlineLoading } from "@/components/LoadingScreen";
 import { TYPE_CONFIG } from "./constants";
 import { ScheduleEvent, UserOption, EventFormData } from "./types";
 import { formatTime, formatDateDisplay, toISO, getDurationMin, isEventNow, groupTimedEvents } from "./utils";
@@ -253,7 +254,7 @@ export default function ScheduleDailyPage() {
   };
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   return (

@@ -18,6 +18,7 @@ import {
   MdCalendarToday,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
+import { InlineLoading } from "@/components/LoadingScreen";
 
 interface Commander {
   id: string;
@@ -118,7 +119,7 @@ function CommanderPageContent() {
   };
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   // Commander list view
@@ -288,7 +289,7 @@ function CommanderPageContent() {
 
 export default function CommanderPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>}>
+    <Suspense fallback={<InlineLoading />}>
       <CommanderPageContent />
     </Suspense>
   );

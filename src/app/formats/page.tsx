@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { MdFolder, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdArticle } from "react-icons/md";
+import { InlineLoading } from "@/components/LoadingScreen";
 import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
 
@@ -157,7 +158,7 @@ export default function FormatsPage() {
   const filtered = filter === "all" ? formats : formats.filter((f) => f.category === filter);
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   return (

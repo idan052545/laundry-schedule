@@ -1,5 +1,6 @@
 "use client";
 
+import { InlineLoading } from "@/components/LoadingScreen";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
@@ -107,11 +108,7 @@ export default function SchedulePage() {
   });
 
   if (status === "loading" || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-xl text-gray-500">טוען...</div>
-      </div>
-    );
+    return <InlineLoading />;
   }
 
   return (

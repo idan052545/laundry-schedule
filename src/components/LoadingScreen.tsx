@@ -57,5 +57,29 @@ export default function LoadingScreen() {
   );
 }
 
-// Preload the model
+/** Lightweight inline loading — spinning logo + dots, no three.js */
+export function InlineLoading() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5">
+      <div className="relative w-20 h-20">
+        {/* Spinning ring */}
+        <div className="absolute inset-0 rounded-full border-4 border-gray-200" />
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-dotan-green animate-spin" />
+        {/* Logo in center */}
+        <div className="absolute inset-2 rounded-full overflow-hidden bg-white flex items-center justify-center">
+          <img src="/dotanLogo.png" alt="" className="w-10 h-10 object-cover" />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1">
+          <span className="w-1.5 h-1.5 bg-dotan-green rounded-full animate-bounce [animation-delay:0ms]" />
+          <span className="w-1.5 h-1.5 bg-dotan-green rounded-full animate-bounce [animation-delay:150ms]" />
+          <span className="w-1.5 h-1.5 bg-dotan-green rounded-full animate-bounce [animation-delay:300ms]" />
+        </div>
+        <span className="text-sm text-gray-400 font-medium">טוען...</span>
+      </div>
+    </div>
+  );
+}
+
 useGLTF.preload("/loading-model.glb");

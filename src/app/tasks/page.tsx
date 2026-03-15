@@ -14,6 +14,7 @@ import {
   MdFlag,
   MdFilterList,
 } from "react-icons/md";
+import { InlineLoading } from "@/components/LoadingScreen";
 
 interface Task {
   id: string;
@@ -125,7 +126,7 @@ export default function TasksPage() {
   }, [status, router, fetchTasks]);
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   // Group tasks by day for week view (use local dates, not UTC)

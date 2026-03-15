@@ -8,6 +8,7 @@ import {
   MdMeetingRoom, MdWarning,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
+import { InlineLoading } from "@/components/LoadingScreen";
 
 interface AktualiaEntry {
   id: string;
@@ -95,7 +96,7 @@ export default function AktualiaPage() {
   const missingRooms = allRooms.filter((r) => !filledRooms.has(r));
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   return (

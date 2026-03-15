@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { InlineLoading } from "@/components/LoadingScreen";
 import {
   MdPeople,
   MdGroup,
@@ -80,7 +81,7 @@ export default function UsersWallPage() {
   }, [status, router, fetchUsers]);
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   const filteredUsers = users.filter((u) => {

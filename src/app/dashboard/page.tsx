@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { InlineLoading } from "@/components/LoadingScreen";
 import Image from "next/image";
 import {
   MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson,
@@ -73,7 +74,7 @@ export default function DashboardPage() {
   };
 
   if (status === "loading" || loading) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   const features = [

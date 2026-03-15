@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { MdCheckCircle, MdCancel, MdGroup, MdAdd, MdDelete, MdLock, MdFactCheck } from "react-icons/md";
 import Avatar from "@/components/Avatar";
+import { InlineLoading } from "@/components/LoadingScreen";
 
 interface UserWithAttendance {
   id: string;
@@ -146,7 +147,7 @@ export default function AttendancePage() {
 
   // Show loading only during initial load
   if (status === "loading" || (loading && !sessionsLoaded)) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><div className="text-xl text-gray-500">טוען...</div></div>;
+    return <InlineLoading />;
   }
 
   const teams = [14, 15, 16, 17];
