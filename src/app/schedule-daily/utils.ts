@@ -18,12 +18,16 @@ export const isEventNow = (event: ScheduleEvent, isToday: boolean) => {
   return now >= new Date(event.startTime).getTime() && now <= new Date(event.endTime).getTime();
 };
 
+const MAX_GROUP_SIZE = 2;
+
 export const groupTimedEvents = (timedEvents: ScheduleEvent[]): TimedGroup[] => {
   const groups: TimedGroup[] = [];
   timedEvents.forEach((event, idx) => {
     const evStart = new Date(event.startTime).getTime();
     const evEnd = new Date(event.endTime).getTime();
+    // Find an overlapping group that still has room
     const group = groups.find((g) => {
+      if (g.events.length >= MAX_GROUP_SIZE) return false;
       const gStart = new Date(g.startTime).getTime();
       const gEnd = new Date(g.endTime).getTime();
       return evStart < gEnd && evEnd > gStart;
