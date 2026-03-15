@@ -10,6 +10,7 @@ import {
   MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService,
   MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook,
   MdFolder, MdNotifications, MdNewspaper, MdMoreHoriz, MdBuild,
+  MdPoll, MdEmojiEvents,
 } from "react-icons/md";
 import NotificationBell from "./NotificationBell";
 
@@ -51,6 +52,8 @@ export default function Navbar() {
   const moreLinks = [
     { href: "/commander", label: "מפקדים", icon: MdStar },
     { href: "/issues", label: "תקלות", icon: MdBuild },
+    { href: "/surveys", label: "סקרים", icon: MdPoll },
+    { href: "/person-of-week", label: "איש השבוע", icon: MdEmojiEvents },
     { href: "/users-wall", label: "חיילים", icon: MdPeople },
     { href: "/materials", label: "חומר מקצועי", icon: MdMenuBook },
     { href: "/formats", label: "פורמטים", icon: MdFolder },

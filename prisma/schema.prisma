@@ -40,6 +40,13 @@ model User {
   scheduleAssignees ScheduleAssignee[] @relation("scheduleAssignees")
   taskFormats       TaskFormat[] @relation("taskFormats")
   pushSubscriptions PushSubscription[]
+  issuesCreated     Issue[]        @relation("issueCreator")
+  issuesAssigned    IssueAssignee[] @relation("issueAssignees")
+  issueComments     IssueComment[] @relation("issueComments")
+  surveysCreated    Survey[]       @relation("surveyCreator")
+  surveyResponses   SurveyResponse[] @relation("surveyResponses")
+  weeklyVotesCast   WeeklyVote[]   @relation("weeklyVoter")
+  weeklyVotesReceived WeeklyVote[] @relation("weeklyNominee")
 }
 
 model Machine {
@@ -249,4 +256,84 @@ model ScheduleAssignee {
   user      User          @relation("scheduleAssignees", fields: [userId], references: [id])
 
   @@unique([eventId, userId])
+}
+
+model Issue {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  status      String   @default("new") // "new", "open", "urgent", "closed"
+  location    String?  // מיקום
+  imageUrl    String?  // תמונה של הפורמט/תקלה
+  companion   String?  // מלווה שם
+  companionPhone String? // מלווה טלפון
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User     @relation("issueCreator", fields: [createdById], references: [id])
+  assignees   IssueAssignee[]
+  comments    IssueComment[]
+}
+
+model IssueAssignee {
+  id      String @id @default(uuid())
+  issueId String
+  userId  String
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user    User   @relation("issueAssignees", fields: [userId], references: [id])
+
+  @@unique([issueId, userId])
+}
+
+model IssueComment {
+  id        String   @id @default(uuid())
+  issueId   String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation("issueComments", fields: [userId], references: [id])
+}
+
+// ─── Team Surveys (סקרים) ───
+
+model Survey {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  team        Int      // which team (14-17) — only that team sees it
+  type        String   // "yes_no", "single", "multi"
+  options     String?  // JSON array of options for single/multi, null for yes_no
+  status      String   @default("active") // "active", "closed"
+  createdById String
+  createdAt   DateTime @default(now())
+  createdBy   User     @relation("surveyCreator", fields: [createdById], references: [id])
+  responses   SurveyResponse[]
+}
+
+model SurveyResponse {
+  id        String   @id @default(uuid())
+  surveyId  String
+  userId    String
+  answer    String   // JSON: "yes"/"no" for yes_no, "[0,2]" for multi, "1" for single
+  createdAt DateTime @default(now())
+  survey    Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user      User     @relation("surveyResponses", fields: [userId], references: [id])
+
+  @@unique([surveyId, userId])
+}
+
+// ─── Person of the Week (איש של השבוע) ───
+
+model WeeklyVote {
+  id         String   @id @default(uuid())
+  week       String   // ISO week string e.g. "2026-W11"
+  voterId    String
+  nomineeId  String
+  reason     String?
+  createdAt  DateTime @default(now())
+  voter      User     @relation("weeklyVoter", fields: [voterId], references: [id])
+  nominee    User     @relation("weeklyNominee", fields: [nomineeId], references: [id])
+
+  @@unique([week, voterId]) // one vote per user per week
 }
