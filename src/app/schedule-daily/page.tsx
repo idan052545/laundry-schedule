@@ -258,7 +258,7 @@ export default function ScheduleDailyPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto overflow-hidden">
+    <div className="max-w-2xl mx-auto">
       {/* Header */}
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-2 flex items-center gap-3">
         <MdCalendarMonth className="text-dotan-green" />
@@ -354,8 +354,8 @@ export default function ScheduleDailyPage() {
           const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
 
           return (
-            <div key={groupIdx} className="flex gap-3 mb-0">
-              <div className="w-14 shrink-0 text-left pt-3">
+            <div key={groupIdx} className="flex gap-2 mb-0 min-w-0">
+              <div className="w-12 shrink-0 text-left pt-3">
                 <div className="text-xs font-bold text-gray-800">{groupStartTime}</div>
                 <div className="text-[10px] text-gray-400">{groupEndTime}</div>
               </div>
@@ -366,7 +366,7 @@ export default function ScheduleDailyPage() {
                 )}
               </div>
               {isSingle ? (
-                <div className="flex-1 mb-2">
+                <div className="flex-1 mb-2 min-w-0">
                   <EventCard
                     event={group.events[0].event} idx={group.events[0].idx} compact={false}
                     isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
