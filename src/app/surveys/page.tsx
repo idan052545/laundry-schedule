@@ -15,6 +15,7 @@ interface User {
   id: string;
   name: string;
   image: string | null;
+  team?: number | null;
 }
 
 interface SurveyResponse {
@@ -50,16 +51,19 @@ export default function SurveysPage() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
   const [userTeam, setUserTeam] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [reminding, setReminding] = useState(false);
+  const [scope, setScope] = useState<"all" | "team" | "platoon">("all");
 
   // Form state
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formType, setFormType] = useState("yes_no");
   const [formOptions, setFormOptions] = useState(["", ""]);
+  const [formPlatoon, setFormPlatoon] = useState(false);
   const [sending, setSending] = useState(false);
 
   // Edit state
@@ -68,18 +72,23 @@ export default function SurveysPage() {
   const [editDesc, setEditDesc] = useState("");
   const [editOptions, setEditOptions] = useState<string[]>([]);
 
+  // Team filter for detail view
+  const [detailTeamFilter, setDetailTeamFilter] = useState<number | null>(null);
+
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
   const fetchSurveys = useCallback(async () => {
-    const res = await fetch("/api/surveys");
+    const scopeParam = scope !== "all" ? `&scope=${scope}` : "";
+    const res = await fetch(`/api/surveys?status=all${scopeParam}`);
     if (res.ok) {
       const data = await res.json();
       setSurveys(data.surveys);
       setTeamMembers(data.teamMembers);
       setUserTeam(data.userTeam);
+      if (data.isAdmin !== undefined) setIsAdmin(data.isAdmin);
     }
     setLoading(false);
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") { router.push("/login"); return; }
@@ -93,10 +102,10 @@ export default function SurveysPage() {
     const res = await fetch("/api/surveys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: formTitle, description: formDesc || null, type: formType, options: opts }),
+      body: JSON.stringify({ title: formTitle, description: formDesc || null, type: formType, options: opts, platoon: formPlatoon }),
     });
     if (res.ok) {
-      setFormTitle(""); setFormDesc(""); setFormType("yes_no"); setFormOptions(["", ""]);
+      setFormTitle(""); setFormDesc(""); setFormType("yes_no"); setFormOptions(["", ""]); setFormPlatoon(false);
       setShowForm(false);
       await fetchSurveys();
     }
@@ -224,7 +233,7 @@ export default function SurveysPage() {
 
   if (authStatus === "loading" || loading) return <InlineLoading />;
 
-  if (!userTeam) {
+  if (!userTeam && !isAdmin) {
     return (
       <div className="max-w-2xl mx-auto text-center py-16 text-gray-400">
         <MdPoll className="text-5xl mx-auto mb-3" />
@@ -324,7 +333,7 @@ export default function SurveysPage() {
                   <span>•</span>
                   <span>{formatDate(selectedSurvey.createdAt)}</span>
                   <span>•</span>
-                  <span>צוות {selectedSurvey.team}</span>
+                  <span>{selectedSurvey.team === 0 ? "כל הפלוגה" : `צוות ${selectedSurvey.team}`}</span>
                 </div>
               </div>
               <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
@@ -424,31 +433,68 @@ export default function SurveysPage() {
             )}
           </div>
 
+          {/* Team filter for platoon surveys */}
+          {selectedSurvey.team === 0 && (() => {
+            const teams = [...new Set(teamMembers.map((m) => m.team).filter((t): t is number => t !== null && t !== undefined))].sort();
+            return teams.length > 1 ? (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-xs text-gray-500 font-medium">סנן לפי צוות:</span>
+                <button onClick={() => setDetailTeamFilter(null)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${!detailTeamFilter ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  הכל
+                </button>
+                {teams.map((t) => (
+                  <button key={t} onClick={() => setDetailTeamFilter(detailTeamFilter === t ? null : t)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${detailTeamFilter === t ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                    צוות {t}
+                  </button>
+                ))}
+              </div>
+            ) : null;
+          })()}
+
           {/* Who responded / didn't */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1"><MdCheckCircle /> ענו ({selectedSurvey.responses.length})</h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {selectedSurvey.responses.map((r) => (
-                  <div key={r.id} className="flex items-center gap-1.5 text-xs">
-                    <Avatar name={r.user.name} image={r.user.image} size="xs" />
-                    <span className="truncate">{r.user.name}</span>
+          {(() => {
+            const filteredResponses = detailTeamFilter
+              ? selectedSurvey.responses.filter((r) => r.user.team === detailTeamFilter)
+              : selectedSurvey.responses;
+            const filteredMembers = detailTeamFilter
+              ? teamMembers.filter((m) => m.team === detailTeamFilter)
+              : teamMembers;
+            const filteredNotResponded = filteredMembers.filter((m) => !respondedIds.has(m.id));
+            return (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1"><MdCheckCircle /> ענו ({filteredResponses.length})</h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {filteredResponses.map((r) => (
+                      <div key={r.id} className="flex items-center gap-1.5 text-xs">
+                        <Avatar name={r.user.name} image={r.user.image} size="xs" />
+                        <span className="truncate">{r.user.name}</span>
+                        {selectedSurvey.team === 0 && r.user.team && !detailTeamFilter && (
+                          <span className="text-[10px] text-gray-400">({r.user.team})</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><MdPerson /> לא ענו ({notResponded.length})</h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {notResponded.map((m) => (
-                  <div key={m.id} className="flex items-center gap-1.5 text-xs text-gray-400">
-                    <Avatar name={m.name} image={m.image} size="xs" />
-                    <span className="truncate">{m.name}</span>
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><MdPerson /> לא ענו ({filteredNotResponded.length})</h4>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {filteredNotResponded.map((m) => (
+                      <div key={m.id} className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <Avatar name={m.name} image={m.image} size="xs" />
+                        <span className="truncate">{m.name}</span>
+                        {selectedSurvey.team === 0 && m.team && !detailTeamFilter && (
+                          <span className="text-[10px]">({m.team})</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Creator actions */}
           {isCreator && (
@@ -486,15 +532,26 @@ export default function SurveysPage() {
   // List view
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <h1 className="text-2xl font-bold text-dotan-green-dark flex items-center gap-2">
           <MdPoll className="text-purple-500" /> סקרים
-          <span className="text-sm font-normal text-gray-400">צוות {userTeam}</span>
         </h1>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-dotan-green-dark text-white px-3 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 text-sm">
           {showForm ? <><MdClose /> סגור</> : <><MdAdd /> סקר חדש</>}
         </button>
+      </div>
+
+      {/* Scope toggle */}
+      <div className="flex gap-1.5 mb-4 bg-gray-100 rounded-lg p-1">
+        {([["all", "הכל"], ["team", `צוות ${userTeam || ""}`], ["platoon", "פלוגה"]] as const).map(([key, label]) => (
+          <button key={key} onClick={() => setScope(key)}
+            className={`flex-1 py-1.5 rounded-md text-sm font-medium transition ${
+              scope === key ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}>
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Create form */}
@@ -548,6 +605,16 @@ export default function SurveysPage() {
             </div>
           )}
 
+          {/* Platoon toggle - only for commanders/admins */}
+          {isAdmin && (
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer bg-purple-50 border border-purple-200 rounded-lg px-3 py-2.5">
+              <input type="checkbox" checked={formPlatoon} onChange={(e) => setFormPlatoon(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+              <span className="font-medium text-purple-700">סקר לכל הפלוגה</span>
+              <span className="text-xs text-purple-400">(כל החיילים יראו)</span>
+            </label>
+          )}
+
           <div className="flex justify-end">
             <button type="submit" disabled={sending}
               className="bg-dotan-green-dark text-white px-5 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
@@ -574,6 +641,9 @@ export default function SurveysPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-bold text-gray-800 text-sm truncate">{survey.title}</h3>
+                    {survey.team === 0 && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 border border-purple-200 shrink-0">פלוגה</span>
+                    )}
                     {survey.status === "closed" && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 shrink-0">סגור</span>
                     )}

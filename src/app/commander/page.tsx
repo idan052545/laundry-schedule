@@ -17,6 +17,7 @@ import {
   MdArrowBack,
   MdCalendarToday,
   MdBuild,
+  MdPoll,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
@@ -163,6 +164,7 @@ function CommanderPageContent() {
   // Individual commander wall
   const commander = commanders.find((c) => c.id === selectedId);
   const isKlap = commander?.roleTitle?.includes("קלפ");
+  const isSimulations = commander?.roleTitle?.includes("סימולציות");
 
   return (
     <div>
@@ -185,6 +187,12 @@ function CommanderPageContent() {
             <button onClick={() => router.push("/issues")}
               className="bg-amber-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-600 transition font-medium flex items-center gap-1 sm:gap-2 text-sm">
               <MdBuild /> תקלות
+            </button>
+          )}
+          {isSimulations && (
+            <button onClick={() => router.push("/surveys")}
+              className="bg-purple-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-600 transition font-medium flex items-center gap-1 sm:gap-2 text-sm">
+              <MdPoll /> סקרים
             </button>
           )}
           {(selectedId === userId || isCommanderUser) && selectedId === userId && (

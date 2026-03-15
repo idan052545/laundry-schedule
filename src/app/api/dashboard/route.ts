@@ -119,19 +119,19 @@ export async function GET() {
       select: { id: true, title: true, type: true },
     }),
 
-    // Pending surveys (active, user's team, not yet responded)
-    user?.team
-      ? prisma.survey.findMany({
-          where: {
-            team: user.team,
-            status: "active",
-            responses: { none: { userId } },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 5,
-          select: { id: true, title: true, createdAt: true },
-        })
-      : Promise.resolve([]),
+    // Pending surveys (active, user's team or platoon-wide, not yet responded)
+    prisma.survey.findMany({
+      where: {
+        OR: user?.team
+          ? [{ team: user.team }, { team: 0 }]
+          : [{ team: 0 }],
+        status: "active",
+        responses: { none: { userId } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, title: true, createdAt: true },
+    }),
   ]);
 
   // Check if user voted this week
