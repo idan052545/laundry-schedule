@@ -19,7 +19,6 @@ export async function POST(request: Request) {
 
   const form = await prisma.formLink.findUnique({
     where: { id: formId },
-    include: { submissions: { select: { userId: true } } },
   });
 
   if (!form) {
@@ -31,9 +30,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "רק יוצר הטופס יכול לשלוח תזכורת" }, { status: 403 });
   }
 
+  // For recurring forms, only check today's submissions
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+
+  const submissions = await prisma.formSubmission.findMany({
+    where: {
+      formId,
+      ...(form.recurring ? { date: todayStr } : {}),
+    },
+    select: { userId: true },
+  });
+
   // Get all users who haven't submitted
   const allUsers = await prisma.user.findMany({ select: { id: true } });
-  const submittedIds = new Set(form.submissions.map((s) => s.userId));
+  const submittedIds = new Set(submissions.map((s) => s.userId));
   const notSubmittedIds = allUsers
     .map((u) => u.id)
     .filter((id) => !submittedIds.has(id));

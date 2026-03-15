@@ -18,9 +18,29 @@ export async function GET() {
     return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
   }
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+
   const forms = await prisma.formLink.findMany({
-    include: formInclude,
+    include: {
+      author: { select: { id: true, name: true, image: true } },
+      submissions: {
+        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        orderBy: { createdAt: "desc" as const },
+      },
+    },
     orderBy: { createdAt: "desc" },
+  });
+
+  // For recurring forms, only show today's submissions
+  const filteredForms = forms.map((form) => {
+    if (form.recurring) {
+      return {
+        ...form,
+        submissions: form.submissions.filter((s) => s.date === todayStr),
+      };
+    }
+    return form;
   });
 
   // Get all users for completion tracking
@@ -29,7 +49,7 @@ export async function GET() {
     orderBy: [{ team: "asc" }, { name: "asc" }],
   });
 
-  return NextResponse.json({ forms, allUsers });
+  return NextResponse.json({ forms: filteredForms, allUsers });
 }
 
 export async function POST(request: Request) {
@@ -81,9 +101,18 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "חסר מזהה טופס" }, { status: 400 });
   }
 
+  // Check if form is recurring
+  const form = await prisma.formLink.findUnique({ where: { id: formId } });
+  if (!form) return NextResponse.json({ error: "טופס לא נמצא" }, { status: 404 });
+
+  const today = new Date();
+  const dateStr = form.recurring
+    ? `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`
+    : null;
+
   // Toggle: if already submitted, remove; if not, add
-  const existing = await prisma.formSubmission.findUnique({
-    where: { formId_userId: { formId, userId } },
+  const existing = await prisma.formSubmission.findFirst({
+    where: { formId, userId, date: dateStr },
   });
 
   if (existing) {
@@ -92,7 +121,7 @@ export async function PUT(request: Request) {
   }
 
   await prisma.formSubmission.create({
-    data: { formId, userId },
+    data: { formId, userId, date: dateStr },
   });
 
   return NextResponse.json({ submitted: true });

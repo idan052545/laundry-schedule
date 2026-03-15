@@ -146,6 +146,8 @@ model FormLink {
   url         String
   category    String   @default("general") // "general", "personnel", "operations", "training", "logistics"
   deadline    String?  // deadline date string YYYY-MM-DD
+  recurring   Boolean  @default(false) // resets submissions daily
+  reminderTime String? // HH:MM — auto-remind at this time daily (e.g. "20:00")
   authorId    String
   createdAt   DateTime @default(now())
   author      User     @relation("formLinks", fields: [authorId], references: [id])
@@ -156,11 +158,12 @@ model FormSubmission {
   id        String   @id @default(uuid())
   formId    String
   userId    String
+  date      String?  // YYYY-MM-DD for recurring forms (null = one-time)
   createdAt DateTime @default(now())
   form      FormLink @relation(fields: [formId], references: [id], onDelete: Cascade)
   user      User     @relation("formSubmissions", fields: [userId], references: [id])
 
-  @@unique([formId, userId])
+  @@unique([formId, userId, date])
 }
 
 model ProfessionalMaterial {

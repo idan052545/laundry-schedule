@@ -63,14 +63,17 @@ export async function GET() {
       select: { id: true, title: true, startDate: true, category: true },
     }),
 
-    // Forms user hasn't submitted
+    // Forms user hasn't submitted (non-recurring: never submitted, recurring: not submitted today)
     prisma.formLink.findMany({
       where: {
-        submissions: { none: { userId } },
+        OR: [
+          { recurring: false, submissions: { none: { userId } } },
+          { recurring: true, submissions: { none: { userId, date: todayStr } } },
+        ],
       },
       orderBy: { createdAt: "desc" },
       take: 5,
-      select: { id: true, title: true, deadline: true },
+      select: { id: true, title: true, deadline: true, recurring: true },
     }),
 
     // Birthdays today
