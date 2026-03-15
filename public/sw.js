@@ -33,18 +33,20 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const url = event.notification.data?.url || "/dashboard";
+  const fullUrl = new URL(url, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      // Focus existing tab if open
+      // If app is already open, navigate it
       for (const client of clients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.navigate(url);
+        if (client.url.includes(self.location.origin)) {
+          // Post message so the app can navigate via router
+          client.postMessage({ type: "NOTIFICATION_CLICK", url });
           return client.focus();
         }
       }
-      // Open new tab
-      return self.clients.openWindow(url);
+      // No open tab — open new window
+      return self.clients.openWindow(fullUrl);
     })
   );
 });

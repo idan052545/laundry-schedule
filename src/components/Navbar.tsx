@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   MdMenu, MdClose, MdHome, MdCalendarMonth, MdPerson, MdLogout,
   MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService,
@@ -20,12 +20,25 @@ export default function Navbar() {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Close mobile menu on route change
   useEffect(() => {
     setMenuOpen(false);
     setMoreOpen(false);
   }, [pathname]);
+
+  // Listen for service worker notification click messages
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "NOTIFICATION_CLICK" && event.data.url) {
+        router.push(event.data.url);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handler);
+    return () => navigator.serviceWorker.removeEventListener("message", handler);
+  }, [router]);
 
   // Close "more" dropdown on outside click
   useEffect(() => {
