@@ -73,6 +73,9 @@ export default function ScheduleDailyPage() {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const dragCounter = useRef(0);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchActive = useRef(false);
+  const dragGhost = useRef<HTMLDivElement | null>(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -244,7 +247,9 @@ export default function ScheduleDailyPage() {
   };
 
   // Drag & drop with smart time shifting
-  const handleDragStart = (idx: number) => {
+  const handleDragStart = (idx: number, e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(idx));
     setDragIdx(idx);
   };
 
@@ -260,20 +265,19 @@ export default function ScheduleDailyPage() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = async (dropIdx: number) => {
-    dragCounter.current = 0;
-    setDragOverIdx(null);
-    if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); return; }
+  const executeDrop = async (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
 
-    // Reorder: move dragIdx item to dropIdx position
+    // Reorder: move fromIdx item to toIdx position
     const reordered = [...timedEvents];
-    const [moved] = reordered.splice(dragIdx, 1);
-    reordered.splice(dropIdx, 0, moved);
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
 
     // Smart time shifting: chain events sequentially from the first affected position
-    const startIdx = Math.min(dragIdx, dropIdx);
+    const startIdx = Math.min(fromIdx, toIdx);
     const updates: { id: string; startTime: string; endTime: string }[] = [];
 
     for (let i = startIdx; i < reordered.length; i++) {
@@ -282,18 +286,13 @@ export default function ScheduleDailyPage() {
 
       let newStart: Date;
       if (i === 0) {
-        // First event keeps its original start, unless it was moved
-        if (i >= startIdx && i !== dragIdx) {
-          newStart = new Date(reordered[0].startTime);
-        } else {
-          newStart = new Date(ev.startTime);
-        }
+        newStart = new Date(ev.startTime);
       } else {
         // Start right after previous event ends
-        const prevEnd = updates.length > 0 && updates[updates.length - 1]
-          ? new Date(updates[updates.length - 1].endTime)
+        const prevUpdate = updates.find((u) => u.id === reordered[i - 1].id);
+        const prevEnd = prevUpdate
+          ? new Date(prevUpdate.endTime)
           : new Date(reordered[i - 1].endTime);
-        // Only shift if this event would overlap with previous
         const currentStart = new Date(ev.startTime);
         newStart = currentStart < prevEnd ? prevEnd : currentStart;
       }
@@ -302,7 +301,6 @@ export default function ScheduleDailyPage() {
       const origStart = new Date(ev.startTime);
       const origEnd = new Date(ev.endTime);
 
-      // Only update if time actually changed
       if (Math.abs(newStart.getTime() - origStart.getTime()) > 60000 ||
           Math.abs(newEnd.getTime() - origEnd.getTime()) > 60000) {
         updates.push({ id: ev.id, startTime: newStart.toISOString(), endTime: newEnd.toISOString() });
@@ -310,7 +308,7 @@ export default function ScheduleDailyPage() {
     }
 
     // Optimistic update
-    const newEvents = reordered.map((ev, i) => {
+    const newEvents = reordered.map((ev) => {
       const update = updates.find((u) => u.id === ev.id);
       if (update) return { ...ev, startTime: update.startTime, endTime: update.endTime };
       return ev;
@@ -320,7 +318,6 @@ export default function ScheduleDailyPage() {
       if (!a.allDay && b.allDay) return 1;
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     }));
-    setDragIdx(null);
 
     // Send updates to server
     for (const u of updates) {
@@ -332,36 +329,98 @@ export default function ScheduleDailyPage() {
     }
   };
 
-  // Touch drag support
-  const touchStartY = useRef(0);
-  const touchDragIdx = useRef<number | null>(null);
+  const handleDrop = async (dropIdx: number) => {
+    dragCounter.current = 0;
+    setDragOverIdx(null);
+    if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); return; }
+    const fromIdx = dragIdx;
+    setDragIdx(null);
+    await executeDrop(fromIdx, dropIdx);
+  };
 
+  const handleDragEnd = () => {
+    setDragIdx(null);
+    setDragOverIdx(null);
+    dragCounter.current = 0;
+  };
+
+  // Touch drag support — long press to activate
   const handleTouchStart = (idx: number, e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchDragIdx.current = idx;
-    setDragIdx(idx);
+    const touch = e.touches[0];
+    const startY = touch.clientY;
+    touchActive.current = false;
+
+    longPressTimer.current = setTimeout(() => {
+      touchActive.current = true;
+      setDragIdx(idx);
+      // Create ghost element
+      const ghost = document.createElement("div");
+      ghost.className = "fixed z-[999] px-3 py-2 bg-dotan-green-dark text-white rounded-lg shadow-xl text-sm font-bold pointer-events-none opacity-90";
+      ghost.textContent = timedEvents[idx]?.title || "";
+      ghost.style.left = "50%";
+      ghost.style.transform = "translateX(-50%)";
+      ghost.style.top = `${startY - 20}px`;
+      document.body.appendChild(ghost);
+      dragGhost.current = ghost;
+      // Vibrate feedback on mobile if available
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 400);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchDragIdx.current === null) return;
+    if (!touchActive.current) {
+      // Cancel long press if finger moved before activation
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+      return;
+    }
+    e.preventDefault(); // Prevent scrolling while dragging
     const touch = e.touches[0];
+
+    // Move ghost
+    if (dragGhost.current) {
+      dragGhost.current.style.top = `${touch.clientY - 20}px`;
+    }
+
+    // Find which element we're over
     const elements = document.querySelectorAll("[data-timeline-idx]");
+    let found = false;
     for (const el of elements) {
       const rect = el.getBoundingClientRect();
       if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
         const idx = parseInt(el.getAttribute("data-timeline-idx") || "-1");
-        if (idx >= 0) setDragOverIdx(idx);
+        if (idx >= 0) { setDragOverIdx(idx); found = true; }
       }
     }
+    if (!found) setDragOverIdx(null);
   };
 
   const handleTouchEnd = () => {
-    if (touchDragIdx.current !== null && dragOverIdx !== null) {
-      handleDrop(dragOverIdx);
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
-    touchDragIdx.current = null;
-    setDragIdx(null);
-    setDragOverIdx(null);
+
+    // Remove ghost
+    if (dragGhost.current) {
+      dragGhost.current.remove();
+      dragGhost.current = null;
+    }
+
+    if (touchActive.current && dragIdx !== null && dragOverIdx !== null && dragIdx !== dragOverIdx) {
+      const fromIdx = dragIdx;
+      const toIdx = dragOverIdx;
+      setDragIdx(null);
+      setDragOverIdx(null);
+      touchActive.current = false;
+      executeDrop(fromIdx, toIdx);
+    } else {
+      setDragIdx(null);
+      setDragOverIdx(null);
+      touchActive.current = false;
+    }
   };
 
   const filteredUsers = allUsers.filter((u) => {
@@ -522,11 +581,12 @@ export default function ScheduleDailyPage() {
               key={event.id}
               data-timeline-idx={idx}
               draggable={isAdmin}
-              onDragStart={() => handleDragStart(idx)}
+              onDragStart={(e) => handleDragStart(idx, e)}
               onDragEnter={() => handleDragEnter(idx)}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(idx)}
+              onDragEnd={handleDragEnd}
               onTouchStart={(e) => isAdmin && handleTouchStart(idx, e)}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -550,7 +610,7 @@ export default function ScheduleDailyPage() {
               <div className={`flex-1 mb-2 rounded-xl border p-3 transition ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"} ${isDragOver ? "border-dotan-green border-dashed bg-dotan-mint-light/30" : ""}`}>
                 <div className="flex items-start gap-2">
                   {isAdmin && (
-                    <div className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 shrink-0 touch-none">
+                    <div className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 shrink-0">
                       <MdDragIndicator />
                     </div>
                   )}
