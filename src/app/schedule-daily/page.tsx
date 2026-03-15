@@ -117,6 +117,27 @@ export default function ScheduleDailyPage() {
   const allDayEvents = events.filter((e) => e.allDay);
   const timedEvents = events.filter((e) => !e.allDay);
 
+  // Group overlapping timed events into rows
+  const timedGroups: { startTime: string; endTime: string; events: { event: ScheduleEvent; idx: number }[] }[] = [];
+  timedEvents.forEach((event, idx) => {
+    const evStart = new Date(event.startTime).getTime();
+    const evEnd = new Date(event.endTime).getTime();
+    // Find existing group that overlaps
+    const group = timedGroups.find((g) => {
+      const gStart = new Date(g.startTime).getTime();
+      const gEnd = new Date(g.endTime).getTime();
+      return evStart < gEnd && evEnd > gStart;
+    });
+    if (group) {
+      group.events.push({ event, idx });
+      // Expand group range
+      if (event.startTime < group.startTime) group.startTime = event.startTime;
+      if (event.endTime > group.endTime) group.endTime = event.endTime;
+    } else {
+      timedGroups.push({ startTime: event.startTime, endTime: event.endTime, events: [{ event, idx }] });
+    }
+  });
+
   const changeDate = (delta: number) => {
     const d = new Date(date + "T12:00:00");
     d.setDate(d.getDate() + delta);
@@ -568,79 +589,76 @@ export default function ScheduleDailyPage() {
 
       {/* Timeline */}
       <div className="relative">
-        {timedEvents.map((event, idx) => {
-          const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
-          const Icon = config.icon;
-          const active = isNow(event);
-          const duration = getDurationMin(event);
-          const isDragging = dragIdx === idx;
-          const isDragOver = dragOverIdx === idx;
+        {timedGroups.map((group, groupIdx) => {
+          const isSingle = group.events.length === 1;
+          const groupStartTime = formatTime(group.startTime);
+          const groupEndTime = formatTime(group.endTime);
 
-          return (
-            <div
-              key={event.id}
-              data-timeline-idx={idx}
-              draggable={isAdmin}
-              onDragStart={(e) => handleDragStart(idx, e)}
-              onDragEnter={() => handleDragEnter(idx)}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={() => handleDrop(idx)}
-              onDragEnd={handleDragEnd}
-              onTouchStart={(e) => isAdmin && handleTouchStart(idx, e)}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              className={`flex gap-3 mb-0 transition-all ${isDragging ? "opacity-40 scale-[0.98]" : ""} ${isDragOver ? "translate-y-1" : ""}`}
-            >
-              {/* Time column */}
-              <div className="w-14 shrink-0 text-left pt-3">
-                <div className="text-xs font-bold text-gray-800">{formatTime(event.startTime)}</div>
-                <div className="text-[10px] text-gray-400">{formatTime(event.endTime)}</div>
-              </div>
+          const renderCard = ({ event, idx }: { event: ScheduleEvent; idx: number }, compact: boolean) => {
+            const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
+            const Icon = config.icon;
+            const active = isNow(event);
+            const duration = getDurationMin(event);
+            const isDragging = dragIdx === idx;
+            const isDragOver = dragOverIdx === idx;
 
-              {/* Timeline line + dot */}
-              <div className="flex flex-col items-center shrink-0 w-4">
-                <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${active ? "bg-dotan-green ring-2 ring-dotan-green/30" : config.dot}`} />
-                {idx < timedEvents.length - 1 && (
-                  <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
-                )}
-              </div>
-
-              {/* Event card */}
-              <div className={`flex-1 mb-2 rounded-xl border p-3 transition ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"} ${isDragOver ? "border-dotan-green border-dashed bg-dotan-mint-light/30" : ""}`}>
-                <div className="flex items-start gap-2">
+            return (
+              <div
+                key={event.id}
+                data-timeline-idx={idx}
+                draggable={isAdmin}
+                onDragStart={(e) => handleDragStart(idx, e)}
+                onDragEnter={() => handleDragEnter(idx)}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(idx)}
+                onDragEnd={handleDragEnd}
+                onTouchStart={(e) => isAdmin && handleTouchStart(idx, e)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"} ${isDragging ? "opacity-40 scale-[0.98]" : ""} ${isDragOver ? "border-dotan-green border-dashed bg-dotan-mint-light/30" : ""}`}
+              >
+                <div className="flex items-start gap-1.5">
                   {isAdmin && (
                     <div className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 shrink-0">
-                      <MdDragIndicator />
+                      <MdDragIndicator className={compact ? "text-sm" : ""} />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Icon className={`text-base ${config.color} shrink-0`} />
-                      <h3 className="font-bold text-gray-800 text-sm leading-tight">{event.title}</h3>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Icon className={`${compact ? "text-sm" : "text-base"} ${config.color} shrink-0`} />
+                      <h3 className={`font-bold text-gray-800 ${compact ? "text-xs" : "text-sm"} leading-tight truncate`}>{event.title}</h3>
                       {active && (
-                        <span className="px-1.5 py-0.5 bg-dotan-green text-white rounded text-[9px] font-bold animate-pulse">
+                        <span className="px-1 py-0.5 bg-dotan-green text-white rounded text-[8px] font-bold animate-pulse">
                           עכשיו
-                        </span>
-                      )}
-                      {event.target !== "all" && (
-                        <span className="px-1.5 py-0.5 bg-white/80 border rounded text-[9px] font-medium text-gray-500">
-                          {TARGET_LABELS[event.target] || event.target}
                         </span>
                       )}
                     </div>
 
-                    {duration > 0 && (
+                    {/* Show individual times when in a group */}
+                    {compact && (
+                      <div className="text-[10px] text-gray-500 mt-0.5 font-medium">
+                        {formatTime(event.startTime)} – {formatTime(event.endTime)}
+                      </div>
+                    )}
+
+                    {!compact && event.target !== "all" && (
+                      <span className="inline-block px-1.5 py-0.5 bg-white/80 border rounded text-[9px] font-medium text-gray-500 mt-0.5">
+                        {TARGET_LABELS[event.target] || event.target}
+                      </span>
+                    )}
+
+                    {!compact && duration > 0 && (
                       <div className="text-[10px] text-gray-400 mt-0.5">
                         {duration >= 60 ? `${Math.floor(duration / 60)} שע׳` : ""}{duration % 60 > 0 ? ` ${duration % 60} דק׳` : ""}
                       </div>
                     )}
 
-                    {event.description && (
+                    {!compact && event.description && (
                       <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{event.description}</p>
                     )}
 
-                    {event.assignees.length > 0 && (
+                    {!compact && event.assignees.length > 0 && (
                       <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                         {event.assignees.slice(0, 4).map((a) => (
                           <Avatar key={a.id} name={a.user.name} image={a.user.image} size="xs" />
@@ -652,25 +670,58 @@ export default function ScheduleDailyPage() {
                     )}
 
                     {isAdmin && (
-                      <div className="flex items-center gap-2.5 mt-2 pt-1.5 border-t border-black/5">
+                      <div className={`flex items-center gap-2 ${compact ? "mt-1" : "mt-2 pt-1.5 border-t border-black/5"}`}>
                         <button onClick={() => handleRemind(event.id)} disabled={reminding === event.id}
                           className="text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
-                          <MdNotifications className={`text-sm ${reminding === event.id ? "animate-bounce" : ""}`} />
+                          <MdNotifications className={`${compact ? "text-xs" : "text-sm"} ${reminding === event.id ? "animate-bounce" : ""}`} />
                         </button>
                         <button onClick={() => openAssign(event)} className="text-gray-300 hover:text-purple-500 transition">
-                          <MdPersonAdd className="text-sm" />
+                          <MdPersonAdd className={compact ? "text-xs" : "text-sm"} />
                         </button>
                         <button onClick={() => openEdit(event)} className="text-gray-300 hover:text-dotan-green transition">
-                          <MdEdit className="text-sm" />
+                          <MdEdit className={compact ? "text-xs" : "text-sm"} />
                         </button>
                         <button onClick={() => handleDelete(event.id)} className="text-gray-300 hover:text-red-500 transition mr-auto">
-                          <MdDelete className="text-sm" />
+                          <MdDelete className={compact ? "text-xs" : "text-sm"} />
                         </button>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
+            );
+          };
+
+          // Determine if any event in this group is active (for the dot)
+          const anyActive = group.events.some(({ event }) => isNow(event));
+          const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
+
+          return (
+            <div key={groupIdx} className="flex gap-3 mb-0">
+              {/* Time column */}
+              <div className="w-14 shrink-0 text-left pt-3">
+                <div className="text-xs font-bold text-gray-800">{groupStartTime}</div>
+                <div className="text-[10px] text-gray-400">{groupEndTime}</div>
+              </div>
+
+              {/* Timeline line + dot */}
+              <div className="flex flex-col items-center shrink-0 w-4">
+                <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30" : firstConfig.dot}`} />
+                {groupIdx < timedGroups.length - 1 && (
+                  <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
+                )}
+              </div>
+
+              {/* Event card(s) */}
+              {isSingle ? (
+                <div className="flex-1 mb-2">
+                  {renderCard(group.events[0], false)}
+                </div>
+              ) : (
+                <div className="flex-1 mb-2 flex gap-1.5">
+                  {group.events.map((item) => renderCard(item, true))}
+                </div>
+              )}
             </div>
           );
         })}
