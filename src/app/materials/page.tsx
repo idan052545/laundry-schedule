@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdEdit, MdCheck } from "react-icons/md";
+import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdEdit, MdCheck, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
 
@@ -15,6 +15,7 @@ interface Material {
   fileName: string;
   fileType: string;
   hasFile: boolean;
+  isRead: boolean;
   createdAt: string;
   author: { id: string; name: string; image: string | null };
 }
@@ -168,8 +169,20 @@ export default function MaterialsPage() {
     });
     if (res.ok) {
       const updated = await res.json();
-      setMaterials((prev) => prev.map((m) => m.id === id ? updated : m));
+      setMaterials((prev) => prev.map((m) => m.id === id ? { ...m, ...updated } : m));
       setEditingId(null);
+    }
+  };
+
+  const handleToggleRead = async (materialId: string) => {
+    const res = await fetch("/api/materials", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggleRead", materialId }),
+    });
+    if (res.ok) {
+      const { isRead } = await res.json();
+      setMaterials((prev) => prev.map((m) => m.id === materialId ? { ...m, isRead } : m));
     }
   };
 
@@ -250,7 +263,9 @@ export default function MaterialsPage() {
           const canEdit = material.author.id === userId;
 
           return (
-            <div key={material.id} className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint hover:shadow-md transition group">
+            <div key={material.id} className={`p-4 rounded-xl shadow-sm border hover:shadow-md transition group ${
+              material.isRead ? "bg-gray-50 border-gray-200" : "bg-white border-dotan-mint"
+            }`}>
               {isEditing ? (
                 <div className="space-y-2">
                   <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
@@ -277,8 +292,9 @@ export default function MaterialsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="font-bold text-gray-800 text-sm truncate">{material.title}</h3>
+                      <h3 className={`font-bold text-sm truncate ${material.isRead ? "text-gray-500" : "text-gray-800"}`}>{material.title}</h3>
                       <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0 ${cat.bg} ${cat.color}`}>{cat.label}</span>
+                      {material.isRead && <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-600 border border-green-200 shrink-0">נקרא</span>}
                     </div>
                     {material.description && (
                       <p className="text-xs text-gray-500 line-clamp-1 mb-1">{material.description}</p>
@@ -291,6 +307,14 @@ export default function MaterialsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => handleToggleRead(material.id)}
+                      className={`flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg transition ${
+                        material.isRead
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}>
+                      {material.isRead ? <><MdVisibility /> נקרא</> : <><MdVisibilityOff /> סמן נקרא</>}
+                    </button>
                     <button onClick={() => handleDownload(material)} disabled={isDownloading}
                       className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-2 rounded-lg disabled:opacity-50">
                       <MdDownload /> {isDownloading ? "מוריד..." : "הורד"}

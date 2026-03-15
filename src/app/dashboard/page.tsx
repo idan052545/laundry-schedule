@@ -32,7 +32,7 @@ interface DashboardFeed {
   todayTasks: { id: string; title: string; startDate: string; category: string }[];
   pendingForms: { id: string; title: string; deadline: string | null }[];
   birthdayUsers: { id: string; name: string; image: string | null }[];
-  latestMaterial: { id: string; title: string; createdAt: string; author: { name: string } } | null;
+  unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
 }
 
 export default function DashboardPage() {
@@ -93,7 +93,7 @@ export default function DashboardPage() {
     feed.todayTasks.length > 0 ||
     feed.pinnedPosts.length > 0 ||
     feed.latestMessage ||
-    feed.latestMaterial
+    feed.unreadMaterials.length > 0
   );
 
   return (
@@ -190,13 +190,17 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Latest material */}
-          {feed.latestMaterial && (
+          {/* Unread materials */}
+          {feed.unreadMaterials.length > 0 && (
             <Link href="/materials" className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3 hover:shadow-sm transition">
               <MdNewReleases className="text-2xl text-rose-500 shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-rose-700 truncate block">חומר חדש: {feed.latestMaterial.title}</span>
-                <span className="text-xs text-rose-500">{feed.latestMaterial.author.name} | {new Date(feed.latestMaterial.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</span>
+                <span className="text-sm font-medium text-rose-700">
+                  {feed.unreadMaterials.length} חומרים מקצועיים שלא נקראו
+                </span>
+                <span className="text-xs text-rose-500 block truncate">
+                  {feed.unreadMaterials.map((m) => m.title).join(", ")}
+                </span>
               </div>
             </Link>
           )}

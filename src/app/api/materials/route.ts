@@ -11,14 +11,20 @@ export async function GET() {
     return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
   }
 
+  const userId = (session.user as { id: string }).id;
+
   const materials = await prisma.professionalMaterial.findMany({
-    include: { author: { select: { id: true, name: true, image: true } } },
+    include: {
+      author: { select: { id: true, name: true, image: true } },
+      reads: { where: { userId }, select: { id: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  const result = materials.map(({ fileData, ...rest }) => ({
+  const result = materials.map(({ fileData, reads, ...rest }) => ({
     ...rest,
     hasFile: !!fileData,
+    isRead: reads.length > 0,
   }));
 
   return NextResponse.json(result);
@@ -69,7 +75,28 @@ export async function PUT(request: Request) {
   }
 
   const userId = (session.user as { id: string }).id;
-  const { id, title, description } = await request.json();
+  const body = await request.json();
+
+  // Mark as read / unread
+  if (body.action === "toggleRead") {
+    const { materialId } = body;
+    if (!materialId) return NextResponse.json({ error: "חסר מזהה" }, { status: 400 });
+
+    const existing = await prisma.materialRead.findUnique({
+      where: { materialId_userId: { materialId, userId } },
+    });
+
+    if (existing) {
+      await prisma.materialRead.delete({ where: { id: existing.id } });
+      return NextResponse.json({ isRead: false });
+    }
+
+    await prisma.materialRead.create({ data: { materialId, userId } });
+    return NextResponse.json({ isRead: true });
+  }
+
+  // Edit title/description
+  const { id, title, description } = body;
   if (!id || !title) {
     return NextResponse.json({ error: "נא למלא כותרת" }, { status: 400 });
   }

@@ -66,9 +66,13 @@ export async function GET() {
       select: { id: true, name: true, image: true },
     }),
 
-    // Latest professional material
-    prisma.professionalMaterial.findFirst({
+    // Unread professional materials
+    prisma.professionalMaterial.findMany({
+      where: {
+        reads: { none: { userId } },
+      },
       orderBy: { createdAt: "desc" },
+      take: 5,
       select: { id: true, title: true, createdAt: true, author: { select: { name: true } } },
     }),
   ]);
@@ -79,6 +83,6 @@ export async function GET() {
     todayTasks,
     pendingForms,
     birthdayUsers,
-    latestMaterial,
+    unreadMaterials: latestMaterial,
   });
 }

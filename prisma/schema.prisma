@@ -35,6 +35,7 @@ model User {
   formLinks         FormLink[] @relation("formLinks")
   formSubmissions   FormSubmission[] @relation("formSubmissions")
   materials         ProfessionalMaterial[] @relation("materials")
+  materialReads     MaterialRead[] @relation("materialReads")
   taskFormats       TaskFormat[] @relation("taskFormats")
   pushSubscriptions PushSubscription[]
 }
@@ -171,6 +172,18 @@ model ProfessionalMaterial {
   authorId    String
   createdAt   DateTime @default(now())
   author      User     @relation("materials", fields: [authorId], references: [id])
+  reads       MaterialRead[]
+}
+
+model MaterialRead {
+  id         String   @id @default(uuid())
+  materialId String
+  userId     String
+  createdAt  DateTime @default(now())
+  material   ProfessionalMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user       User     @relation("materialReads", fields: [userId], references: [id])
+
+  @@unique([materialId, userId])
 }
 
 model TaskFormat {
