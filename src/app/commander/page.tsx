@@ -94,14 +94,13 @@ const SURVEY_TYPE_CONFIG: Record<string, { label: string; icon: typeof MdPoll }>
 };
 
 // ─── Inline Surveys Section for מעיין (סימולציות) ───
-function SimulationsSurveys({ userId, isCommander }: { userId: string; isCommander: boolean }) {
+function SimulationsSurveys({ userId, commanderId, isCommander }: { userId: string; commanderId: string; isCommander: boolean }) {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [teamMembers, setTeamMembers] = useState<SurveyUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [reminding, setReminding] = useState(false);
-  const [scope, setScope] = useState<"all" | "platoon">("all");
 
   // Form state
   const [formTitle, setFormTitle] = useState("");
@@ -120,15 +119,15 @@ function SimulationsSurveys({ userId, isCommander }: { userId: string; isCommand
   const [detailTeamFilter, setDetailTeamFilter] = useState<number | null>(null);
 
   const fetchSurveys = useCallback(async () => {
-    const scopeParam = scope === "platoon" ? "&scope=platoon" : "";
-    const res = await fetch(`/api/surveys?status=all${scopeParam}`);
+    const res = await fetch(`/api/surveys?status=all&scope=platoon`);
     if (res.ok) {
       const data = await res.json();
-      setSurveys(data.surveys);
+      // Only show surveys created by this commander
+      setSurveys((data.surveys as Survey[]).filter((s: Survey) => s.createdById === commanderId));
       setTeamMembers(data.teamMembers);
     }
     setLoading(false);
-  }, [scope]);
+  }, [commanderId]);
 
   useEffect(() => { fetchSurveys(); }, [fetchSurveys]);
 
@@ -493,18 +492,6 @@ function SimulationsSurveys({ userId, isCommander }: { userId: string; isCommand
         )}
       </div>
 
-      {/* Scope toggle */}
-      <div className="flex gap-1.5 bg-gray-100 rounded-lg p-1">
-        {([["all", "הכל (צוות + פלוגה)"], ["platoon", "פלוגה בלבד"]] as const).map(([key, label]) => (
-          <button key={key} onClick={() => setScope(key)}
-            className={`flex-1 py-1.5 rounded-md text-xs font-medium transition ${
-              scope === key ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            }`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
       {/* Create form — always platoon */}
       {showForm && (
         <form onSubmit={handleCreate} className="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-3">
@@ -564,11 +551,6 @@ function SimulationsSurveys({ userId, isCommander }: { userId: string; isCommand
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <h3 className="font-bold text-gray-800 text-sm truncate">{survey.title}</h3>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                      survey.team === 0 ? "bg-purple-50 text-purple-600 border border-purple-200" : "bg-blue-50 text-blue-600 border border-blue-200"
-                    }`}>
-                      {survey.team === 0 ? "פלוגה" : `צוות ${survey.team}`}
-                    </span>
                     {survey.status === "closed" && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 shrink-0">סגור</span>}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -802,9 +784,9 @@ function CommanderPageContent() {
       )}
 
       {/* Inline Surveys Section for סימולציות */}
-      {isSimulations && userId && (
+      {isSimulations && userId && selectedId && (
         <div className="mb-6 bg-purple-50/50 rounded-xl border border-purple-100 p-4">
-          <SimulationsSurveys userId={userId} isCommander={selectedId === userId} />
+          <SimulationsSurveys userId={userId} commanderId={selectedId} isCommander={selectedId === userId} />
         </div>
       )}
 

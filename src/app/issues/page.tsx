@@ -81,8 +81,8 @@ export default function IssuesPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formLocation, setFormLocation] = useState("");
-  const [formCompanion, setFormCompanion] = useState("");
-  const [formCompanionPhone, setFormCompanionPhone] = useState("");
+  const [formCompanion, setFormCompanion] = useState("נעמה לוי");
+  const [formCompanionPhone, setFormCompanionPhone] = useState("0537176663");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formAssignees, setFormAssignees] = useState<string[]>([]);
   const [sending, setSending] = useState(false);

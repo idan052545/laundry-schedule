@@ -37,6 +37,7 @@ export async function GET() {
     timedEvents,
     allDayEvents,
     pendingSurveys,
+    pendingPlatoonSurveys,
   ] = await Promise.all([
     // Latest message
     prisma.message.findFirst({
@@ -119,15 +120,19 @@ export async function GET() {
       select: { id: true, title: true, type: true },
     }),
 
-    // Pending surveys (active, user's team or platoon-wide, not yet responded)
+    // Pending team surveys (active, user's team, not yet responded)
+    user?.team
+      ? prisma.survey.findMany({
+          where: { team: user.team, status: "active", responses: { none: { userId } } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: { id: true, title: true, createdAt: true },
+        })
+      : Promise.resolve([]),
+
+    // Pending platoon surveys (active, team=0, not yet responded)
     prisma.survey.findMany({
-      where: {
-        OR: user?.team
-          ? [{ team: user.team }, { team: 0 }]
-          : [{ team: 0 }],
-        status: "active",
-        responses: { none: { userId } },
-      },
+      where: { team: 0, status: "active", responses: { none: { userId } } },
       orderBy: { createdAt: "desc" },
       take: 5,
       select: { id: true, title: true, createdAt: true },
@@ -162,6 +167,16 @@ export async function GET() {
     }
   }
 
+  // Find simulations commander for platoon survey link
+  let platoonSurveyCommanderId: string | null = null;
+  if (pendingPlatoonSurveys.length > 0) {
+    const simCommander = await prisma.user.findFirst({
+      where: { roleTitle: { contains: "סימולציות" } },
+      select: { id: true },
+    });
+    platoonSurveyCommanderId = simCommander?.id || null;
+  }
+
   return NextResponse.json({
     latestMessage,
     pinnedPosts,
@@ -172,6 +187,8 @@ export async function GET() {
     currentSchedule,
     allDaySchedule: allDayEvents,
     pendingSurveys,
+    pendingPlatoonSurveys,
+    platoonSurveyCommanderId,
     hasVotedThisWeek,
   });
 }

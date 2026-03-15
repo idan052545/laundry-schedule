@@ -38,6 +38,8 @@ interface DashboardFeed {
   currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; status: "now" | "next" } | null;
   allDaySchedule: { id: string; title: string; type: string }[];
   pendingSurveys: { id: string; title: string; createdAt: string }[];
+  pendingPlatoonSurveys: { id: string; title: string; createdAt: string }[];
+  platoonSurveyCommanderId: string | null;
   hasVotedThisWeek: boolean;
 }
 
@@ -110,6 +112,7 @@ export default function DashboardPage() {
     feed.currentSchedule ||
     feed.allDaySchedule.length > 0 ||
     feed.pendingSurveys?.length > 0 ||
+    feed.pendingPlatoonSurveys?.length > 0 ||
     feed.hasVotedThisWeek === false
   );
 
@@ -196,16 +199,31 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Pending surveys */}
+          {/* Pending team surveys */}
           {feed.pendingSurveys?.length > 0 && (
             <Link href="/surveys" className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-3 hover:shadow-sm transition">
               <MdPoll className="text-2xl text-purple-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium text-purple-700">
-                  {feed.pendingSurveys.length} סקרים ממתינים לתשובה
+                  {feed.pendingSurveys.length} סקרי צוות ממתינים לתשובה
                 </span>
                 <span className="text-xs text-purple-500 block truncate">
                   {feed.pendingSurveys.map((s) => s.title).join(", ")}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Pending platoon surveys */}
+          {feed.pendingPlatoonSurveys?.length > 0 && (
+            <Link href={feed.platoonSurveyCommanderId ? `/commander?id=${feed.platoonSurveyCommanderId}` : "/surveys"} className="flex items-center gap-3 bg-violet-50 border border-violet-300 rounded-xl p-3 hover:shadow-sm transition">
+              <MdPoll className="text-2xl text-violet-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-violet-700">
+                  {feed.pendingPlatoonSurveys.length} סקרי פלוגה ממתינים לתשובה
+                </span>
+                <span className="text-xs text-violet-500 block truncate">
+                  {feed.pendingPlatoonSurveys.map((s) => s.title).join(", ")}
                 </span>
               </div>
             </Link>
