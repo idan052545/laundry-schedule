@@ -33,6 +33,7 @@ interface DashboardFeed {
   pendingForms: { id: string; title: string; deadline: string | null }[];
   birthdayUsers: { id: string; name: string; image: string | null }[];
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
+  currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; status: "now" | "next" } | null;
 }
 
 export default function DashboardPage() {
@@ -86,6 +87,7 @@ export default function DashboardPage() {
     { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: 'ל"ע, נהלים וחומרי לימוד', color: "text-rose-600" },
     { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
     { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", desc: "נושאי דיון יומי לכל חדר", color: "text-emerald-600" },
+    { href: "/schedule-daily", icon: MdCalendarMonth, title: 'לו"ז יומי', desc: "לוח זמנים יומי של הפלוגה", color: "text-sky-600" },
   ];
 
   const hasFeedItems = feed && (
@@ -94,7 +96,8 @@ export default function DashboardPage() {
     feed.todayTasks.length > 0 ||
     feed.pinnedPosts.length > 0 ||
     feed.latestMessage ||
-    feed.unreadMaterials.length > 0
+    feed.unreadMaterials.length > 0 ||
+    feed.currentSchedule
   );
 
   return (
@@ -117,6 +120,24 @@ export default function DashboardPage() {
       {/* Personalized Feed */}
       {hasFeedItems && (
         <div className="space-y-2 mb-6">
+          {/* Current/next schedule */}
+          {feed.currentSchedule && (
+            <Link href="/schedule-daily" className={`flex items-center gap-3 ${feed.currentSchedule.status === "now" ? "bg-dotan-mint-light border-dotan-green ring-1 ring-dotan-green" : "bg-sky-50 border-sky-200"} border rounded-xl p-3 hover:shadow-sm transition`}>
+              <MdCalendarMonth className={`text-2xl shrink-0 ${feed.currentSchedule.status === "now" ? "text-dotan-green animate-pulse" : "text-sky-500"}`} />
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm font-medium ${feed.currentSchedule.status === "now" ? "text-dotan-green-dark" : "text-sky-700"}`}>
+                  {feed.currentSchedule.status === "now" ? "עכשיו: " : "הבא: "}
+                  {feed.currentSchedule.title}
+                </span>
+                <span className={`text-xs block ${feed.currentSchedule.status === "now" ? "text-dotan-green" : "text-sky-500"}`}>
+                  {new Date(feed.currentSchedule.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                  {" - "}
+                  {new Date(feed.currentSchedule.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            </Link>
+          )}
+
           {/* Birthdays today */}
           {feed.birthdayUsers.length > 0 && (
             <Link href="/birthdays" className="flex items-center gap-3 bg-pink-50 border border-pink-200 rounded-xl p-3 hover:shadow-sm transition">

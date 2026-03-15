@@ -24,6 +24,7 @@ export default function Navbar() {
     { href: "/materials", label: "חומר מקצועי", icon: MdMenuBook },
     { href: "/formats", label: "פורמטים", icon: MdFolder },
     { href: "/aktualia", label: "אקטואליה", icon: MdNewspaper },
+    { href: "/schedule-daily", label: 'לו"ז', icon: MdCalendarMonth },
     { href: "/notifications", label: "שליחת התראות", icon: MdNotifications },
     { href: "/profile", label: "פרופיל", icon: MdPerson },
   ];

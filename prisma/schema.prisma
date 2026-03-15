@@ -37,6 +37,7 @@ model User {
   materials         ProfessionalMaterial[] @relation("materials")
   materialReads     MaterialRead[] @relation("materialReads")
   aktualiaEntries   AktualiaEntry[] @relation("aktualiaEntries")
+  scheduleAssignees ScheduleAssignee[] @relation("scheduleAssignees")
   taskFormats       TaskFormat[] @relation("taskFormats")
   pushSubscriptions PushSubscription[]
 }
@@ -221,4 +222,28 @@ model AktualiaEntry {
 
   @@unique([roomNumber, date])
   @@unique([userId, date])
+}
+
+model ScheduleEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  allDay      Boolean  @default(false)
+  target      String   @default("all") // "all", "team-14", "team-15", "team-16", "team-17"
+  type        String   @default("general") // "general", "meal", "training", "ceremony", "personal", "free"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignees   ScheduleAssignee[]
+}
+
+model ScheduleAssignee {
+  id        String        @id @default(uuid())
+  eventId   String
+  userId    String
+  event     ScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User          @relation("scheduleAssignees", fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
 }

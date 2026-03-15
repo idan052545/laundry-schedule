@@ -14,6 +14,13 @@ export async function GET() {
   const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
   const todayMonthDay = `${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { team: true },
+  });
+  const userTeam = user?.team ? `team-${user.team}` : null;
+  const now = new Date();
+
   const [
     latestMessage,
     pinnedPosts,
@@ -21,6 +28,7 @@ export async function GET() {
     pendingForms,
     birthdayUsers,
     latestMaterial,
+    currentSchedule,
   ] = await Promise.all([
     // Latest message
     prisma.message.findFirst({
@@ -75,7 +83,31 @@ export async function GET() {
       take: 5,
       select: { id: true, title: true, createdAt: true, author: { select: { name: true } } },
     }),
+
+    // Current or next schedule event (happening now or starting soonest after now)
+    prisma.scheduleEvent.findFirst({
+      where: {
+        endTime: { gte: now },
+        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
+        OR: [
+          { target: "all" },
+          ...(userTeam ? [{ target: userTeam }] : []),
+          { assignees: { some: { userId } } },
+        ],
+      },
+      orderBy: { startTime: "asc" },
+      select: { id: true, title: true, startTime: true, endTime: true, type: true },
+    }),
   ]);
+
+  // Determine if currentSchedule is happening now or upcoming
+  let scheduleStatus: "now" | "next" | null = null;
+  if (currentSchedule) {
+    const start = new Date(currentSchedule.startTime);
+    const end = new Date(currentSchedule.endTime);
+    if (now >= start && now <= end) scheduleStatus = "now";
+    else scheduleStatus = "next";
+  }
 
   return NextResponse.json({
     latestMessage,
@@ -84,5 +116,6 @@ export async function GET() {
     pendingForms,
     birthdayUsers,
     unreadMaterials: latestMaterial,
+    currentSchedule: currentSchedule ? { ...currentSchedule, status: scheduleStatus } : null,
   });
 }
