@@ -2,7 +2,8 @@ import {
   MdEvent, MdRestaurant, MdFitnessCenter, MdFlag, MdFreeBreakfast,
 } from "react-icons/md";
 
-export const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string; bg: string; border: string; dot: string }> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string; dot: string }> = {
   general: { label: "כללי", icon: MdEvent, color: "text-gray-600", bg: "bg-white", border: "border-gray-200", dot: "bg-gray-400" },
   meal: { label: "ארוחה", icon: MdRestaurant, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200", dot: "bg-orange-400" },
   training: { label: "אימון", icon: MdFitnessCenter, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", dot: "bg-blue-400" },
