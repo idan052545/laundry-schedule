@@ -11,7 +11,7 @@ import {
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
-  MdNotifications, MdStickyNote2,
+  MdNotifications, MdStickyNote2, MdRefresh,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [feed, setFeed] = useState<DashboardFeed | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
   const currentHour = new Date().getHours();
@@ -64,6 +65,12 @@ export default function DashboardPage() {
     if (feedRes.ok) setFeed(await feedRes.json());
     setLoading(false);
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
@@ -125,7 +132,7 @@ export default function DashboardPage() {
         <div className="w-14 h-14 rounded-full shadow overflow-hidden shrink-0">
           <Image src="/dotanLogo.png" alt="דותן" width={56} height={56} className="w-full h-full object-cover" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-dotan-green-dark">
             שלום, {session?.user?.name}!
           </h1>
@@ -133,6 +140,10 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
+        <button onClick={handleRefresh} disabled={refreshing}
+          className="p-2.5 rounded-xl bg-white border border-dotan-mint text-dotan-green hover:bg-dotan-mint-light transition shrink-0 disabled:opacity-50">
+          <MdRefresh className={`text-xl ${refreshing ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
       {/* Personalized Feed */}
