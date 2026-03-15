@@ -47,6 +47,7 @@ model User {
   surveyResponses   SurveyResponse[] @relation("surveyResponses")
   weeklyVotesCast   WeeklyVote[]   @relation("weeklyVoter")
   weeklyVotesReceived WeeklyVote[] @relation("weeklyNominee")
+  scheduleNotes     ScheduleNote[] @relation("scheduleNotes")
 }
 
 model Machine {
@@ -337,4 +338,19 @@ model WeeklyVote {
   nominee    User     @relation("weeklyNominee", fields: [nomineeId], references: [id])
 
   @@unique([week, voterId]) // one vote per user per week
+}
+
+// ─── Personal / Team Schedule Notes (הערות אישיות ללו"ז) ───
+
+model ScheduleNote {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  date        String   // YYYY-MM-DD
+  startTime   String?  // HH:MM (optional — can be timeless)
+  endTime     String?  // HH:MM
+  visibility  String   @default("personal") // "personal" or "team"
+  userId      String
+  createdAt   DateTime @default(now())
+  user        User     @relation("scheduleNotes", fields: [userId], references: [id])
 }

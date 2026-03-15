@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
   MdCalendarMonth, MdChevronRight, MdChevronLeft, MdAdd,
-  MdEdit, MdDelete, MdFilterList, MdToday,
+  MdEdit, MdDelete, MdFilterList, MdToday, MdNotifications,
+  MdStickyNote2, MdClose, MdPeople, MdPerson,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { TYPE_CONFIG } from "./constants";
-import { ScheduleEvent, UserOption, EventFormData } from "./types";
+import { ScheduleEvent, UserOption, EventFormData, ScheduleNote } from "./types";
 import { formatTime, formatDateDisplay, toISO, getDurationMin, isEventNow, groupTimedEvents } from "./utils";
 import EventForm from "./EventForm";
 import EventCard from "./EventCard";
@@ -35,6 +36,13 @@ export default function ScheduleDailyPage() {
   const [detailEvent, setDetailEvent] = useState<ScheduleEvent | null>(null);
   const [formUserIds, setFormUserIds] = useState<string[]>([]);
 
+  // Notes state
+  const [notes, setNotes] = useState<ScheduleNote[]>([]);
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [editingNote, setEditingNote] = useState<ScheduleNote | null>(null);
+  const [noteForm, setNoteForm] = useState({ title: "", description: "", startTime: "", endTime: "", visibility: "personal" });
+  const [noteReminding, setNoteReminding] = useState<string | null>(null);
+
   const [form, setForm] = useState<EventFormData>({
     title: "", description: "", startTime: "", endTime: "",
     allDay: false, target: "all", type: "general",
@@ -50,6 +58,11 @@ export default function ScheduleDailyPage() {
     setLoading(false);
   }, [date, typeFilter]);
 
+  const fetchNotes = useCallback(async () => {
+    const res = await fetch(`/api/schedule/notes?date=${date}`);
+    if (res.ok) setNotes(await res.json());
+  }, [date]);
+
   const fetchUsers = useCallback(async () => {
     const res = await fetch("/api/users-wall");
     if (res.ok) {
@@ -63,12 +76,16 @@ export default function ScheduleDailyPage() {
     if (status === "authenticated") {
       fetchEvents();
       fetchUsers();
+      fetchNotes();
     }
-  }, [status, router, fetchEvents, fetchUsers]);
+  }, [status, router, fetchEvents, fetchUsers, fetchNotes]);
 
   useEffect(() => {
-    if (status === "authenticated") fetchEvents();
-  }, [date, typeFilter, status, fetchEvents]);
+    if (status === "authenticated") {
+      fetchEvents();
+      fetchNotes();
+    }
+  }, [date, typeFilter, status, fetchEvents, fetchNotes]);
 
   const allDayEvents = events.filter((e) => e.allDay);
   const timedEvents = events.filter((e) => !e.allDay);
@@ -253,6 +270,72 @@ export default function ScheduleDailyPage() {
     }
   };
 
+  const resetNoteForm = () => {
+    setNoteForm({ title: "", description: "", startTime: "", endTime: "", visibility: "personal" });
+    setEditingNote(null);
+  };
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch("/api/schedule/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...noteForm, date }),
+    });
+    if (res.ok) {
+      const note = await res.json();
+      setNotes((prev) => [...prev, note]);
+      setShowNoteForm(false);
+      resetNoteForm();
+    }
+  };
+
+  const handleEditNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNote) return;
+    const res = await fetch("/api/schedule/notes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editingNote.id, ...noteForm }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setNotes((prev) => prev.map((n) => n.id === updated.id ? updated : n));
+      setShowNoteForm(false);
+      resetNoteForm();
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    if (!confirm("למחוק הערה זו?")) return;
+    const res = await fetch(`/api/schedule/notes?id=${id}`, { method: "DELETE" });
+    if (res.ok) setNotes((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const handleRemindNote = async (id: string) => {
+    setNoteReminding(id);
+    await fetch("/api/schedule/notes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "remind" }),
+    });
+    setNoteReminding(null);
+  };
+
+  const openEditNote = (note: ScheduleNote) => {
+    setNoteForm({
+      title: note.title,
+      description: note.description || "",
+      startTime: note.startTime || "",
+      endTime: note.endTime || "",
+      visibility: note.visibility,
+    });
+    setEditingNote(note);
+    setShowNoteForm(true);
+  };
+
+  const myUserId = (session?.user as { id?: string })?.id;
+
   if (status === "loading" || loading) {
     return <InlineLoading />;
   }
@@ -392,10 +475,145 @@ export default function ScheduleDailyPage() {
         })}
       </div>
 
-      {events.length === 0 && (
+      {/* Personal / Team Notes */}
+      <div className="mt-4 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+            <MdStickyNote2 className="text-amber-500" />
+            ההערות שלי
+          </h2>
+          {!showNoteForm && (
+            <button onClick={() => { setShowNoteForm(true); resetNoteForm(); }}
+              className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition font-medium flex items-center gap-1">
+              <MdAdd className="text-sm" /> הוסף הערה
+            </button>
+          )}
+        </div>
+
+        {showNoteForm && (
+          <form onSubmit={editingNote ? handleEditNote : handleAddNote}
+            className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-700">{editingNote ? "עריכת הערה" : "הערה חדשה"}</span>
+              <button type="button" onClick={() => { setShowNoteForm(false); resetNoteForm(); }}>
+                <MdClose className="text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <input type="text" placeholder="כותרת *" required value={noteForm.title}
+              onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+              className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-300" />
+            <textarea placeholder="תיאור (אופציונלי)" value={noteForm.description}
+              onChange={(e) => setNoteForm({ ...noteForm, description: e.target.value })}
+              className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-300 resize-none"
+              rows={2} />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-[10px] text-gray-500 block mb-0.5">שעת התחלה</label>
+                <input type="time" value={noteForm.startTime}
+                  onChange={(e) => setNoteForm({ ...noteForm, startTime: e.target.value })}
+                  className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-gray-500 block mb-0.5">שעת סיום</label>
+                <input type="time" value={noteForm.endTime}
+                  onChange={(e) => setNoteForm({ ...noteForm, endTime: e.target.value })}
+                  className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => setNoteForm({ ...noteForm, visibility: "personal" })}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 border transition ${
+                  noteForm.visibility === "personal"
+                    ? "bg-amber-500 text-white border-amber-500"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-amber-300"
+                }`}>
+                <MdPerson className="text-sm" /> רק אני
+              </button>
+              <button type="button"
+                onClick={() => setNoteForm({ ...noteForm, visibility: "team" })}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 border transition ${
+                  noteForm.visibility === "team"
+                    ? "bg-amber-500 text-white border-amber-500"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-amber-300"
+                }`}>
+                <MdPeople className="text-sm" /> הצוות שלי
+              </button>
+            </div>
+            <button type="submit"
+              className="w-full bg-amber-500 text-white py-2 rounded-lg hover:bg-amber-600 transition font-medium text-sm">
+              {editingNote ? "עדכן" : "הוסף"}
+            </button>
+          </form>
+        )}
+
+        {notes.length > 0 ? (
+          <div className="space-y-2">
+            {notes.map((note) => {
+              const isMine = note.userId === myUserId;
+              return (
+                <div key={note.id}
+                  className={`rounded-xl border p-3 transition ${
+                    note.visibility === "personal"
+                      ? "bg-amber-50 border-amber-200"
+                      : "bg-orange-50 border-orange-200"
+                  }`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {note.visibility === "personal" ? (
+                          <MdPerson className="text-amber-500 text-sm shrink-0" />
+                        ) : (
+                          <MdPeople className="text-orange-500 text-sm shrink-0" />
+                        )}
+                        <span className="font-bold text-sm text-gray-800">{note.title}</span>
+                        {note.startTime && (
+                          <span className="text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded" dir="ltr">
+                            {note.startTime}{note.endTime ? ` – ${note.endTime}` : ""}
+                          </span>
+                        )}
+                        {!isMine && (
+                          <span className="text-[10px] text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded font-medium">
+                            {note.user.name}
+                          </span>
+                        )}
+                      </div>
+                      {note.description && (
+                        <p className="text-xs text-gray-600 mt-1">{note.description}</p>
+                      )}
+                    </div>
+                    {isMine && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => handleRemindNote(note.id)}
+                          disabled={noteReminding === note.id}
+                          className="text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
+                          <MdNotifications className={`text-sm ${noteReminding === note.id ? "animate-bounce" : ""}`} />
+                        </button>
+                        <button onClick={() => openEditNote(note)} className="text-gray-300 hover:text-amber-500 transition">
+                          <MdEdit className="text-sm" />
+                        </button>
+                        <button onClick={() => handleDeleteNote(note.id)} className="text-gray-300 hover:text-red-500 transition">
+                          <MdDelete className="text-sm" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : !showNoteForm && (
+          <div className="text-center py-4 text-gray-400 text-xs">
+            <MdStickyNote2 className="text-2xl mx-auto mb-1 text-gray-300" />
+            אין הערות ליום זה
+          </div>
+        )}
+      </div>
+
+      {events.length === 0 && notes.length === 0 && !showNoteForm && (
         <div className="text-center py-12 text-gray-500">
           <MdCalendarMonth className="text-5xl mx-auto mb-4 text-gray-300" />
-          <p>אין אירועים ליום זה</p>
+          <p>אין אירועים או הערות ליום זה</p>
           {isAdmin && <p className="text-sm mt-2">לחץ &quot;הוסף אירוע&quot; כדי להוסיף</p>}
         </div>
       )}
