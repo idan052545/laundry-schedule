@@ -237,7 +237,7 @@ export default function ScheduleDailyPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto overflow-hidden">
       {/* Header */}
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-2 flex items-center gap-3">
         <MdCalendarMonth className="text-dotan-green" />
@@ -352,7 +352,7 @@ export default function ScheduleDailyPage() {
                   />
                 </div>
               ) : (
-                <div className="flex-1 mb-2 flex gap-1.5">
+                <div className="flex-1 mb-2 flex gap-1.5 min-w-0">
                   {group.events.map((item) => (
                     <EventCard
                       key={item.event.id}

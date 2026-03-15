@@ -37,7 +37,7 @@ export default function EventCard({
   return (
     <div
       onClick={() => onDetail(event)}
-      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"}`}
+      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer overflow-hidden ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"}`}
     >
       <div className="flex items-start gap-1.5">
         {isAdmin && !compact && (
