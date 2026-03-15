@@ -32,6 +32,7 @@ export default function ScheduleDailyPage() {
   const [userSearch, setUserSearch] = useState("");
   const [reminding, setReminding] = useState<string | null>(null);
   const [detailEvent, setDetailEvent] = useState<ScheduleEvent | null>(null);
+  const [formUserIds, setFormUserIds] = useState<string[]>([]);
 
   const [form, setForm] = useState<EventFormData>({
     title: "", description: "", startTime: "", endTime: "",
@@ -82,6 +83,18 @@ export default function ScheduleDailyPage() {
 
   const resetForm = () => {
     setForm({ title: "", description: "", startTime: "", endTime: "", allDay: false, target: "all", type: "general" });
+    setFormUserIds([]);
+  };
+
+  const assignUsersToEvent = async (eventId: string, userIds: string[]) => {
+    if (userIds.length === 0) return null;
+    const res = await fetch("/api/schedule", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: eventId, action: "assign", assigneeIds: userIds }),
+    });
+    if (res.ok) return await res.json();
+    return null;
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -94,7 +107,11 @@ export default function ScheduleDailyPage() {
       body: JSON.stringify({ ...form, startTime, endTime }),
     });
     if (res.ok) {
-      const event = await res.json();
+      let event = await res.json();
+      if (formUserIds.length > 0) {
+        const updated = await assignUsersToEvent(event.id, formUserIds);
+        if (updated) event = updated;
+      }
       setEvents((prev) => [...prev, event].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()));
       setShowAdd(false);
       resetForm();
@@ -112,7 +129,9 @@ export default function ScheduleDailyPage() {
       body: JSON.stringify({ id: editingEvent.id, ...form, startTime, endTime }),
     });
     if (res.ok) {
-      const updated = await res.json();
+      let updated = await res.json();
+      const assigned = await assignUsersToEvent(editingEvent.id, formUserIds);
+      if (assigned) updated = assigned;
       setEvents((prev) => prev.map((ev) => ev.id === updated.id ? updated : ev)
         .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()));
       setEditingEvent(null);
@@ -149,6 +168,7 @@ export default function ScheduleDailyPage() {
       target: event.target,
       type: event.type,
     });
+    setFormUserIds(event.assignees.map((a) => a.userId));
     setEditingEvent(event);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -287,11 +307,13 @@ export default function ScheduleDailyPage() {
 
       {showAdd && (
         <EventForm form={form} setForm={setForm} onSubmit={handleAdd} isEdit={false}
-          onClose={() => { setShowAdd(false); resetForm(); }} />
+          onClose={() => { setShowAdd(false); resetForm(); }}
+          allUsers={allUsers} selectedUserIds={formUserIds} onSelectedUserIdsChange={setFormUserIds} />
       )}
       {editingEvent && (
         <EventForm form={form} setForm={setForm} onSubmit={handleEdit} isEdit={true}
-          onClose={() => { setEditingEvent(null); resetForm(); }} />
+          onClose={() => { setEditingEvent(null); resetForm(); }}
+          allUsers={allUsers} selectedUserIds={formUserIds} onSelectedUserIdsChange={setFormUserIds} />
       )}
 
       {/* All-day events banner */}
