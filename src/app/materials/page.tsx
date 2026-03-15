@@ -208,6 +208,9 @@ export default function MaterialsPage() {
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
 
+  // Only show categories that have materials
+  const usedCategories = [...new Set(materials.map((m) => m.category))];
+
   const filtered = materials.filter((m) => {
     if (filter !== "all" && m.category !== filter) return false;
     if (filterTag && !(m.tags || []).includes(filterTag)) return false;
@@ -321,7 +324,9 @@ export default function MaterialsPage() {
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === "all" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
           הכל
         </button>
-        {Object.entries(CATEGORIES).map(([key, { label }]) => (
+        {Object.entries(CATEGORIES)
+          .filter(([key]) => usedCategories.includes(key))
+          .map(([key, { label }]) => (
           <button key={key} onClick={() => setFilter(key)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === key ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
             {label}
