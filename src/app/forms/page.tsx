@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   MdDescription, MdAdd, MdClose, MdDelete, MdOpenInNew, MdFilterList,
   MdLink, MdCheckCircle, MdCancel, MdSchedule, MdExpandMore, MdExpandLess,
-  MdWarning, MdNotifications,
+  MdWarning, MdNotifications, MdRepeat,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -30,6 +30,7 @@ interface FormLink {
   url: string;
   category: string;
   deadline: string | null;
+  recurring: boolean;
   createdAt: string;
   author: { id: string; name: string; image: string | null };
   submissions: Submission[];
@@ -267,7 +268,16 @@ export default function FormsPage() {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-bold text-gray-800 text-sm">{form.title}</h3>
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${cat.bg} ${cat.color}`}>{cat.label}</span>
-                      {iSubmitted && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300 font-medium">הוגש</span>}
+                      {form.recurring && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-300 font-medium flex items-center gap-0.5">
+                          <MdRepeat className="text-[10px]" /> יומי
+                        </span>
+                      )}
+                      {iSubmitted && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300 font-medium">
+                          {form.recurring ? "הוגש היום" : "הוגש"}
+                        </span>
+                      )}
                     </div>
 
                     {form.description && (
@@ -276,6 +286,11 @@ export default function FormsPage() {
 
                     {/* Deadline & stats row */}
                     <div className="flex flex-wrap items-center gap-3 text-xs">
+                      {form.recurring && (
+                        <span className="flex items-center gap-1 font-medium text-violet-600">
+                          <MdRepeat /> מתאפס כל יום
+                        </span>
+                      )}
                       {form.deadline && (
                         <span className={`flex items-center gap-1 font-medium ${
                           overdue ? "text-red-600" : dueSoon ? "text-amber-600" : "text-gray-500"
@@ -287,10 +302,10 @@ export default function FormsPage() {
                         </span>
                       )}
                       <span className="text-gray-400">
-                        {submittedCount}/{allUsers.length} הגישו
+                        {submittedCount}/{allUsers.length} {form.recurring ? "הגישו היום" : "הגישו"}
                       </span>
                       <span className="text-gray-400">
-                        <Avatar name={form.author.name} image={form.author.image} size="xs" /> {form.author.name} | {formatDate(form.createdAt)}
+                        <Avatar name={form.author.name} image={form.author.image} size="xs" /> {form.author.name}
                       </span>
                     </div>
 
@@ -315,7 +330,9 @@ export default function FormsPage() {
                           ? "bg-green-100 text-green-700 hover:bg-green-200"
                           : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
                       }`}>
-                      {iSubmitted ? <><MdCheckCircle /> הוגש</> : <><MdDescription /> סמן הגשתי</>}
+                      {iSubmitted
+                        ? <><MdCheckCircle /> {form.recurring ? "הוגש היום" : "הוגש"}</>
+                        : <><MdDescription /> {form.recurring ? "נרשמתי היום" : "סמן הגשתי"}</>}
                     </button>
                   </div>
                 </div>
@@ -324,7 +341,7 @@ export default function FormsPage() {
                 <button onClick={() => setExpandedForm(isExpanded ? null : form.id)}
                   className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mt-2 transition">
                   {isExpanded ? <MdExpandLess /> : <MdExpandMore />}
-                  {isExpanded ? "הסתר" : "הצג"} מי הגיש ({submittedCount}/{allUsers.length})
+                  {isExpanded ? "הסתר" : "הצג"} מי {form.recurring ? "נרשם היום" : "הגיש"} ({submittedCount}/{allUsers.length})
                 </button>
               </div>
 
