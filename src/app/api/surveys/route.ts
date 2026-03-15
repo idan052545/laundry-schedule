@@ -117,7 +117,7 @@ export async function POST(request: Request) {
     await sendPushToAll({
       title: "סקר חדש לכל הפלוגה",
       body: title,
-      url: "/surveys",
+      url: `/commander?id=${userId}`,
       tag: `survey-new-${survey.id}`,
     }, userId).catch(() => {});
   } else {
@@ -212,10 +212,11 @@ export async function PUT(request: Request) {
     }
 
     if (members.length > 0) {
+      const remindUrl = survey.team === 0 ? `/commander?id=${survey.createdById}` : "/surveys";
       await sendPushToUsers(members.map((m) => m.id), {
         title: "תזכורת: סקר ממתין",
         body: survey.title,
-        url: "/surveys",
+        url: remindUrl,
         tag: `survey-remind-${id}`,
       }).catch(() => {});
     }

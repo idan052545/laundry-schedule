@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   sendPushToAll({
     title: `${typeLabels[type] || "הודעה"} מ${user.name}`,
     body: title,
-    url: "/commander",
+    url: `/commander?id=${userId}`,
     tag: `commander-${post.id}`,
   }, userId).catch(() => {});
 
