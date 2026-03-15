@@ -36,6 +36,7 @@ export async function GET() {
     latestMaterial,
     timedEvents,
     allDayEvents,
+    pendingSurveys,
   ] = await Promise.all([
     // Latest message
     prisma.message.findFirst({
@@ -117,6 +118,20 @@ export async function GET() {
       orderBy: { startTime: "asc" },
       select: { id: true, title: true, type: true },
     }),
+
+    // Pending surveys (active, user's team, not yet responded)
+    user?.team
+      ? prisma.survey.findMany({
+          where: {
+            team: user.team,
+            status: "active",
+            responses: { none: { userId } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: { id: true, title: true, createdAt: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Pick current (happening now) or next upcoming timed event
@@ -142,5 +157,6 @@ export async function GET() {
     unreadMaterials: latestMaterial,
     currentSchedule,
     allDaySchedule: allDayEvents,
+    pendingSurveys,
   });
 }

@@ -10,7 +10,7 @@ import {
   MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson,
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
-  MdPushPin, MdNewReleases, MdNewspaper,
+  MdPushPin, MdNewReleases, MdNewspaper, MdPoll,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -36,6 +36,7 @@ interface DashboardFeed {
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
   currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; status: "now" | "next" } | null;
   allDaySchedule: { id: string; title: string; type: string }[];
+  pendingSurveys: { id: string; title: string; createdAt: string }[];
 }
 
 export default function DashboardPage() {
@@ -100,7 +101,8 @@ export default function DashboardPage() {
     feed.latestMessage ||
     feed.unreadMaterials.length > 0 ||
     feed.currentSchedule ||
-    feed.allDaySchedule.length > 0
+    feed.allDaySchedule.length > 0 ||
+    feed.pendingSurveys?.length > 0
   );
 
   return (
@@ -181,6 +183,21 @@ export default function DashboardPage() {
                 </span>
                 <span className="text-xs text-amber-500 block truncate">
                   {feed.pendingForms.map((f) => f.title).join(", ")}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Pending surveys */}
+          {feed.pendingSurveys?.length > 0 && (
+            <Link href="/surveys" className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdPoll className="text-2xl text-purple-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-purple-700">
+                  {feed.pendingSurveys.length} סקרים ממתינים לתשובה
+                </span>
+                <span className="text-xs text-purple-500 block truncate">
+                  {feed.pendingSurveys.map((s) => s.title).join(", ")}
                 </span>
               </div>
             </Link>

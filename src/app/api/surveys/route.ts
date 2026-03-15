@@ -107,7 +107,7 @@ export async function PUT(request: Request) {
 
   const userId = (session.user as { id: string }).id;
   const body = await request.json();
-  const { id, action, answer } = body;
+  const { id, action, answer, title, description, options } = body;
 
   if (!id) {
     return NextResponse.json({ error: "חסר מזהה" }, { status: 400 });
@@ -170,6 +170,18 @@ export async function PUT(request: Request) {
       }).catch(() => {});
     }
     return NextResponse.json({ reminded: teamMembers.length });
+  }
+
+  // Edit survey (title, description, options)
+  if (action === "edit") {
+    if (survey.createdById !== userId) {
+      return NextResponse.json({ error: "רק יוצר הסקר יכול לערוך" }, { status: 403 });
+    }
+    const data: Record<string, unknown> = {};
+    if (title !== undefined) data.title = title;
+    if (description !== undefined) data.description = description || null;
+    if (options !== undefined) data.options = options ? JSON.stringify(options) : null;
+    await prisma.survey.update({ where: { id }, data });
   }
 
   // Return updated survey

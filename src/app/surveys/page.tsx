@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   MdAdd, MdClose, MdPoll, MdSend, MdDelete, MdDownload,
   MdNotifications, MdCheckCircle, MdLock, MdLockOpen, MdPerson,
-  MdThumbUp, MdThumbDown, MdRadioButtonChecked, MdCheckBox,
+  MdThumbUp, MdThumbDown, MdRadioButtonChecked, MdCheckBox, MdEdit,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
@@ -61,6 +61,12 @@ export default function SurveysPage() {
   const [formType, setFormType] = useState("yes_no");
   const [formOptions, setFormOptions] = useState(["", ""]);
   const [sending, setSending] = useState(false);
+
+  // Edit state
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editOptions, setEditOptions] = useState<string[]>([]);
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
@@ -151,6 +157,31 @@ export default function SurveysPage() {
     await fetchSurveys();
   };
 
+  const startEdit = (survey: Survey) => {
+    setEditTitle(survey.title);
+    setEditDesc(survey.description || "");
+    setEditOptions(survey.options ? JSON.parse(survey.options) : []);
+    setEditing(true);
+  };
+
+  const handleEdit = async () => {
+    if (!selectedSurvey) return;
+    setSending(true);
+    const opts = selectedSurvey.type !== "yes_no" ? editOptions.filter((o) => o.trim()) : undefined;
+    const res = await fetch("/api/surveys", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selectedSurvey.id, action: "edit", title: editTitle, description: editDesc, options: opts }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setSelectedSurvey(updated);
+      setEditing(false);
+      await fetchSurveys();
+    }
+    setSending(false);
+  };
+
   const handleExport = (survey: Survey) => {
     const options = survey.options ? JSON.parse(survey.options) : null;
 
@@ -238,24 +269,71 @@ export default function SurveysPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 space-y-5">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-bold text-gray-800">{selectedSurvey.title}</h1>
-              {selectedSurvey.description && <p className="text-sm text-gray-500 mt-1">{selectedSurvey.description}</p>}
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                <span>{selectedSurvey.createdBy.name}</span>
-                <span>•</span>
-                <span>{formatDate(selectedSurvey.createdAt)}</span>
-                <span>•</span>
-                <span>צוות {selectedSurvey.team}</span>
+          {editing ? (
+            <div className="space-y-3 border-b pb-4">
+              <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-dotan-green outline-none"
+                placeholder="כותרת" />
+              <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none min-h-[50px]"
+                placeholder="תיאור (אופציונלי)" />
+              {selectedSurvey.type !== "yes_no" && (
+                <div className="space-y-2">
+                  <label className="text-xs text-gray-500 font-medium">אפשרויות:</label>
+                  {editOptions.map((opt, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="text" value={opt} onChange={(e) => {
+                        const newOpts = [...editOptions];
+                        newOpts[i] = e.target.value;
+                        setEditOptions(newOpts);
+                      }}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none"
+                        placeholder={`אפשרות ${i + 1}`} />
+                      {editOptions.length > 2 && (
+                        <button type="button" onClick={() => setEditOptions(editOptions.filter((_, j) => j !== i))}
+                          className="text-red-400 hover:text-red-600 px-2"><MdClose /></button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setEditOptions([...editOptions, ""])}
+                    className="text-xs text-dotan-green hover:underline flex items-center gap-1"><MdAdd /> הוסף אפשרות</button>
+                </div>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">ביטול</button>
+                <button onClick={handleEdit} disabled={sending}
+                  className="px-4 py-1.5 text-sm bg-dotan-green-dark text-white rounded-lg hover:bg-dotan-green transition disabled:opacity-50">
+                  {sending ? "שומר..." : "שמור"}
+                </button>
               </div>
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
-              selectedSurvey.status === "active" ? "bg-green-50 text-green-600 border border-green-200" : "bg-gray-100 text-gray-500 border border-gray-200"
-            }`}>
-              {selectedSurvey.status === "active" ? "פעיל" : "סגור"}
-            </span>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-gray-800">{selectedSurvey.title}</h1>
+                  {isCreator && (
+                    <button onClick={() => startEdit(selectedSurvey)} className="text-gray-400 hover:text-gray-600 transition">
+                      <MdEdit className="text-lg" />
+                    </button>
+                  )}
+                </div>
+                {selectedSurvey.description && <p className="text-sm text-gray-500 mt-1">{selectedSurvey.description}</p>}
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                  <span>{selectedSurvey.createdBy.name}</span>
+                  <span>•</span>
+                  <span>{formatDate(selectedSurvey.createdAt)}</span>
+                  <span>•</span>
+                  <span>צוות {selectedSurvey.team}</span>
+                </div>
+              </div>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
+                selectedSurvey.status === "active" ? "bg-green-50 text-green-600 border border-green-200" : "bg-gray-100 text-gray-500 border border-gray-200"
+              }`}>
+                {selectedSurvey.status === "active" ? "פעיל" : "סגור"}
+              </span>
+            </div>
+          )}
 
           {/* Voting section (if active and not yet voted or allow change) */}
           {selectedSurvey.status === "active" && (
