@@ -31,6 +31,7 @@ export async function GET(request: Request) {
       foodPreference: true,
       allergies: true,
       medicalExemptions: true,
+      roleTitle: true,
     },
     orderBy: [{ team: "asc" }, { name: "asc" }],
   });

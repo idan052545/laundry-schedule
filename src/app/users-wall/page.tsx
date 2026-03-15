@@ -25,6 +25,7 @@ interface UserProfile {
   phone: string | null;
   birthDate: string | null;
   role: string;
+  roleTitle: string | null;
   foodPreference: string | null;
   allergies: string | null;
   medicalExemptions: string | null;
@@ -44,15 +45,17 @@ const TEAM_NAMES: Record<number, string> = {
   17: "צוות 17",
 };
 
-const LEADERSHIP = [
-  { name: "מאי צימרמן", role: "קהדית פלוגתית", color: "bg-dotan-gold text-dotan-green-dark" },
-  { name: "טל הנגבי", role: "קצינת מבצעים פלוגתית", color: "bg-dotan-green-dark text-white" },
-  { name: "נועה בלפור", role: "קאגית פלוגתית", color: "bg-dotan-green text-white" },
-  { name: "נעמה", role: 'קא"רית פלוגתית', color: "bg-blue-600 text-white" },
-  { name: "אוהד אבדי", role: 'סמ"פ', color: "bg-red-600 text-white" },
-  { name: "תמר נגר", role: "קצינת אימונים", color: "bg-purple-600 text-white" },
-  { name: "אייל מוזר", role: 'קב"ט', color: "bg-orange-600 text-white" },
-  { name: "יניב גופמן", role: "קלפ חזק", color: "bg-teal-600 text-white" },
+const LEADER_COLORS = [
+  "bg-dotan-gold text-dotan-green-dark",
+  "bg-dotan-green-dark text-white",
+  "bg-dotan-green text-white",
+  "bg-blue-600 text-white",
+  "bg-red-600 text-white",
+  "bg-purple-600 text-white",
+  "bg-orange-600 text-white",
+  "bg-teal-600 text-white",
+  "bg-rose-600 text-white",
+  "bg-cyan-600 text-white",
 ];
 
 export default function UsersWallPage() {
@@ -102,19 +105,25 @@ export default function UsersWallPage() {
       </h1>
 
       {/* Leadership */}
-      <div className="bg-white rounded-xl shadow-sm border border-dotan-mint p-3 sm:p-4 mb-4 sm:mb-6">
-        <h2 className="text-base sm:text-lg font-bold text-dotan-green-dark mb-3 flex items-center gap-2">
-          <MdGroup className="text-dotan-gold" /> מפקדי הפלוגה
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {LEADERSHIP.map((leader) => (
-            <div key={leader.name} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium ${leader.color}`}>
-              <span className="font-bold">{leader.name}</span>
-              <span className="opacity-80 mr-1">| {leader.role}</span>
+      {(() => {
+        const leaders = users.filter((u) => u.role === "commander" || (u.roleTitle && u.role !== "user"));
+        if (leaders.length === 0) return null;
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-dotan-mint p-3 sm:p-4 mb-4 sm:mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-dotan-green-dark mb-3 flex items-center gap-2">
+              <MdGroup className="text-dotan-gold" /> מפקדי הפלוגה
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {leaders.map((leader, i) => (
+                <div key={leader.id} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium ${LEADER_COLORS[i % LEADER_COLORS.length]}`}>
+                  <span className="font-bold">{leader.name}</span>
+                  {leader.roleTitle && <span className="opacity-80 mr-1">| {leader.roleTitle}</span>}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">

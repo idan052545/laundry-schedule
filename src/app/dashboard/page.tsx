@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson, MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook, MdFolder } from "react-icons/md";
+import {
+  MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson,
+  MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
+  MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
+  MdPushPin, MdNewReleases,
+} from "react-icons/md";
+import Avatar from "@/components/Avatar";
 
 interface Machine {
   id: string;
@@ -20,26 +26,40 @@ interface Machine {
   }[];
 }
 
+interface DashboardFeed {
+  latestMessage: { id: string; title: string; createdAt: string; author: { name: string } } | null;
+  pinnedPosts: { id: string; title: string; type: string; dueDate: string | null; author: { name: string } }[];
+  todayTasks: { id: string; title: string; startDate: string; category: string }[];
+  pendingForms: { id: string; title: string; deadline: string | null }[];
+  birthdayUsers: { id: string; name: string; image: string | null }[];
+  latestMaterial: { id: string; title: string; createdAt: string; author: { name: string } } | null;
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [feed, setFeed] = useState<DashboardFeed | null>(null);
   const [loading, setLoading] = useState(true);
 
   const today = new Date().toISOString().split("T")[0];
   const currentHour = new Date().getHours();
   const currentSlot = `${currentHour.toString().padStart(2, "0")}:00`;
 
-  const fetchMachines = useCallback(async () => {
-    const res = await fetch("/api/machines");
-    if (res.ok) setMachines(await res.json());
+  const fetchData = useCallback(async () => {
+    const [machinesRes, feedRes] = await Promise.all([
+      fetch("/api/machines"),
+      fetch("/api/dashboard"),
+    ]);
+    if (machinesRes.ok) setMachines(await machinesRes.json());
+    if (feedRes.ok) setFeed(await feedRes.json());
     setLoading(false);
   }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
-    if (status === "authenticated") fetchMachines();
-  }, [status, router, fetchMachines]);
+    if (status === "authenticated") fetchData();
+  }, [status, router, fetchData]);
 
   const isMachineAvailable = (machine: Machine) => {
     if (machine.status === "maintenance") return false;
@@ -63,14 +83,23 @@ export default function DashboardPage() {
     { href: "/commander", icon: MdStar, title: "לוח מפקדים", desc: "הודעות ומשימות מהמפקדים", color: "text-amber-600" },
     { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", desc: "מידע על כל חיילי הפלוגה", color: "text-teal-600" },
     { href: "/forms", icon: MdDescription, title: "טפסים", desc: "קישורים לטפסים שיש למלא", color: "text-indigo-600" },
-    { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: "ל\"ע, נהלים וחומרי לימוד", color: "text-rose-600" },
+    { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: 'ל"ע, נהלים וחומרי לימוד', color: "text-rose-600" },
     { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
   ];
+
+  const hasFeedItems = feed && (
+    feed.birthdayUsers.length > 0 ||
+    feed.pendingForms.length > 0 ||
+    feed.todayTasks.length > 0 ||
+    feed.pinnedPosts.length > 0 ||
+    feed.latestMessage ||
+    feed.latestMaterial
+  );
 
   return (
     <div>
       {/* Header */}
-      <div className="mb-8 flex items-center gap-4">
+      <div className="mb-6 flex items-center gap-4">
         <div className="w-14 h-14 rounded-full shadow overflow-hidden shrink-0">
           <Image src="/dotanLogo.png" alt="דותן" width={56} height={56} className="w-full h-full object-cover" />
         </div>
@@ -83,6 +112,96 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Personalized Feed */}
+      {hasFeedItems && (
+        <div className="space-y-2 mb-6">
+          {/* Birthdays today */}
+          {feed.birthdayUsers.length > 0 && (
+            <Link href="/birthdays" className="flex items-center gap-3 bg-pink-50 border border-pink-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdCake className="text-2xl text-pink-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-pink-700">
+                  יום הולדת היום: {feed.birthdayUsers.map((u) => u.name).join(", ")}
+                </span>
+              </div>
+              <div className="flex -space-x-1 shrink-0">
+                {feed.birthdayUsers.slice(0, 3).map((u) => (
+                  <Avatar key={u.id} name={u.name} image={u.image} size="xs" />
+                ))}
+              </div>
+            </Link>
+          )}
+
+          {/* Pending forms */}
+          {feed.pendingForms.length > 0 && (
+            <Link href="/forms" className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdWarning className="text-2xl text-amber-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-amber-700">
+                  {feed.pendingForms.length} טפסים ממתינים למילוי
+                </span>
+                <span className="text-xs text-amber-500 block truncate">
+                  {feed.pendingForms.map((f) => f.title).join(", ")}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Today's tasks */}
+          {feed.todayTasks.length > 0 && (
+            <Link href="/tasks" className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdAssignment className="text-2xl text-purple-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-purple-700">
+                  {feed.todayTasks.length} משימות להיום
+                </span>
+                <span className="text-xs text-purple-500 block truncate">
+                  {feed.todayTasks.map((t) => t.title).join(", ")}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Pinned commander posts */}
+          {feed.pinnedPosts.length > 0 && feed.pinnedPosts.map((post) => (
+            <Link key={post.id} href="/commander" className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdPushPin className="text-2xl text-yellow-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-yellow-800 truncate block">{post.title}</span>
+                <span className="text-xs text-yellow-600">
+                  {post.author.name}
+                  {post.dueDate && (
+                    <> | <MdSchedule className="inline text-xs" /> {new Date(post.dueDate + "T12:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</>
+                  )}
+                </span>
+              </div>
+            </Link>
+          ))}
+
+          {/* Latest message */}
+          {feed.latestMessage && (
+            <Link href="/messages" className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdMessage className="text-2xl text-blue-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-blue-700 truncate block">{feed.latestMessage.title}</span>
+                <span className="text-xs text-blue-500">{feed.latestMessage.author.name} | {new Date(feed.latestMessage.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</span>
+              </div>
+            </Link>
+          )}
+
+          {/* Latest material */}
+          {feed.latestMaterial && (
+            <Link href="/materials" className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdNewReleases className="text-2xl text-rose-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-rose-700 truncate block">חומר חדש: {feed.latestMaterial.title}</span>
+                <span className="text-xs text-rose-500">{feed.latestMaterial.author.name} | {new Date(feed.latestMaterial.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</span>
+              </div>
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* Feature Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 mb-8">
