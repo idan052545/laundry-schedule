@@ -2,12 +2,12 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   MdCalendarMonth, MdChevronRight, MdChevronLeft, MdAdd, MdEdit, MdDelete,
   MdNotifications, MdClose, MdSave, MdPeople, MdFilterList, MdAccessTime,
   MdRestaurant, MdFitnessCenter, MdFlag, MdFreeBreakfast, MdEvent,
-  MdToday, MdPersonAdd, MdDragIndicator,
+  MdToday, MdPersonAdd, MdArrowUpward, MdArrowDownward,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -69,13 +69,7 @@ export default function ScheduleDailyPage() {
   const [userSearch, setUserSearch] = useState("");
   const [reminding, setReminding] = useState<string | null>(null);
 
-  // Drag state
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const dragCounter = useRef(0);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchActive = useRef(false);
-  const dragGhost = useRef<HTMLDivElement | null>(null);
+  const [detailEvent, setDetailEvent] = useState<ScheduleEvent | null>(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -267,38 +261,19 @@ export default function ScheduleDailyPage() {
     );
   };
 
-  // Drag & drop with smart time shifting
-  const handleDragStart = (idx: number, e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(idx));
-    setDragIdx(idx);
-  };
+  // Move event up/down in the timeline with smart time shifting
+  const moveEvent = async (eventIdx: number, direction: "up" | "down") => {
+    const targetIdx = direction === "up" ? eventIdx - 1 : eventIdx + 1;
+    if (targetIdx < 0 || targetIdx >= timedEvents.length) return;
 
-  const handleDragEnter = (idx: number) => {
-    dragCounter.current++;
-    setDragOverIdx(idx);
-  };
-
-  const handleDragLeave = () => {
-    dragCounter.current--;
-    if (dragCounter.current === 0) setDragOverIdx(null);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const executeDrop = async (fromIdx: number, toIdx: number) => {
-    if (fromIdx === toIdx) return;
-
-    // Reorder: move fromIdx item to toIdx position
+    // Swap the two events
     const reordered = [...timedEvents];
-    const [moved] = reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, moved);
+    const temp = reordered[eventIdx];
+    reordered[eventIdx] = reordered[targetIdx];
+    reordered[targetIdx] = temp;
 
-    // Smart time shifting: chain events sequentially from the first affected position
-    const startIdx = Math.min(fromIdx, toIdx);
+    // Smart time shifting: recalculate times from the earlier affected position
+    const startIdx = Math.min(eventIdx, targetIdx);
     const updates: { id: string; startTime: string; endTime: string }[] = [];
 
     for (let i = startIdx; i < reordered.length; i++) {
@@ -307,7 +282,8 @@ export default function ScheduleDailyPage() {
 
       let newStart: Date;
       if (i === 0) {
-        newStart = new Date(ev.startTime);
+        // First event: use the original first event's start time
+        newStart = new Date(timedEvents[0].startTime);
       } else {
         // Start right after previous event ends
         const prevUpdate = updates.find((u) => u.id === reordered[i - 1].id);
@@ -347,100 +323,6 @@ export default function ScheduleDailyPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(u),
       });
-    }
-  };
-
-  const handleDrop = async (dropIdx: number) => {
-    dragCounter.current = 0;
-    setDragOverIdx(null);
-    if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); return; }
-    const fromIdx = dragIdx;
-    setDragIdx(null);
-    await executeDrop(fromIdx, dropIdx);
-  };
-
-  const handleDragEnd = () => {
-    setDragIdx(null);
-    setDragOverIdx(null);
-    dragCounter.current = 0;
-  };
-
-  // Touch drag support — long press to activate
-  const handleTouchStart = (idx: number, e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const startY = touch.clientY;
-    touchActive.current = false;
-
-    longPressTimer.current = setTimeout(() => {
-      touchActive.current = true;
-      setDragIdx(idx);
-      // Create ghost element
-      const ghost = document.createElement("div");
-      ghost.className = "fixed z-[999] px-3 py-2 bg-dotan-green-dark text-white rounded-lg shadow-xl text-sm font-bold pointer-events-none opacity-90";
-      ghost.textContent = timedEvents[idx]?.title || "";
-      ghost.style.left = "50%";
-      ghost.style.transform = "translateX(-50%)";
-      ghost.style.top = `${startY - 20}px`;
-      document.body.appendChild(ghost);
-      dragGhost.current = ghost;
-      // Vibrate feedback on mobile if available
-      if (navigator.vibrate) navigator.vibrate(50);
-    }, 400);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchActive.current) {
-      // Cancel long press if finger moved before activation
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-      return;
-    }
-    e.preventDefault(); // Prevent scrolling while dragging
-    const touch = e.touches[0];
-
-    // Move ghost
-    if (dragGhost.current) {
-      dragGhost.current.style.top = `${touch.clientY - 20}px`;
-    }
-
-    // Find which element we're over
-    const elements = document.querySelectorAll("[data-timeline-idx]");
-    let found = false;
-    for (const el of elements) {
-      const rect = el.getBoundingClientRect();
-      if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-        const idx = parseInt(el.getAttribute("data-timeline-idx") || "-1");
-        if (idx >= 0) { setDragOverIdx(idx); found = true; }
-      }
-    }
-    if (!found) setDragOverIdx(null);
-  };
-
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-
-    // Remove ghost
-    if (dragGhost.current) {
-      dragGhost.current.remove();
-      dragGhost.current = null;
-    }
-
-    if (touchActive.current && dragIdx !== null && dragOverIdx !== null && dragIdx !== dragOverIdx) {
-      const fromIdx = dragIdx;
-      const toIdx = dragOverIdx;
-      setDragIdx(null);
-      setDragOverIdx(null);
-      touchActive.current = false;
-      executeDrop(fromIdx, toIdx);
-    } else {
-      setDragIdx(null);
-      setDragOverIdx(null);
-      touchActive.current = false;
     }
   };
 
@@ -599,29 +481,28 @@ export default function ScheduleDailyPage() {
             const Icon = config.icon;
             const active = isNow(event);
             const duration = getDurationMin(event);
-            const isDragging = dragIdx === idx;
-            const isDragOver = dragOverIdx === idx;
-
             return (
               <div
                 key={event.id}
-                data-timeline-idx={idx}
-                draggable={isAdmin}
-                onDragStart={(e) => handleDragStart(idx, e)}
-                onDragEnter={() => handleDragEnter(idx)}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(idx)}
-                onDragEnd={handleDragEnd}
-                onTouchStart={(e) => isAdmin && handleTouchStart(idx, e)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"} ${isDragging ? "opacity-40 scale-[0.98]" : ""} ${isDragOver ? "border-dotan-green border-dashed bg-dotan-mint-light/30" : ""}`}
+                onClick={() => setDetailEvent(event)}
+                className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"}`}
               >
                 <div className="flex items-start gap-1.5">
-                  {isAdmin && (
-                    <div className="mt-0.5 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 shrink-0">
-                      <MdDragIndicator className={compact ? "text-sm" : ""} />
+                  {/* Move up/down buttons for admin */}
+                  {isAdmin && !compact && (
+                    <div className="flex flex-col gap-0.5 shrink-0 mt-0.5">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); moveEvent(idx, "up"); }}
+                        disabled={idx === 0}
+                        className="text-gray-300 hover:text-dotan-green disabled:opacity-20 disabled:hover:text-gray-300 transition">
+                        <MdArrowUpward className="text-sm" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); moveEvent(idx, "down"); }}
+                        disabled={idx === timedEvents.length - 1}
+                        className="text-gray-300 hover:text-dotan-green disabled:opacity-20 disabled:hover:text-gray-300 transition">
+                        <MdArrowDownward className="text-sm" />
+                      </button>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -671,17 +552,30 @@ export default function ScheduleDailyPage() {
 
                     {isAdmin && (
                       <div className={`flex items-center gap-2 ${compact ? "mt-1" : "mt-2 pt-1.5 border-t border-black/5"}`}>
-                        <button onClick={() => handleRemind(event.id)} disabled={reminding === event.id}
+                        {compact && (
+                          <>
+                            <button onClick={() => moveEvent(idx, "up")} disabled={idx === 0}
+                              className="text-gray-300 hover:text-dotan-green disabled:opacity-20 transition">
+                              <MdArrowUpward className="text-xs" />
+                            </button>
+                            <button onClick={() => moveEvent(idx, "down")} disabled={idx === timedEvents.length - 1}
+                              className="text-gray-300 hover:text-dotan-green disabled:opacity-20 transition">
+                              <MdArrowDownward className="text-xs" />
+                            </button>
+                            <div className="w-px h-3 bg-gray-200" />
+                          </>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); handleRemind(event.id); }} disabled={reminding === event.id}
                           className="text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
                           <MdNotifications className={`${compact ? "text-xs" : "text-sm"} ${reminding === event.id ? "animate-bounce" : ""}`} />
                         </button>
-                        <button onClick={() => openAssign(event)} className="text-gray-300 hover:text-purple-500 transition">
+                        <button onClick={(e) => { e.stopPropagation(); openAssign(event); }} className="text-gray-300 hover:text-purple-500 transition">
                           <MdPersonAdd className={compact ? "text-xs" : "text-sm"} />
                         </button>
-                        <button onClick={() => openEdit(event)} className="text-gray-300 hover:text-dotan-green transition">
+                        <button onClick={(e) => { e.stopPropagation(); openEdit(event); }} className="text-gray-300 hover:text-dotan-green transition">
                           <MdEdit className={compact ? "text-xs" : "text-sm"} />
                         </button>
-                        <button onClick={() => handleDelete(event.id)} className="text-gray-300 hover:text-red-500 transition mr-auto">
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(event.id); }} className="text-gray-300 hover:text-red-500 transition mr-auto">
                           <MdDelete className={compact ? "text-xs" : "text-sm"} />
                         </button>
                       </div>
@@ -734,6 +628,99 @@ export default function ScheduleDailyPage() {
           {isAdmin && <p className="text-sm mt-2">לחץ &quot;הוסף אירוע&quot; כדי להוסיף</p>}
         </div>
       )}
+
+      {/* Event detail modal */}
+      {detailEvent && (() => {
+        const config = TYPE_CONFIG[detailEvent.type] || TYPE_CONFIG.general;
+        const Icon = config.icon;
+        const duration = getDurationMin(detailEvent);
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => setDetailEvent(null)}>
+            <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[80vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}>
+              <div className={`p-4 border-b flex items-center justify-between shrink-0 ${config.bg}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Icon className={`text-xl ${config.color} shrink-0`} />
+                  <h3 className="font-bold text-gray-800 text-base">{detailEvent.title}</h3>
+                </div>
+                <button onClick={() => setDetailEvent(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
+                  <MdClose />
+                </button>
+              </div>
+              <div className="p-4 space-y-3 overflow-y-auto">
+                {/* Time */}
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <MdAccessTime className="text-gray-400" />
+                  {detailEvent.allDay ? (
+                    <span>כל היום</span>
+                  ) : (
+                    <span>{formatTime(detailEvent.startTime)} – {formatTime(detailEvent.endTime)}
+                      {duration > 0 && <span className="text-gray-400 mr-1">
+                        ({duration >= 60 ? `${Math.floor(duration / 60)} שע׳` : ""}{duration % 60 > 0 ? ` ${duration % 60} דק׳` : ""})
+                      </span>}
+                    </span>
+                  )}
+                </div>
+
+                {/* Target */}
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <MdPeople className="text-gray-400" />
+                  <span>{TARGET_LABELS[detailEvent.target] || detailEvent.target}</span>
+                </div>
+
+                {/* Type */}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.border} border ${config.color}`}>
+                    {config.label}
+                  </span>
+                </div>
+
+                {/* Description */}
+                {detailEvent.description && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{detailEvent.description}</p>
+                  </div>
+                )}
+
+                {/* Assignees */}
+                {detailEvent.assignees.length > 0 && (
+                  <div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">משויכים</div>
+                    <div className="space-y-1.5">
+                      {detailEvent.assignees.map((a) => (
+                        <div key={a.id} className="flex items-center gap-2">
+                          <Avatar name={a.user.name} image={a.user.image} size="sm" />
+                          <span className="text-sm text-gray-700">{a.user.name}</span>
+                          {a.user.team && <span className="text-xs text-gray-400">צוות {a.user.team}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Admin actions */}
+                {isAdmin && (
+                  <div className="flex gap-2 pt-2 border-t">
+                    <button onClick={() => { openEdit(detailEvent); setDetailEvent(null); }}
+                      className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center justify-center gap-1">
+                      <MdEdit className="text-sm" /> עריכה
+                    </button>
+                    <button onClick={() => { openAssign(detailEvent); setDetailEvent(null); }}
+                      className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center justify-center gap-1">
+                      <MdPersonAdd className="text-sm" /> שיוך
+                    </button>
+                    <button onClick={() => { handleDelete(detailEvent.id); setDetailEvent(null); }}
+                      className="bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition text-sm font-medium flex items-center justify-center gap-1">
+                      <MdDelete className="text-sm" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Assign modal */}
       {showAssign && (
