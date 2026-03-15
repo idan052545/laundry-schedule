@@ -40,8 +40,8 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
             {event.allDay ? (
               <span>כל היום</span>
             ) : (
-              <span>{formatTime(event.startTime)} – {formatTime(event.endTime)}
-                {duration > 0 && <span className="text-gray-400 mr-1">
+              <span dir="ltr">{formatTime(event.startTime)} – {formatTime(event.endTime)}
+                {duration > 0 && <span className="text-gray-400 ml-1">
                   ({duration >= 60 ? `${Math.floor(duration / 60)} שע׳` : ""}{duration % 60 > 0 ? ` ${duration % 60} דק׳` : ""})
                 </span>}
               </span>

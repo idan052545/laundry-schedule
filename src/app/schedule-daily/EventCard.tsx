@@ -68,7 +68,7 @@ export default function EventCard({
           </div>
 
           {compact && (
-            <div className="text-[10px] text-gray-500 mt-0.5 font-medium">
+            <div className="text-[10px] text-gray-500 mt-0.5 font-medium" dir="ltr">
               {formatTime(event.startTime)} – {formatTime(event.endTime)}
             </div>
           )}
