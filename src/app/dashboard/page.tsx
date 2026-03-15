@@ -169,22 +169,25 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Today's personal/team notes */}
+          {/* Today's personal/team notes — full list */}
           {feed.todayNotes?.length > 0 && (
-            <Link href="/schedule-daily" className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdStickyNote2 className="text-2xl text-amber-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-amber-700">
-                  {feed.todayNotes.length} הערות להיום
-                </span>
-                <span className="text-xs text-amber-500 block truncate">
-                  {feed.todayNotes.map((n) => {
-                    const time = n.startTime ? `${n.startTime} ` : "";
-                    return `${time}${n.title}`;
-                  }).join(" | ")}
-                </span>
-              </div>
-            </Link>
+            <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 space-y-2">
+              <Link href="/schedule-daily" className="flex items-center gap-2 text-sm font-bold text-amber-700">
+                <MdStickyNote2 className="text-lg text-amber-500" />
+                ההערות שלי להיום
+              </Link>
+              {feed.todayNotes.map((n) => (
+                <div key={n.id} className="flex items-center gap-2.5 bg-white/70 rounded-lg px-3 py-2 border border-amber-100">
+                  {n.startTime && (
+                    <span className="text-[11px] font-bold text-amber-600 shrink-0 tabular-nums" dir="ltr">{n.startTime}</span>
+                  )}
+                  <span className="text-sm text-gray-800 font-medium truncate">{n.title}</span>
+                  {n.visibility === "team" && (
+                    <span className="text-[9px] text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full font-medium shrink-0">צוות</span>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
 
           {/* Birthdays today */}

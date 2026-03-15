@@ -152,7 +152,6 @@ export async function GET() {
         user: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "asc" },
-      take: 5,
     }),
   ]);
 
