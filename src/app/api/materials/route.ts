@@ -25,9 +25,13 @@ export async function GET() {
     ...rest,
     hasFile: !!fileData,
     isRead: reads.length > 0,
+    tags: rest.tags ? JSON.parse(rest.tags) : [],
   }));
 
-  return NextResponse.json(result);
+  // Collect all unique tags across materials
+  const allTags = [...new Set(result.flatMap((m) => m.tags as string[]))].sort();
+
+  return NextResponse.json({ materials: result, allTags });
 }
 
 export async function POST(request: Request) {
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   const userId = (session.user as { id: string }).id;
-  const { title, description, category, blobUrl, fileName, fileType } = await request.json();
+  const { title, description, category, blobUrl, fileName, fileType, tags } = await request.json();
 
   if (!title || !blobUrl) {
     return NextResponse.json({ error: "נא למלא כותרת ולצרף קובץ" }, { status: 400 });
@@ -48,6 +52,7 @@ export async function POST(request: Request) {
       title,
       description: description || null,
       category: category || "general",
+      tags: tags?.length ? JSON.stringify(tags) : null,
       fileData: blobUrl,
       fileName: fileName || "file",
       fileType: fileType || "application/octet-stream",
@@ -95,8 +100,8 @@ export async function PUT(request: Request) {
     return NextResponse.json({ isRead: true });
   }
 
-  // Edit title/description
-  const { id, title, description } = body;
+  // Edit title/description/tags
+  const { id, title, description, tags } = body;
   if (!id || !title) {
     return NextResponse.json({ error: "נא למלא כותרת" }, { status: 400 });
   }
@@ -107,14 +112,17 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 
+  const data: Record<string, unknown> = { title, description: description || null };
+  if (tags !== undefined) data.tags = tags?.length ? JSON.stringify(tags) : null;
+
   const updated = await prisma.professionalMaterial.update({
     where: { id },
-    data: { title, description: description || null },
+    data,
     include: { author: { select: { id: true, name: true, image: true } } },
   });
 
   const { fileData: _, ...result } = updated;
-  return NextResponse.json({ ...result, hasFile: !!updated.fileData });
+  return NextResponse.json({ ...result, hasFile: !!updated.fileData, tags: updated.tags ? JSON.parse(updated.tags) : [] });
 }
 
 export async function DELETE(request: Request) {

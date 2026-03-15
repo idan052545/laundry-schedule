@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdEdit, MdCheck, MdVisibility, MdVisibilityOff } from "react-icons/md";
+import { MdMenuBook, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadFile, MdPictureAsPdf, MdImage, MdEdit, MdCheck, MdVisibility, MdVisibilityOff, MdLabel } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
@@ -13,6 +13,7 @@ interface Material {
   title: string;
   description: string | null;
   category: string;
+  tags: string[];
   fileName: string;
   fileType: string;
   hasFile: boolean;
@@ -56,13 +57,25 @@ export default function MaterialsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editNewTag, setEditNewTag] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Tags
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [formTags, setFormTags] = useState<string[]>([]);
+  const [formNewTag, setFormNewTag] = useState("");
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
   const fetchMaterials = useCallback(async () => {
     const res = await fetch("/api/materials");
-    if (res.ok) setMaterials(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setMaterials(data.materials || data);
+      setAllTags(data.allTags || []);
+    }
     setLoading(false);
   }, []);
 
@@ -91,6 +104,7 @@ export default function MaterialsPage() {
           title,
           description,
           category,
+          tags: formTags.length > 0 ? formTags : undefined,
           blobUrl: blob.url,
           fileName: file.name,
           fileType: file.type,
@@ -100,7 +114,8 @@ export default function MaterialsPage() {
       if (res.ok) {
         const newMaterial = await res.json();
         setMaterials((prev) => [newMaterial, ...prev]);
-        setTitle(""); setDescription(""); setCategory("general"); setFile(null); setShowForm(false);
+        setTitle(""); setDescription(""); setCategory("general"); setFile(null); setFormTags([]); setFormNewTag(""); setShowForm(false);
+        await fetchMaterials();
       } else {
         const err = await res.json();
         alert(err.error || "שגיאה");
@@ -159,6 +174,8 @@ export default function MaterialsPage() {
     setEditingId(material.id);
     setEditTitle(material.title);
     setEditDescription(material.description || "");
+    setEditTags(material.tags || []);
+    setEditNewTag("");
   };
 
   const handleEdit = async (id: string) => {
@@ -166,12 +183,13 @@ export default function MaterialsPage() {
     const res = await fetch("/api/materials", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, title: editTitle, description: editDescription }),
+      body: JSON.stringify({ id, title: editTitle, description: editDescription, tags: editTags }),
     });
     if (res.ok) {
       const updated = await res.json();
       setMaterials((prev) => prev.map((m) => m.id === id ? { ...m, ...updated } : m));
       setEditingId(null);
+      await fetchMaterials(); // refresh allTags
     }
   };
 
@@ -190,7 +208,11 @@ export default function MaterialsPage() {
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
 
-  const filtered = filter === "all" ? materials : materials.filter((m) => m.category === filter);
+  const filtered = materials.filter((m) => {
+    if (filter !== "all" && m.category !== filter) return false;
+    if (filterTag && !(m.tags || []).includes(filterTag)) return false;
+    return true;
+  });
 
   if (status === "loading" || loading) {
     return <InlineLoading />;
@@ -223,6 +245,58 @@ export default function MaterialsPage() {
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
+
+          {/* Tags */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium flex items-center gap-1 mb-1"><MdLabel /> תגיות</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {formTags.map((tag) => (
+                <span key={tag} className="flex items-center gap-1 text-xs bg-dotan-mint-light text-dotan-green-dark px-2.5 py-1 rounded-full border border-dotan-green">
+                  {tag}
+                  <button type="button" onClick={() => setFormTags((prev) => prev.filter((t) => t !== tag))} className="hover:text-red-500"><MdClose className="text-sm" /></button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input type="text" value={formNewTag} onChange={(e) => setFormNewTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && formNewTag.trim()) {
+                      e.preventDefault();
+                      if (!formTags.includes(formNewTag.trim())) setFormTags((prev) => [...prev, formNewTag.trim()]);
+                      setFormNewTag("");
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none"
+                  placeholder="הוסף תגית..." list="existing-tags-form" />
+                <datalist id="existing-tags-form">
+                  {allTags.filter((t) => !formTags.includes(t)).map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </div>
+              <button type="button" onClick={() => {
+                if (formNewTag.trim() && !formTags.includes(formNewTag.trim())) {
+                  setFormTags((prev) => [...prev, formNewTag.trim()]);
+                  setFormNewTag("");
+                }
+              }}
+                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-600 transition">
+                <MdAdd />
+              </button>
+            </div>
+            {/* Quick-pick existing tags */}
+            {allTags.filter((t) => !formTags.includes(t)).length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {allTags.filter((t) => !formTags.includes(t)).map((t) => (
+                  <button key={t} type="button" onClick={() => setFormTags((prev) => [...prev, t])}
+                    className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 hover:bg-dotan-mint-light hover:text-dotan-green-dark transition border border-gray-200">
+                    + {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div>
             <button type="button" onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm text-gray-700 border border-dashed border-gray-300">
@@ -240,8 +314,8 @@ export default function MaterialsPage() {
         </form>
       )}
 
-      {/* Filter */}
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
+      {/* Category filter */}
+      <div className="flex flex-wrap gap-2 mb-2 items-center">
         <MdFilterList className="text-gray-500" />
         <button onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === "all" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
@@ -254,6 +328,29 @@ export default function MaterialsPage() {
           </button>
         ))}
       </div>
+
+      {/* Tag filter — only show tags that exist on materials */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4 items-center">
+          <MdLabel className="text-gray-400 text-sm" />
+          {filterTag && (
+            <button onClick={() => setFilterTag(null)}
+              className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600 hover:bg-gray-300 transition">
+              ✕ נקה
+            </button>
+          )}
+          {allTags.map((tag) => (
+            <button key={tag} onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${
+                filterTag === tag
+                  ? "bg-dotan-green-dark text-white"
+                  : "bg-dotan-mint-light text-dotan-green-dark border border-dotan-green hover:bg-dotan-green hover:text-white"
+              }`}>
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Materials list */}
       <div className="space-y-3">
@@ -275,6 +372,50 @@ export default function MaterialsPage() {
                   <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm min-h-[60px]"
                     placeholder="תיאור (אופציונלי)" />
+                  {/* Edit tags */}
+                  <div>
+                    <div className="flex flex-wrap gap-1 mb-1.5">
+                      {editTags.map((tag) => (
+                        <span key={tag} className="flex items-center gap-0.5 text-[11px] bg-dotan-mint-light text-dotan-green-dark px-2 py-0.5 rounded-full border border-dotan-green">
+                          {tag}
+                          <button type="button" onClick={() => setEditTags((prev) => prev.filter((t) => t !== tag))} className="hover:text-red-500"><MdClose className="text-xs" /></button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-1.5">
+                      <input type="text" value={editNewTag} onChange={(e) => setEditNewTag(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && editNewTag.trim()) {
+                            e.preventDefault();
+                            if (!editTags.includes(editNewTag.trim())) setEditTags((prev) => [...prev, editNewTag.trim()]);
+                            setEditNewTag("");
+                          }
+                        }}
+                        className="flex-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-dotan-green outline-none"
+                        placeholder="תגית..." list="existing-tags-edit" />
+                      <datalist id="existing-tags-edit">
+                        {allTags.filter((t) => !editTags.includes(t)).map((t) => (
+                          <option key={t} value={t} />
+                        ))}
+                      </datalist>
+                      <button type="button" onClick={() => {
+                        if (editNewTag.trim() && !editTags.includes(editNewTag.trim())) {
+                          setEditTags((prev) => [...prev, editNewTag.trim()]);
+                          setEditNewTag("");
+                        }
+                      }} className="px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-600"><MdAdd /></button>
+                    </div>
+                    {allTags.filter((t) => !editTags.includes(t)).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {allTags.filter((t) => !editTags.includes(t)).map((t) => (
+                          <button key={t} type="button" onClick={() => setEditTags((prev) => [...prev, t])}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 hover:bg-dotan-mint-light hover:text-dotan-green-dark transition">
+                            + {t}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => handleEdit(material.id)}
                       className="flex items-center gap-1 text-xs font-medium text-white bg-dotan-green-dark hover:bg-dotan-green px-3 py-1.5 rounded-lg transition">
@@ -296,6 +437,9 @@ export default function MaterialsPage() {
                       <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                         <h3 className={`font-bold text-sm ${material.isRead ? "text-gray-500" : "text-gray-800"}`}>{material.title}</h3>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 ${cat.bg} ${cat.color}`}>{cat.label}</span>
+                        {(material.tags || []).map((tag) => (
+                          <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-dotan-mint-light text-dotan-green-dark border border-dotan-green shrink-0">{tag}</span>
+                        ))}
                         {material.isRead && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-600 border border-green-200 shrink-0">נקרא</span>}
                       </div>
                       {material.description && (

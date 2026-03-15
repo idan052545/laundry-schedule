@@ -178,6 +178,7 @@ model ProfessionalMaterial {
   title       String
   description String?
   category    String   @default("general") // "general", "weapons", "navigation", "first-aid", "procedures", "other"
+  tags        String?  // JSON array of custom tag strings, e.g. '["ל\"ע","נהלים"]'
   fileData    String   // base64 encoded file
   fileName    String
   fileType    String   // mime type
