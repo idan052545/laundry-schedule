@@ -156,7 +156,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "אירוע לא נמצא" }, { status: 404 });
     }
 
-    const startStr = new Date(event.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+    const startStr = new Date(event.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 
     if (event.assignees.length > 0) {
       const userIds = event.assignees.map((a) => a.userId);

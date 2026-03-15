@@ -131,14 +131,18 @@ export default function ScheduleDailyPage() {
     setForm({ title: "", description: "", startTime: "", endTime: "", allDay: false, target: "all", type: "general" });
   };
 
+  // Convert local Israel time input to ISO string
+  const toISO = (dateStr: string, timeStr: string) =>
+    new Date(`${dateStr}T${timeStr}:00`).toISOString();
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const startTime = form.allDay
-      ? `${date}T00:00:00Z`
-      : `${date}T${form.startTime}:00Z`;
+      ? new Date(`${date}T00:00:00`).toISOString()
+      : toISO(date, form.startTime);
     const endTime = form.allDay
-      ? `${date}T23:59:59Z`
-      : `${date}T${form.endTime}:00Z`;
+      ? new Date(`${date}T23:59:59`).toISOString()
+      : toISO(date, form.endTime);
 
     const res = await fetch("/api/schedule", {
       method: "POST",
@@ -159,11 +163,11 @@ export default function ScheduleDailyPage() {
     if (!editingEvent) return;
 
     const startTime = form.allDay
-      ? `${date}T00:00:00Z`
-      : `${date}T${form.startTime}:00Z`;
+      ? new Date(`${date}T00:00:00`).toISOString()
+      : toISO(date, form.startTime);
     const endTime = form.allDay
-      ? `${date}T23:59:59Z`
-      : `${date}T${form.endTime}:00Z`;
+      ? new Date(`${date}T23:59:59`).toISOString()
+      : toISO(date, form.endTime);
 
     const res = await fetch("/api/schedule", {
       method: "PUT",
@@ -197,18 +201,21 @@ export default function ScheduleDailyPage() {
   };
 
   const openEdit = (event: ScheduleEvent) => {
+    setShowAdd(false);
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
     setForm({
       title: event.title,
       description: event.description || "",
-      startTime: `${start.getUTCHours().toString().padStart(2, "0")}:${start.getUTCMinutes().toString().padStart(2, "0")}`,
-      endTime: `${end.getUTCHours().toString().padStart(2, "0")}:${end.getUTCMinutes().toString().padStart(2, "0")}`,
+      startTime: `${start.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}`,
+      endTime: `${end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}`,
       allDay: event.allDay,
       target: event.target,
       type: event.type,
     });
     setEditingEvent(event);
+    // Scroll to top where the form appears
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const openAssign = (event: ScheduleEvent) => {

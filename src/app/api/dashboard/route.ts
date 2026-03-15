@@ -21,6 +21,12 @@ export async function GET() {
   const userTeam = user?.team ? `team-${user.team}` : null;
   const now = new Date();
 
+  const targetFilter = [
+    { target: "all" as const },
+    ...(userTeam ? [{ target: userTeam }] : []),
+    { assignees: { some: { userId } } },
+  ];
+
   const [
     latestMessage,
     pinnedPosts,
@@ -28,7 +34,8 @@ export async function GET() {
     pendingForms,
     birthdayUsers,
     latestMaterial,
-    currentSchedule,
+    timedEvents,
+    allDayEvents,
   ] = await Promise.all([
     // Latest message
     prisma.message.findFirst({
@@ -84,29 +91,43 @@ export async function GET() {
       select: { id: true, title: true, createdAt: true, author: { select: { name: true } } },
     }),
 
-    // Current or next schedule event (happening now or starting soonest after now)
-    prisma.scheduleEvent.findFirst({
+    // Today's timed schedule events (not all-day) that haven't ended yet
+    prisma.scheduleEvent.findMany({
       where: {
         endTime: { gte: now },
         startTime: { lte: new Date(todayStr + "T23:59:59Z") },
-        OR: [
-          { target: "all" },
-          ...(userTeam ? [{ target: userTeam }] : []),
-          { assignees: { some: { userId } } },
-        ],
+        allDay: false,
+        OR: targetFilter,
       },
       orderBy: { startTime: "asc" },
+      take: 2,
       select: { id: true, title: true, startTime: true, endTime: true, type: true },
+    }),
+
+    // Today's all-day events
+    prisma.scheduleEvent.findMany({
+      where: {
+        startTime: { gte: new Date(todayStr + "T00:00:00Z"), lte: new Date(todayStr + "T23:59:59Z") },
+        allDay: true,
+        OR: targetFilter,
+      },
+      orderBy: { startTime: "asc" },
+      select: { id: true, title: true, type: true },
     }),
   ]);
 
-  // Determine if currentSchedule is happening now or upcoming
-  let scheduleStatus: "now" | "next" | null = null;
-  if (currentSchedule) {
-    const start = new Date(currentSchedule.startTime);
-    const end = new Date(currentSchedule.endTime);
-    if (now >= start && now <= end) scheduleStatus = "now";
-    else scheduleStatus = "next";
+  // Pick current (happening now) or next upcoming timed event
+  let currentSchedule: { id: string; title: string; startTime: Date; endTime: Date; type: string; status: "now" | "next" } | null = null;
+  for (const ev of timedEvents) {
+    const start = new Date(ev.startTime);
+    const end = new Date(ev.endTime);
+    if (now >= start && now <= end) {
+      currentSchedule = { ...ev, startTime: start, endTime: end, status: "now" };
+      break;
+    } else if (start > now) {
+      currentSchedule = { ...ev, startTime: start, endTime: end, status: "next" };
+      break;
+    }
   }
 
   return NextResponse.json({
@@ -116,6 +137,7 @@ export async function GET() {
     pendingForms,
     birthdayUsers,
     unreadMaterials: latestMaterial,
-    currentSchedule: currentSchedule ? { ...currentSchedule, status: scheduleStatus } : null,
+    currentSchedule,
+    allDaySchedule: allDayEvents,
   });
 }

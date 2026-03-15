@@ -34,6 +34,7 @@ interface DashboardFeed {
   birthdayUsers: { id: string; name: string; image: string | null }[];
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
   currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; status: "now" | "next" } | null;
+  allDaySchedule: { id: string; title: string; type: string }[];
 }
 
 export default function DashboardPage() {
@@ -97,7 +98,8 @@ export default function DashboardPage() {
     feed.pinnedPosts.length > 0 ||
     feed.latestMessage ||
     feed.unreadMaterials.length > 0 ||
-    feed.currentSchedule
+    feed.currentSchedule ||
+    feed.allDaySchedule.length > 0
   );
 
   return (
@@ -120,7 +122,20 @@ export default function DashboardPage() {
       {/* Personalized Feed */}
       {hasFeedItems && (
         <div className="space-y-2 mb-6">
-          {/* Current/next schedule */}
+          {/* All-day schedule events */}
+          {feed.allDaySchedule.length > 0 && (
+            <Link href="/schedule-daily" className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdCalendarMonth className="text-2xl text-gray-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs text-gray-400 block">כל היום</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {feed.allDaySchedule.map((e) => e.title).join(" | ")}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Current/next timed schedule event */}
           {feed.currentSchedule && (
             <Link href="/schedule-daily" className={`flex items-center gap-3 ${feed.currentSchedule.status === "now" ? "bg-dotan-mint-light border-dotan-green ring-1 ring-dotan-green" : "bg-sky-50 border-sky-200"} border rounded-xl p-3 hover:shadow-sm transition`}>
               <MdCalendarMonth className={`text-2xl shrink-0 ${feed.currentSchedule.status === "now" ? "text-dotan-green animate-pulse" : "text-sky-500"}`} />
@@ -130,9 +145,9 @@ export default function DashboardPage() {
                   {feed.currentSchedule.title}
                 </span>
                 <span className={`text-xs block ${feed.currentSchedule.status === "now" ? "text-dotan-green" : "text-sky-500"}`}>
-                  {new Date(feed.currentSchedule.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(feed.currentSchedule.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                   {" - "}
-                  {new Date(feed.currentSchedule.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                  {new Date(feed.currentSchedule.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                 </span>
               </div>
             </Link>
