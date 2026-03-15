@@ -134,6 +134,20 @@ export async function GET() {
       : Promise.resolve([]),
   ]);
 
+  // Check if user voted this week
+  const nowDate = new Date();
+  const d = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  const currentWeek = `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+
+  const weeklyVote = await prisma.weeklyVote.findUnique({
+    where: { week_voterId: { week: currentWeek, voterId: userId } },
+  });
+  const hasVotedThisWeek = !!weeklyVote;
+
   // Pick current (happening now) or next upcoming timed event
   let currentSchedule: { id: string; title: string; startTime: Date; endTime: Date; type: string; status: "now" | "next" } | null = null;
   for (const ev of timedEvents) {
@@ -158,5 +172,6 @@ export async function GET() {
     currentSchedule,
     allDaySchedule: allDayEvents,
     pendingSurveys,
+    hasVotedThisWeek,
   });
 }

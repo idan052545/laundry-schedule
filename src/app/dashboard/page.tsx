@@ -10,7 +10,8 @@ import {
   MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild, MdPerson,
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
-  MdPushPin, MdNewReleases, MdNewspaper, MdPoll,
+  MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
+  MdNotifications,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -37,6 +38,7 @@ interface DashboardFeed {
   currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; status: "now" | "next" } | null;
   allDaySchedule: { id: string; title: string; type: string }[];
   pendingSurveys: { id: string; title: string; createdAt: string }[];
+  hasVotedThisWeek: boolean;
 }
 
 export default function DashboardPage() {
@@ -79,18 +81,23 @@ export default function DashboardPage() {
   }
 
   const features = [
-    { href: "/schedule", icon: MdCalendarMonth, title: "מכבסה", desc: "קבע תור לכביסה או מייבש", color: "text-dotan-green" },
+    { href: "/schedule-daily", icon: MdCalendarMonth, title: 'לו"ז יומי', desc: "לוח זמנים יומי של הפלוגה", color: "text-sky-600" },
     { href: "/messages", icon: MdMessage, title: "לוח הודעות", desc: "הודעות והתראות לפלוגה", color: "text-blue-600" },
-    { href: "/attendance", icon: MdFactCheck, title: "מצל", desc: "נוכחות לפי צוותים", color: "text-orange-600" },
-    { href: "/birthdays", icon: MdCake, title: "ימי הולדת", desc: "קיר ימי הולדת של הפלוגה", color: "text-pink-600" },
     { href: "/tasks", icon: MdAssignment, title: "לוח משימות", desc: "משימות, דדליינים ותזכורות", color: "text-purple-600" },
-    { href: "/commander", icon: MdStar, title: "לוח מפקדים", desc: "הודעות ומשימות מהמפקדים", color: "text-amber-600" },
-    { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", desc: "מידע על כל חיילי הפלוגה", color: "text-teal-600" },
     { href: "/forms", icon: MdDescription, title: "טפסים", desc: "קישורים לטפסים שיש למלא", color: "text-indigo-600" },
+    { href: "/attendance", icon: MdFactCheck, title: "מצל", desc: "נוכחות לפי צוותים", color: "text-orange-600" },
+    { href: "/commander", icon: MdStar, title: "לוח מפקדים", desc: "הודעות ומשימות מהמפקדים", color: "text-amber-600" },
+    { href: "/surveys", icon: MdPoll, title: "סקרים", desc: "סקרים לצוות שלך", color: "text-violet-600" },
+    { href: "/person-of-week", icon: MdEmojiEvents, title: "איש השבוע", desc: "הצביעו למי שבלט השבוע", color: "text-yellow-600" },
+    { href: "/issues", icon: MdBuild, title: "תקלות", desc: "דיווח ומעקב תקלות", color: "text-red-600" },
+    { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", desc: "מידע על כל חיילי הפלוגה", color: "text-teal-600" },
     { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: 'ל"ע, נהלים וחומרי לימוד', color: "text-rose-600" },
     { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
+    { href: "/schedule", icon: MdLocalLaundryService, title: "מכבסה", desc: "קבע תור לכביסה או מייבש", color: "text-dotan-green" },
+    { href: "/birthdays", icon: MdCake, title: "ימי הולדת", desc: "קיר ימי הולדת של הפלוגה", color: "text-pink-600" },
     { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", desc: "נושאי דיון יומי לכל חדר", color: "text-emerald-600" },
-    { href: "/schedule-daily", icon: MdCalendarMonth, title: 'לו"ז יומי', desc: "לוח זמנים יומי של הפלוגה", color: "text-sky-600" },
+    { href: "/notifications", icon: MdNotifications, title: "שליחת התראות", desc: "שלח התראות לפלוגה", color: "text-gray-600" },
+    { href: "/profile", icon: MdPerson, title: "פרופיל", desc: "הפרופיל שלי", color: "text-gray-500" },
   ];
 
   const hasFeedItems = feed && (
@@ -102,7 +109,8 @@ export default function DashboardPage() {
     feed.unreadMaterials.length > 0 ||
     feed.currentSchedule ||
     feed.allDaySchedule.length > 0 ||
-    feed.pendingSurveys?.length > 0
+    feed.pendingSurveys?.length > 0 ||
+    feed.hasVotedThisWeek === false
   );
 
   return (
@@ -198,6 +206,21 @@ export default function DashboardPage() {
                 </span>
                 <span className="text-xs text-purple-500 block truncate">
                   {feed.pendingSurveys.map((s) => s.title).join(", ")}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Weekly vote */}
+          {feed.hasVotedThisWeek === false && (
+            <Link href="/person-of-week" className="flex items-center gap-3 bg-yellow-50 border border-yellow-300 rounded-xl p-3 hover:shadow-sm transition">
+              <MdEmojiEvents className="text-2xl text-yellow-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-yellow-800">
+                  בחרו את איש/אשת השבוע!
+                </span>
+                <span className="text-xs text-yellow-600 block">
+                  עדיין לא הצבעתם השבוע
                 </span>
               </div>
             </Link>
