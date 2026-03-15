@@ -256,64 +256,67 @@ export default function ScheduleDailyPage() {
   }
 
   const EventForm = ({ onSubmit, isEdit }: { onSubmit: (e: React.FormEvent) => void; isEdit: boolean }) => (
-    <form onSubmit={onSubmit} className="bg-white rounded-xl border border-dotan-mint shadow-sm p-4 mb-4 space-y-3">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="font-bold text-dotan-green-dark">{isEdit ? "עריכת אירוע" : "הוספת אירוע"}</h3>
+    <form onSubmit={onSubmit} className="bg-white rounded-xl border border-dotan-mint shadow-sm mb-4 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-dotan-green-dark text-white">
+        <h3 className="font-bold text-sm">{isEdit ? "עריכת אירוע" : "הוספת אירוע"}</h3>
         <button type="button" onClick={() => { isEdit ? setEditingEvent(null) : setShowAdd(false); resetForm(); }}
-          className="text-gray-400 hover:text-gray-600"><MdClose /></button>
+          className="text-white/70 hover:text-white"><MdClose /></button>
       </div>
-      <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-        placeholder="כותרת" required
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none" />
-      <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-        placeholder="תיאור (אופציונלי)" rows={2}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none resize-none" />
-      <div className="flex items-center gap-3">
-        <label className="flex items-center gap-1.5 text-sm">
-          <input type="checkbox" checked={form.allDay}
-            onChange={(e) => setForm({ ...form, allDay: e.target.checked })}
-            className="rounded border-gray-300" />
-          כל היום
-        </label>
-      </div>
-      {!form.allDay && (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">התחלה</label>
-            <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-              required className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">סיום</label>
-            <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-              required className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm" />
-          </div>
+
+      <div className="p-4 space-y-3">
+        {/* Title */}
+        <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="כותרת האירוע" required
+          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green focus:border-transparent focus:bg-white outline-none" />
+
+        {/* Description */}
+        <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="תיאור (אופציונלי)"
+          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green focus:border-transparent focus:bg-white outline-none" />
+
+        {/* Time row */}
+        <div className="flex items-center gap-2 bg-gray-50 rounded-lg border border-gray-200 p-2">
+          <label className="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 pr-1">
+            <input type="checkbox" checked={form.allDay}
+              onChange={(e) => setForm({ ...form, allDay: e.target.checked })}
+              className="rounded border-gray-300 w-3.5 h-3.5" />
+            כל היום
+          </label>
+          {!form.allDay && (
+            <>
+              <div className="h-4 w-px bg-gray-300" />
+              <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                required className="flex-1 bg-transparent text-sm text-center outline-none min-w-0" />
+              <span className="text-gray-400 text-xs">—</span>
+              <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                required className="flex-1 bg-transparent text-sm text-center outline-none min-w-0" />
+            </>
+          )}
         </div>
-      )}
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <label className="text-xs text-gray-500 mb-1 block">יעד</label>
+
+        {/* Target & Type row */}
+        <div className="grid grid-cols-2 gap-2">
           <select value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            className="w-full px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
             {Object.entries(TARGET_LABELS).map(([val, label]) => (
               <option key={val} value={val}>{label}</option>
             ))}
           </select>
-        </div>
-        <div className="flex-1">
-          <label className="text-xs text-gray-500 mb-1 block">סוג</label>
           <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            className="w-full px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
             {Object.entries(TYPE_CONFIG).map(([val, { label }]) => (
               <option key={val} value={val}>{label}</option>
             ))}
           </select>
         </div>
+
+        {/* Submit */}
+        <button type="submit"
+          className="w-full bg-dotan-green-dark text-white py-2.5 rounded-lg hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
+          <MdSave /> {isEdit ? "שמור" : "הוסף"}
+        </button>
       </div>
-      <button type="submit"
-        className="w-full bg-dotan-green-dark text-white py-2.5 rounded-lg hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
-        <MdSave /> {isEdit ? "שמור שינויים" : "הוסף אירוע"}
-      </button>
     </form>
   );
 
