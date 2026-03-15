@@ -38,6 +38,7 @@ export async function GET() {
     allDayEvents,
     pendingSurveys,
     pendingPlatoonSurveys,
+    todayNotes,
   ] = await Promise.all([
     // Latest message
     prisma.message.findFirst({
@@ -137,6 +138,22 @@ export async function GET() {
       take: 5,
       select: { id: true, title: true, createdAt: true },
     }),
+
+    // Today's schedule notes (personal + team)
+    prisma.scheduleNote.findMany({
+      where: {
+        date: todayStr,
+        OR: [
+          { userId, visibility: "personal" },
+          ...(user?.team ? [{ visibility: "team" as const, user: { team: user.team } }] : []),
+        ],
+      },
+      include: {
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 5,
+    }),
   ]);
 
   // Check if user voted this week
@@ -190,5 +207,6 @@ export async function GET() {
     pendingPlatoonSurveys,
     platoonSurveyCommanderId,
     hasVotedThisWeek,
+    todayNotes,
   });
 }

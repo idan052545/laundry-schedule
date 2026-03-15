@@ -11,7 +11,7 @@ import {
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
-  MdNotifications,
+  MdNotifications, MdStickyNote2,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -41,6 +41,7 @@ interface DashboardFeed {
   pendingPlatoonSurveys: { id: string; title: string; createdAt: string }[];
   platoonSurveyCommanderId: string | null;
   hasVotedThisWeek: boolean;
+  todayNotes: { id: string; title: string; startTime: string | null; visibility: string; user: { id: string; name: string } }[];
 }
 
 export default function DashboardPage() {
@@ -113,7 +114,8 @@ export default function DashboardPage() {
     feed.allDaySchedule.length > 0 ||
     feed.pendingSurveys?.length > 0 ||
     feed.pendingPlatoonSurveys?.length > 0 ||
-    feed.hasVotedThisWeek === false
+    feed.hasVotedThisWeek === false ||
+    feed.todayNotes?.length > 0
   );
 
   return (
@@ -162,6 +164,24 @@ export default function DashboardPage() {
                   {new Date(feed.currentSchedule.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                   {" - "}
                   {new Date(feed.currentSchedule.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {/* Today's personal/team notes */}
+          {feed.todayNotes?.length > 0 && (
+            <Link href="/schedule-daily" className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 hover:shadow-sm transition">
+              <MdStickyNote2 className="text-2xl text-amber-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-amber-700">
+                  {feed.todayNotes.length} הערות להיום
+                </span>
+                <span className="text-xs text-amber-500 block truncate">
+                  {feed.todayNotes.map((n) => {
+                    const time = n.startTime ? `${n.startTime} ` : "";
+                    return `${time}${n.title}`;
+                  }).join(" | ")}
                 </span>
               </div>
             </Link>

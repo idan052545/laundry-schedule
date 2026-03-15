@@ -427,187 +427,267 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
-      {/* Timeline */}
-      <div className="relative">
-        {timedGroups.map((group, groupIdx) => {
-          const isSingle = group.events.length === 1;
-          const groupStartTime = formatTime(group.startTime);
-          const groupEndTime = formatTime(group.endTime);
-          const anyActive = group.events.some(({ event }) => isEventNow(event, isToday));
-          const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
+      {/* Add note button — always visible */}
+      {!showNoteForm && !editingNote && (
+        <button onClick={() => { setShowNoteForm(true); resetNoteForm(); }}
+          className="w-full mb-3 bg-gradient-to-l from-amber-500 to-amber-400 text-white py-2 rounded-xl hover:from-amber-600 hover:to-amber-500 transition font-medium flex items-center justify-center gap-2 text-sm shadow-sm">
+          <MdStickyNote2 className="text-base" /> הוסף הערה אישית
+        </button>
+      )}
 
-          return (
-            <div key={groupIdx} className="flex gap-2 mb-0 min-w-0">
-              <div className="w-12 shrink-0 text-left pt-3">
-                <div className="text-xs font-bold text-gray-800">{groupStartTime}</div>
-                <div className="text-[10px] text-gray-400">{groupEndTime}</div>
-              </div>
-              <div className="flex flex-col items-center shrink-0 w-4">
-                <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30" : firstConfig.dot}`} />
-                {groupIdx < timedGroups.length - 1 && (
-                  <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
-                )}
-              </div>
-              {isSingle ? (
-                <div className="flex-1 mb-2 min-w-0">
-                  <EventCard
-                    event={group.events[0].event} idx={group.events[0].idx} compact={false}
-                    isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
-                    reminding={reminding} onDetail={setDetailEvent} onEdit={openEdit}
-                    onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
-                  />
-                </div>
-              ) : (
-                <div className="flex-1 mb-2 flex gap-1.5 min-w-0">
-                  {group.events.map((item) => (
-                    <EventCard
-                      key={item.event.id}
-                      event={item.event} idx={item.idx} compact={true}
-                      isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
-                      reminding={reminding} onDetail={setDetailEvent} onEdit={openEdit}
-                      onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Personal / Team Notes */}
-      <div className="mt-4 mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-            <MdStickyNote2 className="text-amber-500" />
-            ההערות שלי
-          </h2>
-          {!showNoteForm && (
-            <button onClick={() => { setShowNoteForm(true); resetNoteForm(); }}
-              className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition font-medium flex items-center gap-1">
-              <MdAdd className="text-sm" /> הוסף הערה
-            </button>
-          )}
-        </div>
-
-        {showNoteForm && (
-          <form onSubmit={editingNote ? handleEditNote : handleAddNote}
-            className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 space-y-2">
+      {/* Note form */}
+      {showNoteForm && (
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300/60 rounded-2xl p-4 mb-3 shadow-sm">
+          <form onSubmit={editingNote ? handleEditNote : handleAddNote} className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-700">{editingNote ? "עריכת הערה" : "הערה חדשה"}</span>
-              <button type="button" onClick={() => { setShowNoteForm(false); resetNoteForm(); }}>
-                <MdClose className="text-gray-400 hover:text-gray-600" />
+              <span className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+                <MdStickyNote2 className="text-amber-500" />
+                {editingNote ? "עריכת הערה" : "הערה חדשה"}
+              </span>
+              <button type="button" onClick={() => { setShowNoteForm(false); resetNoteForm(); }}
+                className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition">
+                <MdClose className="text-gray-500 text-sm" />
               </button>
             </div>
-            <input type="text" placeholder="כותרת *" required value={noteForm.title}
+            <input type="text" placeholder="מה רוצה לזכור? *" required value={noteForm.title}
               onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-              className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-300" />
-            <textarea placeholder="תיאור (אופציונלי)" value={noteForm.description}
+              className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 placeholder:text-amber-300" />
+            <textarea placeholder="פרטים נוספים..." value={noteForm.description}
               onChange={(e) => setNoteForm({ ...noteForm, description: e.target.value })}
-              className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 focus:border-amber-300 resize-none"
+              className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 resize-none placeholder:text-amber-300"
               rows={2} />
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[10px] text-gray-500 block mb-0.5">שעת התחלה</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-amber-600 font-medium block mb-1">שעת התחלה</label>
                 <input type="time" value={noteForm.startTime}
                   onChange={(e) => setNoteForm({ ...noteForm, startTime: e.target.value })}
-                  className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm" />
+                  className="w-full border border-amber-200 bg-white rounded-xl px-2.5 py-2 text-sm" />
               </div>
-              <div className="flex-1">
-                <label className="text-[10px] text-gray-500 block mb-0.5">שעת סיום</label>
+              <div>
+                <label className="text-[10px] text-amber-600 font-medium block mb-1">שעת סיום</label>
                 <input type="time" value={noteForm.endTime}
                   onChange={(e) => setNoteForm({ ...noteForm, endTime: e.target.value })}
-                  className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm" />
+                  className="w-full border border-amber-200 bg-white rounded-xl px-2.5 py-2 text-sm" />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button type="button"
                 onClick={() => setNoteForm({ ...noteForm, visibility: "personal" })}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 border transition ${
+                className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 transition ${
                   noteForm.visibility === "personal"
-                    ? "bg-amber-500 text-white border-amber-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-amber-300"
+                    ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-amber-300"
                 }`}>
-                <MdPerson className="text-sm" /> רק אני
+                <MdPerson className="text-base" /> רק אני
               </button>
               <button type="button"
                 onClick={() => setNoteForm({ ...noteForm, visibility: "team" })}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 border transition ${
+                className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 transition ${
                   noteForm.visibility === "team"
-                    ? "bg-amber-500 text-white border-amber-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-amber-300"
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-orange-300"
                 }`}>
-                <MdPeople className="text-sm" /> הצוות שלי
+                <MdPeople className="text-base" /> הצוות שלי
               </button>
             </div>
             <button type="submit"
-              className="w-full bg-amber-500 text-white py-2 rounded-lg hover:bg-amber-600 transition font-medium text-sm">
-              {editingNote ? "עדכן" : "הוסף"}
+              className="w-full bg-gradient-to-l from-amber-600 to-amber-500 text-white py-2.5 rounded-xl hover:from-amber-700 hover:to-amber-600 transition font-bold text-sm shadow-sm">
+              {editingNote ? "עדכן הערה" : "הוסף הערה"}
             </button>
           </form>
-        )}
+        </div>
+      )}
 
-        {notes.length > 0 ? (
-          <div className="space-y-2">
-            {notes.map((note) => {
-              const isMine = note.userId === myUserId;
-              return (
-                <div key={note.id}
-                  className={`rounded-xl border p-3 transition ${
-                    note.visibility === "personal"
-                      ? "bg-amber-50 border-amber-200"
-                      : "bg-orange-50 border-orange-200"
-                  }`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {note.visibility === "personal" ? (
-                          <MdPerson className="text-amber-500 text-sm shrink-0" />
-                        ) : (
-                          <MdPeople className="text-orange-500 text-sm shrink-0" />
-                        )}
-                        <span className="font-bold text-sm text-gray-800">{note.title}</span>
-                        {note.startTime && (
-                          <span className="text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded" dir="ltr">
-                            {note.startTime}{note.endTime ? ` – ${note.endTime}` : ""}
-                          </span>
-                        )}
-                        {!isMine && (
-                          <span className="text-[10px] text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded font-medium">
-                            {note.user.name}
-                          </span>
+      {/* Timeline — events + timed notes merged */}
+      <div className="relative">
+        {(() => {
+          // Merge timed notes into timeline
+          const timedNotes = notes.filter((n) => n.startTime);
+          const untimed = notes.filter((n) => !n.startTime);
+
+          // Build unified timeline items
+          type TimelineItem =
+            | { kind: "group"; group: (typeof timedGroups)[0]; groupIdx: number }
+            | { kind: "note"; note: ScheduleNote };
+
+          const items: TimelineItem[] = timedGroups.map((group, groupIdx) => ({
+            kind: "group" as const, group, groupIdx,
+          }));
+
+          timedNotes.forEach((note) => {
+            items.push({ kind: "note" as const, note });
+          });
+
+          // Sort by start time
+          items.sort((a, b) => {
+            const aTime = a.kind === "group" ? a.group.startTime : `${date}T${a.note.startTime}:00`;
+            const bTime = b.kind === "group" ? b.group.startTime : `${date}T${b.note.startTime}:00`;
+            return new Date(aTime).getTime() - new Date(bTime).getTime();
+          });
+
+          const totalItems = items.length;
+
+          return (
+            <>
+              {items.map((item, idx) => {
+                if (item.kind === "group") {
+                  const { group } = item;
+                  const isSingle = group.events.length === 1;
+                  const groupStartTime = formatTime(group.startTime);
+                  const groupEndTime = formatTime(group.endTime);
+                  const anyActive = group.events.some(({ event }) => isEventNow(event, isToday));
+                  const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
+
+                  return (
+                    <div key={`g-${item.groupIdx}`} className="flex gap-2 mb-0 min-w-0">
+                      <div className="w-12 shrink-0 text-left pt-3">
+                        <div className="text-xs font-bold text-gray-800">{groupStartTime}</div>
+                        <div className="text-[10px] text-gray-400">{groupEndTime}</div>
+                      </div>
+                      <div className="flex flex-col items-center shrink-0 w-4">
+                        <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30" : firstConfig.dot}`} />
+                        {idx < totalItems - 1 && (
+                          <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
                         )}
                       </div>
-                      {note.description && (
-                        <p className="text-xs text-gray-600 mt-1">{note.description}</p>
+                      {isSingle ? (
+                        <div className="flex-1 mb-2 min-w-0">
+                          <EventCard
+                            event={group.events[0].event} idx={group.events[0].idx} compact={false}
+                            isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
+                            reminding={reminding} onDetail={setDetailEvent} onEdit={openEdit}
+                            onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-1 mb-2 flex gap-1.5 min-w-0">
+                          {group.events.map((evItem) => (
+                            <EventCard
+                              key={evItem.event.id}
+                              event={evItem.event} idx={evItem.idx} compact={true}
+                              isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
+                              reminding={reminding} onDetail={setDetailEvent} onEdit={openEdit}
+                              onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
+                            />
+                          ))}
+                        </div>
                       )}
                     </div>
-                    {isMine && (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={() => handleRemindNote(note.id)}
-                          disabled={noteReminding === note.id}
-                          className="text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
-                          <MdNotifications className={`text-sm ${noteReminding === note.id ? "animate-bounce" : ""}`} />
-                        </button>
-                        <button onClick={() => openEditNote(note)} className="text-gray-300 hover:text-amber-500 transition">
-                          <MdEdit className="text-sm" />
-                        </button>
-                        <button onClick={() => handleDeleteNote(note.id)} className="text-gray-300 hover:text-red-500 transition">
-                          <MdDelete className="text-sm" />
-                        </button>
+                  );
+                }
+
+                // Note in timeline
+                const { note } = item;
+                const isMine = note.userId === myUserId;
+                const isPersonal = note.visibility === "personal";
+                return (
+                  <div key={`n-${note.id}`} className="flex gap-2 mb-0 min-w-0">
+                    <div className="w-12 shrink-0 text-left pt-3">
+                      <div className="text-xs font-bold text-amber-600">{note.startTime}</div>
+                      {note.endTime && <div className="text-[10px] text-amber-400">{note.endTime}</div>}
+                    </div>
+                    <div className="flex flex-col items-center shrink-0 w-4">
+                      <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${isPersonal ? "bg-amber-400" : "bg-orange-400"}`} />
+                      {idx < totalItems - 1 && (
+                        <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
+                      )}
+                    </div>
+                    <div className="flex-1 mb-2 min-w-0">
+                      <div className={`rounded-xl border-2 border-dashed p-2.5 sm:p-3 transition ${isPersonal ? "bg-amber-50/80 border-amber-300" : "bg-orange-50/80 border-orange-300"}`}>
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <MdStickyNote2 className={`text-sm shrink-0 ${isPersonal ? "text-amber-500" : "text-orange-500"}`} />
+                              <span className="font-bold text-sm text-gray-800 truncate">{note.title}</span>
+                              {!isMine && (
+                                <span className="text-[9px] text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full font-medium">
+                                  {note.user.name}
+                                </span>
+                              )}
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isPersonal ? "text-amber-600 bg-amber-100" : "text-orange-600 bg-orange-100"}`}>
+                                {isPersonal ? "אישי" : "צוות"}
+                              </span>
+                            </div>
+                            {note.description && (
+                              <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{note.description}</p>
+                            )}
+                          </div>
+                          {isMine && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button onClick={() => handleRemindNote(note.id)} disabled={noteReminding === note.id}
+                                className="p-1 text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
+                                <MdNotifications className={`text-sm ${noteReminding === note.id ? "animate-bounce" : ""}`} />
+                              </button>
+                              <button onClick={() => openEditNote(note)} className="p-1 text-gray-300 hover:text-amber-500 transition">
+                                <MdEdit className="text-xs" />
+                              </button>
+                              <button onClick={() => handleDeleteNote(note.id)} className="p-1 text-gray-300 hover:text-red-500 transition">
+                                <MdDelete className="text-xs" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Untimed notes section */}
+              {untimed.length > 0 && (
+                <div className="mt-3 mb-2">
+                  <div className="text-[10px] text-amber-500 font-bold tracking-wider mb-1.5 flex items-center gap-1">
+                    <MdStickyNote2 className="text-xs" /> הערות ללא שעה
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {untimed.map((note) => {
+                      const isMine = note.userId === myUserId;
+                      const isPersonal = note.visibility === "personal";
+                      return (
+                        <div key={note.id}
+                          className={`rounded-xl border-2 border-dashed p-2.5 transition ${isPersonal ? "bg-amber-50/80 border-amber-300" : "bg-orange-50/80 border-orange-300"}`}>
+                          <div className="flex items-start gap-2">
+                            <MdStickyNote2 className={`text-base shrink-0 mt-0.5 ${isPersonal ? "text-amber-400" : "text-orange-400"}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-xs text-gray-800 truncate">{note.title}</span>
+                                {!isMine && (
+                                  <span className="text-[9px] text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full font-medium">
+                                    {note.user.name}
+                                  </span>
+                                )}
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isPersonal ? "text-amber-600 bg-amber-100" : "text-orange-600 bg-orange-100"}`}>
+                                  {isPersonal ? "אישי" : "צוות"}
+                                </span>
+                              </div>
+                              {note.description && (
+                                <p className="text-[11px] text-gray-500 mt-0.5">{note.description}</p>
+                              )}
+                            </div>
+                            {isMine && (
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <button onClick={() => handleRemindNote(note.id)} disabled={noteReminding === note.id}
+                                  className="p-1 text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
+                                  <MdNotifications className={`text-xs ${noteReminding === note.id ? "animate-bounce" : ""}`} />
+                                </button>
+                                <button onClick={() => openEditNote(note)} className="p-1 text-gray-300 hover:text-amber-500 transition">
+                                  <MdEdit className="text-xs" />
+                                </button>
+                                <button onClick={() => handleDeleteNote(note.id)} className="p-1 text-gray-300 hover:text-red-500 transition">
+                                  <MdDelete className="text-xs" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        ) : !showNoteForm && (
-          <div className="text-center py-4 text-gray-400 text-xs">
-            <MdStickyNote2 className="text-2xl mx-auto mb-1 text-gray-300" />
-            אין הערות ליום זה
-          </div>
-        )}
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {events.length === 0 && notes.length === 0 && !showNoteForm && (
