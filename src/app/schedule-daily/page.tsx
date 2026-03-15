@@ -381,7 +381,7 @@ export default function ScheduleDailyPage() {
 
           return (
             <div key={event.id} className={`rounded-xl border p-3 sm:p-4 transition ${config.bg} ${active ? "ring-2 ring-dotan-green shadow-md" : ""}`}>
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 <div className={`mt-0.5 shrink-0 ${config.color}`}>
                   <Icon className="text-xl" />
                 </div>
@@ -417,28 +417,33 @@ export default function ScheduleDailyPage() {
                       ))}
                     </div>
                   )}
+                  {/* Admin actions — below content on mobile */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-black/5">
+                      <button onClick={() => handleRemind(event.id)} disabled={reminding === event.id}
+                        title="שלח תזכורת"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition disabled:opacity-50">
+                        <MdNotifications className={`text-base ${reminding === event.id ? "animate-bounce" : ""}`} />
+                        <span className="hidden sm:inline">תזכורת</span>
+                      </button>
+                      <button onClick={() => openAssign(event)} title="שיוך משתמשים"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-purple-600 transition">
+                        <MdPersonAdd className="text-base" />
+                        <span className="hidden sm:inline">שיוך</span>
+                      </button>
+                      <button onClick={() => openEdit(event)} title="ערוך"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-dotan-green transition">
+                        <MdEdit className="text-base" />
+                        <span className="hidden sm:inline">ערוך</span>
+                      </button>
+                      <button onClick={() => handleDelete(event.id)} title="מחק"
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-600 transition mr-auto">
+                        <MdDelete className="text-base" />
+                        <span className="hidden sm:inline">מחק</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {isAdmin && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => handleRemind(event.id)} disabled={reminding === event.id}
-                      title="שלח תזכורת"
-                      className="p-1.5 text-gray-400 hover:text-blue-600 transition disabled:opacity-50">
-                      <MdNotifications className={reminding === event.id ? "animate-bounce" : ""} />
-                    </button>
-                    <button onClick={() => openAssign(event)} title="שיוך משתמשים"
-                      className="p-1.5 text-gray-400 hover:text-purple-600 transition">
-                      <MdPersonAdd />
-                    </button>
-                    <button onClick={() => openEdit(event)} title="ערוך"
-                      className="p-1.5 text-gray-400 hover:text-dotan-green transition">
-                      <MdEdit />
-                    </button>
-                    <button onClick={() => handleDelete(event.id)} title="מחק"
-                      className="p-1.5 text-gray-400 hover:text-red-600 transition">
-                      <MdDelete />
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           );
