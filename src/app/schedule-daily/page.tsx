@@ -277,16 +277,16 @@ export default function ScheduleDailyPage() {
         </label>
       </div>
       {!form.allDay && (
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="text-xs text-gray-500 mb-1 block">שעת התחלה</label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">התחלה</label>
             <input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-              required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              required className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
-          <div className="flex-1">
-            <label className="text-xs text-gray-500 mb-1 block">שעת סיום</label>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">סיום</label>
             <input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-              required className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              required className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm" />
           </div>
         </div>
       )}
