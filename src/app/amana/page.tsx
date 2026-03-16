@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   MdFavorite, MdHandshake, MdSelfImprovement, MdGroups,
-  MdEmojiPeople, MdStars, MdForum, MdLock, MdPictureAsPdf,
+  MdEmojiPeople, MdStars, MdForum, MdLock, MdDownload,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 
@@ -148,44 +148,14 @@ export default function AmanaPage() {
     }
   }, [loading, userInfo]);
 
-  const handleDownloadPDF = async () => {
-    const el = contentRef.current;
-    if (!el) return;
-    const html2canvas = (await import("html2canvas")).default;
-    const { jsPDF } = await import("jspdf");
-
-    // Temporarily show all phases for capture
-    el.classList.add("pdf-capture");
-    await new Promise((r) => setTimeout(r, 100));
-
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#f9fafb",
-      scrollY: -window.scrollY,
-      windowWidth: 700,
-    });
-
-    el.classList.remove("pdf-capture");
-
-    const imgW = 210; // A4 width mm
-    const pageH = 297; // A4 height mm
-    const imgH = (canvas.height * imgW) / canvas.width;
-    const pdf = new jsPDF("p", "mm", "a4");
-    let y = 0;
-    let remaining = imgH;
-
-    while (remaining > 0) {
-      if (y > 0) pdf.addPage();
-      pdf.addImage(
-        canvas.toDataURL("image/jpeg", 0.95),
-        "JPEG", 0, -y, imgW, imgH
-      );
-      y += pageH;
-      remaining -= pageH;
-    }
-
-    pdf.save("amana-team-16.pdf");
+  const handleDownloadPDF = () => {
+    // Force all phases visible for print
+    const prevPhase = phase;
+    setPhase(10);
+    setTimeout(() => {
+      window.print();
+      setPhase(prevPhase);
+    }, 200);
   };
 
   if (status === "loading" || loading) return <InlineLoading />;
@@ -262,25 +232,34 @@ export default function AmanaPage() {
         .animate-breathe { animation: breathe 4s ease-in-out infinite; }
         .animate-diamond { animation: diamond-spin 20s linear infinite; }
 
-        /* PDF capture: show everything immediately */
-        :global(.pdf-capture) *[class*="opacity-0"] { opacity: 1 !important; }
-        :global(.pdf-capture) *[class*="translate-y"] { transform: translateY(0) !important; }
-        :global(.pdf-capture) *[class*="scale-95"] { transform: scale(1) !important; }
-        :global(.pdf-capture) .animate-pop { opacity: 1 !important; animation: none !important; transform: none !important; }
+        @media print {
+          @page { size: A4; margin: 10mm; }
+          :global(nav) { display: none !important; }
+          :global(body) {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .no-print { display: none !important; }
+          .animate-pop { opacity: 1 !important; animation: none !important; transform: none !important; }
+          .animate-float, .animate-wave, .animate-shimmer, .animate-glow,
+          .animate-pulse-ring, .animate-breathe, .animate-diamond {
+            animation: none !important;
+          }
+        }
       `}</style>
 
       {/* Download PDF button */}
-      <div className={`flex justify-end px-4 sm:px-0 mb-2 transition-all duration-700 ${phase >= 1 ? "opacity-100" : "opacity-0"}`}>
+      <div className={`no-print flex justify-end px-4 sm:px-0 mb-2 transition-all duration-700 ${phase >= 1 ? "opacity-100" : "opacity-0"}`}>
         <button
           onClick={handleDownloadPDF}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-dotan-green-dark text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md"
         >
-          <MdPictureAsPdf className="text-base text-red-500" />
-          הורד כ-PDF
+          <MdDownload className="text-base text-dotan-green" />
+          שמור כ-PDF
         </button>
       </div>
 
-      <div ref={contentRef}>
+      <div ref={contentRef} className="print-area">
         {/* HERO SECTION */}
         <div className={`relative overflow-hidden rounded-none sm:rounded-3xl mb-0 transition-all duration-1000 ${phase >= 1 ? "opacity-100" : "opacity-0"}`}>
           <div className="bg-gradient-to-br from-[#1a2e0f] via-dotan-green-dark to-[#0f2b1f] min-h-[420px] sm:min-h-[480px] p-6 sm:p-10 text-center relative overflow-hidden">
