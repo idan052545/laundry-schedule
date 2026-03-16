@@ -48,6 +48,8 @@ model User {
   weeklyVotesCast   WeeklyVote[]   @relation("weeklyVoter")
   weeklyVotesReceived WeeklyVote[] @relation("weeklyNominee")
   scheduleNotes     ScheduleNote[] @relation("scheduleNotes")
+  tasks             Task[]         @relation("userTasks")
+  taskResponses     TaskResponse[] @relation("taskResponses")
 }
 
 model Machine {
@@ -140,11 +142,28 @@ model Task {
   category    String   // "task", "deadline", "reminder", "weekly", "daily"
   startDate   DateTime
   endDate     DateTime?
+  dueDate     DateTime? // תאריך גמר ביצוע
   allDay      Boolean  @default(false)
   priority    String   @default("normal") // "low", "normal", "high", "urgent"
   recurring   Boolean  @default(false)
   rrule       String?  // recurrence rule if recurring
+  status      String   @default("open") // "open", "done"
+  userId      String?  // null = global admin task, set = personal task
   createdAt   DateTime @default(now())
+  user        User?    @relation("userTasks", fields: [userId], references: [id])
+  responses   TaskResponse[]
+}
+
+model TaskResponse {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation("taskResponses", fields: [userId], references: [id])
+
+  @@index([taskId])
 }
 
 model FormLink {

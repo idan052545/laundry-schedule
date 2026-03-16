@@ -54,16 +54,31 @@ export async function GET() {
       select: { id: true, title: true, type: true, dueDate: true, author: { select: { name: true } } },
     }),
 
-    // Today's tasks
+    // Today's tasks (user's own + global)
     prisma.task.findMany({
       where: {
-        startDate: {
-          gte: new Date(todayStr + "T00:00:00"),
-          lt: new Date(todayStr + "T23:59:59"),
-        },
+        status: "open",
+        OR: [
+          // Tasks starting today
+          {
+            startDate: { gte: new Date(todayStr + "T00:00:00"), lte: new Date(todayStr + "T23:59:59") },
+            OR: [{ userId }, { userId: null }],
+          },
+          // Overdue tasks (due date passed but still open)
+          {
+            dueDate: { lt: new Date(todayStr + "T00:00:00") },
+            OR: [{ userId }, { userId: null }],
+          },
+          // Due soon (within 3 days)
+          {
+            dueDate: { gte: new Date(todayStr + "T00:00:00"), lte: new Date(new Date().getTime() + 3 * 86400000) },
+            OR: [{ userId }, { userId: null }],
+          },
+        ],
       },
-      take: 5,
-      select: { id: true, title: true, startDate: true, category: true },
+      orderBy: [{ priority: "asc" }, { startDate: "asc" }],
+      take: 10,
+      select: { id: true, title: true, startDate: true, category: true, priority: true, dueDate: true, status: true },
     }),
 
     // Forms user hasn't submitted (non-recurring: never submitted, recurring: not submitted today)

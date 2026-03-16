@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   MdCalendarMonth, MdChevronRight, MdChevronLeft, MdAdd,
   MdEdit, MdDelete, MdFilterList, MdToday, MdNotifications,
@@ -42,6 +42,7 @@ export default function ScheduleDailyPage() {
   const [editingNote, setEditingNote] = useState<ScheduleNote | null>(null);
   const [noteForm, setNoteForm] = useState({ title: "", description: "", startTime: "", endTime: "", visibility: "personal" });
   const [noteReminding, setNoteReminding] = useState<string | null>(null);
+  const noteFormRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<EventFormData>({
     title: "", description: "", startTime: "", endTime: "",
@@ -332,6 +333,7 @@ export default function ScheduleDailyPage() {
     });
     setEditingNote(note);
     setShowNoteForm(true);
+    setTimeout(() => noteFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
   };
 
   const myUserId = (session?.user as { id?: string })?.id;
@@ -437,7 +439,7 @@ export default function ScheduleDailyPage() {
 
       {/* Note form */}
       {showNoteForm && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300/60 rounded-2xl p-4 mb-3 shadow-sm">
+        <div ref={noteFormRef} className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300/60 rounded-2xl p-4 mb-3 shadow-sm">
           <form onSubmit={editingNote ? handleEditNote : handleAddNote} className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
@@ -456,21 +458,21 @@ export default function ScheduleDailyPage() {
               onChange={(e) => setNoteForm({ ...noteForm, description: e.target.value })}
               className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 resize-none placeholder:text-amber-300"
               rows={2} />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] text-amber-600 font-medium block mb-1">שעת התחלה</label>
                 <input type="time" value={noteForm.startTime}
                   onChange={(e) => setNoteForm({ ...noteForm, startTime: e.target.value })}
-                  className="w-full border border-amber-200 bg-white rounded-xl px-2.5 py-2 text-sm" />
+                  className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-[10px] text-amber-600 font-medium block mb-1">שעת סיום</label>
                 <input type="time" value={noteForm.endTime}
                   onChange={(e) => setNoteForm({ ...noteForm, endTime: e.target.value })}
-                  className="w-full border border-amber-200 bg-white rounded-xl px-2.5 py-2 text-sm" />
+                  className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2 text-sm" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button type="button"
                 onClick={() => setNoteForm({ ...noteForm, visibility: "personal" })}
                 className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 transition ${

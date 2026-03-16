@@ -31,7 +31,7 @@ interface Machine {
 interface DashboardFeed {
   latestMessage: { id: string; title: string; createdAt: string; author: { name: string } } | null;
   pinnedPosts: { id: string; title: string; type: string; dueDate: string | null; author: { name: string } }[];
-  todayTasks: { id: string; title: string; startDate: string; category: string }[];
+  todayTasks: { id: string; title: string; startDate: string; category: string; priority: string; dueDate: string | null; status: string }[];
   pendingForms: { id: string; title: string; deadline: string | null }[];
   birthdayUsers: { id: string; name: string; image: string | null }[];
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
@@ -278,19 +278,33 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Today's tasks */}
+          {/* Today's tasks — with overdue/due soon indicators */}
           {feed.todayTasks.length > 0 && (
-            <Link href="/tasks" className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdAssignment className="text-2xl text-purple-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-purple-700">
-                  {feed.todayTasks.length} משימות להיום
-                </span>
-                <span className="text-xs text-purple-500 block truncate">
-                  {feed.todayTasks.map((t) => t.title).join(", ")}
-                </span>
-              </div>
-            </Link>
+            <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-3 space-y-2">
+              <Link href="/tasks" className="flex items-center gap-2 text-sm font-bold text-purple-700">
+                <MdAssignment className="text-lg text-purple-500" />
+                המשימות שלי ({feed.todayTasks.length})
+              </Link>
+              {feed.todayTasks.map((t) => {
+                const isOverdue = t.dueDate && new Date(t.dueDate) < new Date();
+                return (
+                  <Link key={t.id} href="/tasks"
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 border text-xs transition hover:shadow-sm ${
+                      isOverdue ? "bg-red-50 border-red-200" : "bg-white/70 border-purple-100"
+                    }`}>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${
+                      t.priority === "urgent" ? "bg-red-500" : t.priority === "high" ? "bg-orange-400" : "bg-dotan-green"
+                    }`} />
+                    <span className={`font-medium truncate flex-1 ${isOverdue ? "text-red-700" : "text-gray-800"}`}>{t.title}</span>
+                    {t.dueDate && (
+                      <span className={`text-[10px] font-bold shrink-0 ${isOverdue ? "text-red-500" : "text-purple-500"}`}>
+                        {isOverdue ? "באיחור!" : `יעד: ${new Date(t.dueDate).toLocaleDateString("he-IL",{day:"numeric",month:"short"})}`}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           )}
 
           {/* Pinned commander posts */}
