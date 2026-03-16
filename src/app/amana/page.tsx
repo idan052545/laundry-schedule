@@ -2,10 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   MdFavorite, MdHandshake, MdSelfImprovement, MdGroups,
-  MdEmojiPeople, MdStars, MdForum, MdLock,
+  MdEmojiPeople, MdStars, MdForum, MdLock, MdPictureAsPdf,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 
@@ -24,54 +24,53 @@ const VALUES = [
   {
     icon: MdHandshake,
     title: "רעות ואמון",
-    emoji: "🤝",
     text: "אנו פועלים כגוף אחד ומגבים זה את זה. אנו יוצרים סביבה בטוחה שבה אמון הדדי, חברות ותמיכה הם היסוד לכל עשייה שלנו.",
     gradient: "from-emerald-500 to-teal-600",
     glow: "shadow-emerald-200/50",
+    accent: "#10b981",
   },
   {
     icon: MdSelfImprovement,
     title: "ענווה",
-    emoji: "🙏",
     text: "אנו שמים את האגו בצד. אנו פתוחים תמיד ללמוד מכל אדם, מקבלים משוב באהבה וזוכרים שההצלחה של הצוות קודמת להצלחה האישית.",
     gradient: "from-sky-500 to-blue-600",
     glow: "shadow-sky-200/50",
+    accent: "#0ea5e9",
   },
   {
     icon: MdGroups,
     title: "אחריות משותפת",
-    emoji: "🫂",
     text: 'אנו שותפים מלאים לדרך – מצליחים ביחד ולומדים מאתגרים ביחד. אין אצלנו "זה לא התפקיד שלי"; ההצלחה של כל פרט היא הצלחת הצוות כולו.',
     gradient: "from-violet-500 to-purple-600",
     glow: "shadow-violet-200/50",
+    accent: "#8b5cf6",
   },
   {
     icon: MdEmojiPeople,
     title: "דוגמה אישית",
-    emoji: "💪",
     text: "אנו מנהיגים דרך עשייה. כל אחד מאיתנו מתחייב לדרוש מעצמו את המקסימום, להוות מודל לחיקוי עבור חבריו ולעמוד בסטנדרטים הגבוהים ביותר.",
     gradient: "from-amber-500 to-orange-600",
     glow: "shadow-amber-200/50",
+    accent: "#f59e0b",
   },
   {
     icon: MdStars,
     title: "חתירה למצוינות",
-    emoji: "⭐",
     text: 'אנו לא מתפשרים על הקיים ולא מסתפקים ב"מספיק טוב". אנו שואפים תמיד להשתפר, ליזום, לפרוץ גבולות ולהגיע לתוצאות הטובות ביותר.',
     gradient: "from-rose-500 to-pink-600",
     glow: "shadow-rose-200/50",
+    accent: "#f43f5e",
   },
   {
     icon: MdForum,
     title: "כבוד ושיח פתוח",
-    emoji: "💬",
     text: "אנו מקדמים תקשורת כנה, שקופה ומכבדת. לכל קול בצוות יש מקום, ואנו מתחייבים לפתור מחלוקות מתוך הקשבה אמיתית והערכה הדדית.",
     gradient: "from-cyan-500 to-teal-600",
     glow: "shadow-cyan-200/50",
+    accent: "#06b6d4",
   },
 ];
 
-// Positions for floating hearts — spread across the hero
 const HEART_POSITIONS = [
   { top: "8%", right: "8%", delay: "0s", size: "text-2xl" },
   { top: "20%", left: "5%", delay: "1.5s", size: "text-xl" },
@@ -82,7 +81,6 @@ const HEART_POSITIONS = [
   { top: "60%", left: "15%", delay: "1.2s", size: "text-lg" },
 ];
 
-// Scattered member name positions
 const NAME_LAYOUTS = [
   "rotate-[-3deg]", "rotate-[2deg]", "rotate-[-1deg]", "rotate-[3deg]",
   "rotate-[-2deg]", "rotate-[1deg]", "rotate-[-3deg]", "rotate-[2deg]",
@@ -113,7 +111,8 @@ export default function AmanaPage() {
   const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [phase, setPhase] = useState(0); // 0=loading, 1=hero, 2=intro, 3+=values, 9=names, 10=closing
+  const [phase, setPhase] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const fetchUser = useCallback(async () => {
     const res = await fetch("/api/users-wall");
@@ -131,7 +130,6 @@ export default function AmanaPage() {
     if (status === "authenticated") fetchUser();
   }, [status, router, fetchUser]);
 
-  // Staggered reveal animation
   useEffect(() => {
     if (!loading && userInfo?.team === 16) {
       const timers = [
@@ -149,6 +147,46 @@ export default function AmanaPage() {
       return () => timers.forEach(clearTimeout);
     }
   }, [loading, userInfo]);
+
+  const handleDownloadPDF = async () => {
+    const el = contentRef.current;
+    if (!el) return;
+    const html2canvas = (await import("html2canvas")).default;
+    const { jsPDF } = await import("jspdf");
+
+    // Temporarily show all phases for capture
+    el.classList.add("pdf-capture");
+    await new Promise((r) => setTimeout(r, 100));
+
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#f9fafb",
+      scrollY: -window.scrollY,
+      windowWidth: 700,
+    });
+
+    el.classList.remove("pdf-capture");
+
+    const imgW = 210; // A4 width mm
+    const pageH = 297; // A4 height mm
+    const imgH = (canvas.height * imgW) / canvas.width;
+    const pdf = new jsPDF("p", "mm", "a4");
+    let y = 0;
+    let remaining = imgH;
+
+    while (remaining > 0) {
+      if (y > 0) pdf.addPage();
+      pdf.addImage(
+        canvas.toDataURL("image/jpeg", 0.95),
+        "JPEG", 0, -y, imgW, imgH
+      );
+      y += pageH;
+      remaining -= pageH;
+    }
+
+    pdf.save("amana-team-16.pdf");
+  };
 
   if (status === "loading" || loading) return <InlineLoading />;
 
@@ -193,6 +231,23 @@ export default function AmanaPage() {
           0%, 100% { box-shadow: 0 0 20px rgba(240,192,64,0.3); }
           50% { box-shadow: 0 0 40px rgba(240,192,64,0.6); }
         }
+        @keyframes pulse-ring {
+          0% { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes gradient-shift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes breathe {
+          0%, 100% { transform: scale(1); opacity: 0.08; }
+          50% { transform: scale(1.15); opacity: 0.15; }
+        }
+        @keyframes diamond-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         .animate-float { animation: float 3s ease-in-out infinite; }
         .animate-wave { animation: wave 4s ease-in-out infinite; }
         .animate-shimmer {
@@ -202,204 +257,262 @@ export default function AmanaPage() {
         .animate-pop { animation: popIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
         .animate-slideUp { animation: slideUp 0.8s ease-out forwards; }
         .animate-glow { animation: glow 2s ease-in-out infinite; }
+        .animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+        .animate-gradient { animation: gradient-shift 6s ease infinite; background-size: 200% 200%; }
+        .animate-breathe { animation: breathe 4s ease-in-out infinite; }
+        .animate-diamond { animation: diamond-spin 20s linear infinite; }
+
+        /* PDF capture: show everything immediately */
+        :global(.pdf-capture) *[class*="opacity-0"] { opacity: 1 !important; }
+        :global(.pdf-capture) *[class*="translate-y"] { transform: translateY(0) !important; }
+        :global(.pdf-capture) *[class*="scale-95"] { transform: scale(1) !important; }
+        :global(.pdf-capture) .animate-pop { opacity: 1 !important; animation: none !important; transform: none !important; }
       `}</style>
 
-      {/* ═══ HERO SECTION ═══ */}
-      <div className={`relative overflow-hidden rounded-none sm:rounded-3xl mb-0 transition-all duration-1000 ${phase >= 1 ? "opacity-100" : "opacity-0"}`}>
-        <div className="bg-gradient-to-br from-[#2d3a1a] via-dotan-green-dark to-[#1a3a2a] min-h-[380px] sm:min-h-[420px] p-6 sm:p-10 text-center relative overflow-hidden">
-          {/* Animated green wave lines — inspired by poster */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <svg className="absolute w-full h-full opacity-20" viewBox="0 0 400 500" preserveAspectRatio="none">
-              <path d="M50,0 Q100,100 50,200 Q0,300 50,400 Q100,500 50,600" fill="none" stroke="#4ade80" strokeWidth="4" className="animate-wave" style={{ animationDelay: "0s" }} />
-              <path d="M150,0 Q200,80 150,160 Q100,240 150,320 Q200,400 150,500" fill="none" stroke="#34d399" strokeWidth="3" className="animate-wave" style={{ animationDelay: "0.5s" }} />
-              <path d="M280,0 Q330,120 280,240 Q230,360 280,480" fill="none" stroke="#6ee7b7" strokeWidth="3.5" className="animate-wave" style={{ animationDelay: "1s" }} />
-              <path d="M350,0 Q380,90 350,180 Q320,270 350,360 Q380,450 350,540" fill="none" stroke="#4ade80" strokeWidth="2.5" className="animate-wave" style={{ animationDelay: "1.5s" }} />
-            </svg>
-          </div>
-
-          {/* Floating hearts — inspired by poster hearts */}
-          {HEART_POSITIONS.map((pos, i) => (
-            <div key={i}
-              className={`absolute ${pos.size} text-red-500/70 animate-float pointer-events-none`}
-              style={{ top: pos.top, left: pos.left, right: pos.right, animationDelay: pos.delay }}>
-              <MdFavorite />
-            </div>
-          ))}
-
-          {/* Glowing orbs */}
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-dotan-gold/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 left-1/4 w-40 h-40 bg-pink-500/5 rounded-full blur-3xl" />
-
-          <div className="relative z-10 flex flex-col items-center justify-center min-h-[320px]">
-            {/* Team number — big and golden */}
-            <div className="animate-glow rounded-full w-20 h-20 bg-gradient-to-br from-dotan-gold via-amber-400 to-yellow-500 flex items-center justify-center mb-5 shadow-2xl">
-              <span className="text-dotan-green-dark font-black text-3xl">16</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight" style={{
-              background: "linear-gradient(90deg, #fff, #f0c040, #fff, #f0c040, #fff)",
-              backgroundSize: "200% auto",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              animation: "shimmer 4s linear infinite",
-            }}>
-              אמנת צוות 16
-            </h1>
-
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-12 h-px bg-gradient-to-l from-dotan-gold to-transparent" />
-              <MdFavorite className="text-red-400 text-sm" />
-              <div className="w-12 h-px bg-gradient-to-r from-dotan-gold to-transparent" />
-            </div>
-
-            {/* Quote — glowing box */}
-            <div className="bg-white/8 backdrop-blur-md rounded-2xl px-6 py-4 mb-5 border border-white/15 max-w-sm mx-auto shadow-lg">
-              <p className="text-white text-base sm:text-lg font-bold italic leading-relaxed">
-                &ldquo;מי שליבו בדרך<br />אינו מפחד מהמרחק&rdquo;
-              </p>
-            </div>
-
-            {/* Commander */}
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-5 py-2.5 border border-white/15">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-dotan-gold to-amber-600 flex items-center justify-center text-dotan-green-dark font-black text-sm shadow-lg ring-2 ring-dotan-gold/30">
-                נ.ו
-              </div>
-              <div className="text-right">
-                <div className="text-white font-bold text-sm">נטע וקנין</div>
-                <div className="text-dotan-gold/80 text-[11px] font-medium">מפקדת צוות 16</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Download PDF button */}
+      <div className={`flex justify-end px-4 sm:px-0 mb-2 transition-all duration-700 ${phase >= 1 ? "opacity-100" : "opacity-0"}`}>
+        <button
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-dotan-green-dark text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md"
+        >
+          <MdPictureAsPdf className="text-base text-red-500" />
+          הורד כ-PDF
+        </button>
       </div>
 
-      <div className="px-4 sm:px-0">
-        {/* ═══ INTRO ═══ */}
-        <div className={`transition-all duration-800 mt-5 mb-5 ${phase >= 2 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-l from-emerald-500 via-dotan-gold to-rose-500" />
-            <p className="text-sm sm:text-[15px] text-gray-700 leading-[1.8] text-center">
-              אנו, חברי <span className="font-black text-dotan-green-dark">צוות 16</span>, מתחייבים לפעול לאור הערכים הבאים.
-              ערכים אלו יהוו את <span className="bg-gradient-to-l from-dotan-green to-emerald-600 bg-clip-text text-transparent font-black">המצפן</span> שלנו בכל משימה, החלטה ואתגר שניצב בפנינו:
-            </p>
-          </div>
-        </div>
-
-        {/* ═══ VALUES ═══ */}
-        <div className="space-y-4">
-          {VALUES.map((value, i) => {
-            const Icon = value.icon;
-            const visible = phase >= i + 3;
-            return (
-              <div key={i} className={`transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"}`}
-                style={{ transitionDelay: visible ? "0ms" : "0ms" }}>
-                <div className={`bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl ${value.glow} transition-all duration-300 border border-gray-100 group`}>
-                  {/* Gradient header */}
-                  <div className={`bg-gradient-to-l ${value.gradient} p-4 sm:p-5 relative overflow-hidden`}>
-                    <div className="absolute inset-0 bg-black/5" />
-                    <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-white/10 rounded-full blur-xl" />
-                    <div className="relative flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        <Icon className="text-white text-2xl" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-black text-lg sm:text-xl">{value.title}</h3>
-                        <div className="text-white/50 text-xs font-medium mt-0.5">ערך {i + 1} מתוך 6</div>
-                      </div>
-                      <span className="text-3xl mr-auto opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300">{value.emoji}</span>
-                    </div>
-                  </div>
-                  {/* Body */}
-                  <div className="p-4 sm:p-5">
-                    <p className="text-gray-700 text-sm sm:text-[15px] leading-[1.9]">{value.text}</p>
-                  </div>
-                </div>
+      <div ref={contentRef}>
+        {/* HERO SECTION */}
+        <div className={`relative overflow-hidden rounded-none sm:rounded-3xl mb-0 transition-all duration-1000 ${phase >= 1 ? "opacity-100" : "opacity-0"}`}>
+          <div className="bg-gradient-to-br from-[#1a2e0f] via-dotan-green-dark to-[#0f2b1f] min-h-[420px] sm:min-h-[480px] p-6 sm:p-10 text-center relative overflow-hidden">
+            {/* Animated geometric background pattern */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {/* Rotating diamond grid */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] animate-diamond opacity-[0.04]">
+                <svg viewBox="0 0 600 600" className="w-full h-full">
+                  <rect x="200" y="200" width="200" height="200" fill="none" stroke="#f0c040" strokeWidth="1" transform="rotate(45 300 300)" />
+                  <rect x="150" y="150" width="300" height="300" fill="none" stroke="#f0c040" strokeWidth="0.5" transform="rotate(45 300 300)" />
+                  <rect x="100" y="100" width="400" height="400" fill="none" stroke="#4ade80" strokeWidth="0.5" transform="rotate(45 300 300)" />
+                </svg>
               </div>
-            );
-          })}
-        </div>
 
-        {/* ═══ TEAM MEMBERS — scattered names ═══ */}
-        <div className={`transition-all duration-1000 ${phase >= 9 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
-          <div className="mt-8 mb-6">
-            <div className="text-center mb-4">
-              <span className="text-xs font-bold text-gray-400 tracking-widest">חברי הצוות</span>
-            </div>
-            <div className="relative bg-gradient-to-br from-[#2d3a1a] via-dotan-green-dark to-[#1a3a2a] rounded-3xl p-6 sm:p-8 overflow-hidden min-h-[280px]">
-              {/* Decorative green waves */}
-              <svg className="absolute inset-0 w-full h-full opacity-15 pointer-events-none" viewBox="0 0 400 300" preserveAspectRatio="none">
-                <path d="M0,50 Q80,20 160,60 Q240,100 320,50 Q400,10 400,50" fill="none" stroke="#4ade80" strokeWidth="3" className="animate-wave" />
-                <path d="M0,150 Q100,120 200,160 Q300,200 400,140" fill="none" stroke="#34d399" strokeWidth="2.5" className="animate-wave" style={{ animationDelay: "1s" }} />
-                <path d="M0,250 Q100,220 200,260 Q300,280 400,240" fill="none" stroke="#6ee7b7" strokeWidth="2" className="animate-wave" style={{ animationDelay: "2s" }} />
+              {/* Green wave SVGs */}
+              <svg className="absolute w-full h-full opacity-15" viewBox="0 0 400 500" preserveAspectRatio="none">
+                <path d="M50,0 Q100,100 50,200 Q0,300 50,400 Q100,500 50,600" fill="none" stroke="#4ade80" strokeWidth="4" className="animate-wave" style={{ animationDelay: "0s" }} />
+                <path d="M150,0 Q200,80 150,160 Q100,240 150,320 Q200,400 150,500" fill="none" stroke="#34d399" strokeWidth="3" className="animate-wave" style={{ animationDelay: "0.5s" }} />
+                <path d="M280,0 Q330,120 280,240 Q230,360 280,480" fill="none" stroke="#6ee7b7" strokeWidth="3.5" className="animate-wave" style={{ animationDelay: "1s" }} />
+                <path d="M350,0 Q380,90 350,180 Q320,270 350,360 Q380,450 350,540" fill="none" stroke="#4ade80" strokeWidth="2.5" className="animate-wave" style={{ animationDelay: "1.5s" }} />
               </svg>
+            </div>
 
-              {/* Floating hearts */}
-              <MdFavorite className="absolute top-4 right-6 text-red-500/50 text-xl animate-float" style={{ animationDelay: "0.5s" }} />
-              <MdFavorite className="absolute bottom-6 left-8 text-red-500/50 text-lg animate-float" style={{ animationDelay: "1.5s" }} />
-              <MdFavorite className="absolute top-1/2 right-1/4 text-red-500/30 text-sm animate-float" style={{ animationDelay: "2s" }} />
+            {/* Floating hearts */}
+            {HEART_POSITIONS.map((pos, i) => (
+              <div key={i}
+                className={`absolute ${pos.size} text-red-500/60 animate-float pointer-events-none`}
+                style={{ top: pos.top, left: pos.left, right: pos.right, animationDelay: pos.delay }}>
+                <MdFavorite />
+              </div>
+            ))}
 
-              {/* Scattered names */}
-              <div className="relative z-10 flex flex-wrap justify-center gap-2.5 sm:gap-3">
-                {TEAM_MEMBERS.map((name, i) => (
-                  <div key={i}
-                    className={`${NAME_LAYOUTS[i]} animate-pop`}
-                    style={{ animationDelay: `${i * 100}ms`, opacity: 0 }}>
-                    <div className={`bg-gradient-to-l ${NAME_COLORS[i]} px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 cursor-default`}>
-                      <span className="text-white font-black text-xs sm:text-sm drop-shadow-md whitespace-nowrap">{name}</span>
-                    </div>
-                  </div>
-                ))}
+            {/* Glowing orbs — more dramatic */}
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-dotan-gold/8 rounded-full blur-3xl animate-breathe" />
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-emerald-500/8 rounded-full blur-3xl animate-breathe" style={{ animationDelay: "2s" }} />
+            <div className="absolute top-1/3 left-1/4 w-48 h-48 bg-rose-500/5 rounded-full blur-3xl animate-breathe" style={{ animationDelay: "3s" }} />
+
+            <div className="relative z-10 flex flex-col items-center justify-center min-h-[360px]">
+              {/* Team badge with pulse ring */}
+              <div className="relative mb-6">
+                <div className="absolute inset-0 rounded-full bg-dotan-gold/30 animate-pulse-ring" />
+                <div className="absolute inset-[-8px] rounded-full border-2 border-dotan-gold/20 animate-pulse-ring" style={{ animationDelay: "0.5s" }} />
+                <div className="animate-glow rounded-full w-24 h-24 bg-gradient-to-br from-dotan-gold via-amber-400 to-yellow-500 flex items-center justify-center shadow-2xl relative z-10">
+                  <span className="text-dotan-green-dark font-black text-4xl tracking-tight">16</span>
+                </div>
               </div>
 
-              {/* Commander name — special */}
-              <div className="relative z-10 flex justify-center mt-5">
-                <div className="bg-gradient-to-l from-dotan-gold via-amber-400 to-yellow-500 px-5 py-2 rounded-xl shadow-xl animate-glow">
-                  <span className="text-dotan-green-dark font-black text-sm sm:text-base">נטע וקנין — מפקדת</span>
+              <h1 className="text-5xl sm:text-6xl font-black text-white mb-3 tracking-tight" style={{
+                background: "linear-gradient(90deg, #fff, #f0c040, #fff, #f0c040, #fff)",
+                backgroundSize: "200% auto",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                animation: "shimmer 4s linear infinite",
+              }}>
+                אמנת צוות 16
+              </h1>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-px bg-gradient-to-l from-dotan-gold to-transparent" />
+                <div className="w-2 h-2 rounded-full bg-dotan-gold/60" />
+                <div className="w-16 h-px bg-gradient-to-r from-dotan-gold to-transparent" />
+              </div>
+
+              {/* Quote — glass card */}
+              <div className="bg-white/[0.07] backdrop-blur-xl rounded-2xl px-7 py-5 mb-6 border border-white/10 max-w-md mx-auto shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-dotan-gold/5 to-transparent" />
+                <p className="text-white text-lg sm:text-xl font-bold italic leading-relaxed relative z-10">
+                  &ldquo;מי שליבו בדרך<br />אינו מפחד מהמרחק&rdquo;
+                </p>
+              </div>
+
+              {/* Commander — premium badge */}
+              <div className="flex items-center gap-3 bg-white/[0.08] backdrop-blur-sm rounded-2xl px-6 py-3 border border-white/10 shadow-xl">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-dotan-gold to-amber-600 flex items-center justify-center text-dotan-green-dark font-black text-sm shadow-lg ring-2 ring-dotan-gold/30">
+                  נ.ו
+                </div>
+                <div className="text-right">
+                  <div className="text-white font-bold text-base">נטע וקנין</div>
+                  <div className="text-dotan-gold/70 text-[11px] font-medium tracking-wide">מפקדת צוות 16</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ═══ CLOSING ═══ */}
-        <div className={`transition-all duration-1000 ${phase >= 10 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
-          <div className="relative overflow-hidden rounded-3xl shadow-xl">
-            <div className="bg-gradient-to-br from-dotan-green-dark via-emerald-800 to-teal-900 px-6 py-8 sm:px-10 sm:py-10 text-center relative">
-              {/* Decorative */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-dotan-gold/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl" />
-              </div>
+        <div className="px-4 sm:px-0">
+          {/* INTRO */}
+          <div className={`transition-all duration-800 mt-6 mb-6 ${phase >= 2 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-l from-emerald-500 via-dotan-gold to-rose-500 animate-gradient" />
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/5 rounded-full blur-3xl" />
+              <p className="text-sm sm:text-[15px] text-gray-700 leading-[1.9] text-center relative z-10">
+                אנו, חברי <span className="font-black text-dotan-green-dark">צוות 16</span>, מתחייבים לפעול לאור הערכים הבאים.
+                ערכים אלו יהוו את <span className="bg-gradient-to-l from-dotan-green to-emerald-600 bg-clip-text text-transparent font-black">המצפן</span> שלנו בכל משימה, החלטה ואתגר שניצב בפנינו:
+              </p>
+            </div>
+          </div>
 
-              <div className="relative z-10">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <MdFavorite className="text-red-400 text-lg animate-float" style={{ animationDelay: "0s" }} />
-                  <MdFavorite className="text-dotan-gold text-2xl animate-float" style={{ animationDelay: "0.3s" }} />
-                  <MdFavorite className="text-red-400 text-lg animate-float" style={{ animationDelay: "0.6s" }} />
+          {/* VALUES */}
+          <div className="space-y-5">
+            {VALUES.map((value, i) => {
+              const Icon = value.icon;
+              const visible = phase >= i + 3;
+              return (
+                <div key={i} className={`transition-all duration-700 ease-out ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-95"}`}>
+                  <div className={`bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl ${value.glow} transition-all duration-300 border border-gray-100 group hover:-translate-y-1`}>
+                    {/* Gradient header with number accent */}
+                    <div className={`bg-gradient-to-l ${value.gradient} p-5 sm:p-6 relative overflow-hidden`}>
+                      <div className="absolute inset-0 bg-black/5" />
+                      <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+                      <div className="absolute -top-6 -right-6 w-20 h-20 bg-white/5 rounded-full blur-xl" />
+                      {/* Large background number */}
+                      <div className="absolute top-1/2 -translate-y-1/2 left-4 text-[80px] font-black text-white/[0.07] leading-none select-none">
+                        {i + 1}
+                      </div>
+                      <div className="relative flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                          <Icon className="text-white text-3xl" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-black text-xl sm:text-2xl tracking-tight">{value.title}</h3>
+                          <div className="text-white/40 text-xs font-medium mt-0.5 tracking-wide">ערך {i + 1} מתוך 6</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Body with accent border */}
+                    <div className="p-5 sm:p-6 relative">
+                      <div className="absolute top-0 right-6 w-12 h-1 rounded-full" style={{ backgroundColor: value.accent, opacity: 0.3 }} />
+                      <p className="text-gray-700 text-sm sm:text-[15px] leading-[2]">{value.text}</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-white text-lg sm:text-xl font-black leading-relaxed mb-3">
-                  יחד, כצוות 16,<br />נוביל, נצליח ונישאר מאוחדים.
-                </p>
-                <div className="flex items-center justify-center gap-3 mt-4">
-                  <div className="w-16 h-px bg-gradient-to-l from-dotan-gold to-transparent" />
-                  <span className="text-dotan-gold/80 font-bold text-xs tracking-widest">16</span>
-                  <div className="w-16 h-px bg-gradient-to-r from-dotan-gold to-transparent" />
+              );
+            })}
+          </div>
+
+          {/* TEAM MEMBERS — scattered names */}
+          <div className={`transition-all duration-1000 ${phase >= 9 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
+            <div className="mt-10 mb-6">
+              <div className="text-center mb-5">
+                <div className="inline-flex items-center gap-3">
+                  <div className="w-12 h-px bg-gradient-to-l from-gray-300 to-transparent" />
+                  <span className="text-xs font-black text-gray-400 tracking-[0.2em] uppercase">חברי הצוות</span>
+                  <div className="w-12 h-px bg-gradient-to-r from-gray-300 to-transparent" />
+                </div>
+              </div>
+              <div className="relative bg-gradient-to-br from-[#1a2e0f] via-dotan-green-dark to-[#0f2b1f] rounded-3xl p-7 sm:p-10 overflow-hidden min-h-[300px]">
+                {/* Background pattern */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <svg className="absolute w-full h-full opacity-10" viewBox="0 0 400 300" preserveAspectRatio="none">
+                    <path d="M0,50 Q80,20 160,60 Q240,100 320,50 Q400,10 400,50" fill="none" stroke="#4ade80" strokeWidth="3" className="animate-wave" />
+                    <path d="M0,150 Q100,120 200,160 Q300,200 400,140" fill="none" stroke="#34d399" strokeWidth="2.5" className="animate-wave" style={{ animationDelay: "1s" }} />
+                    <path d="M0,250 Q100,220 200,260 Q300,280 400,240" fill="none" stroke="#6ee7b7" strokeWidth="2" className="animate-wave" style={{ animationDelay: "2s" }} />
+                  </svg>
+                  {/* Floating hearts */}
+                  <MdFavorite className="absolute top-4 right-6 text-red-500/40 text-xl animate-float" style={{ animationDelay: "0.5s" }} />
+                  <MdFavorite className="absolute bottom-6 left-8 text-red-500/40 text-lg animate-float" style={{ animationDelay: "1.5s" }} />
+                  <MdFavorite className="absolute top-1/2 right-1/4 text-red-500/25 text-sm animate-float" style={{ animationDelay: "2s" }} />
+                  <MdFavorite className="absolute top-1/3 left-1/5 text-red-500/20 text-base animate-float" style={{ animationDelay: "2.5s" }} />
+                </div>
+
+                {/* Scattered names */}
+                <div className="relative z-10 flex flex-wrap justify-center gap-3 sm:gap-3.5">
+                  {TEAM_MEMBERS.map((name, i) => (
+                    <div key={i}
+                      className={`${NAME_LAYOUTS[i]} animate-pop`}
+                      style={{ animationDelay: `${i * 100}ms`, opacity: 0 }}>
+                      <div className={`bg-gradient-to-l ${NAME_COLORS[i]} px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl shadow-lg hover:scale-110 hover:shadow-2xl transition-all duration-300 cursor-default border border-white/10`}>
+                        <span className="text-white font-black text-xs sm:text-sm drop-shadow-md whitespace-nowrap">{name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Commander name — special */}
+                <div className="relative z-10 flex justify-center mt-6">
+                  <div className="bg-gradient-to-l from-dotan-gold via-amber-400 to-yellow-500 px-6 py-2.5 rounded-xl shadow-xl animate-glow border border-amber-300/30">
+                    <span className="text-dotan-green-dark font-black text-sm sm:text-base tracking-wide">נטע וקנין  -  מפקדת</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Signature */}
-          <div className="mt-6 text-center pb-4">
-            <div className="inline-flex flex-col items-center gap-1">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-px bg-gradient-to-l from-gray-300 to-transparent" />
-                <MdFavorite className="text-red-300 text-xs" />
-                <div className="w-10 h-px bg-gradient-to-r from-gray-300 to-transparent" />
+          {/* CLOSING */}
+          <div className={`transition-all duration-1000 ${phase >= 10 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"}`}>
+            <div className="relative overflow-hidden rounded-3xl shadow-2xl">
+              <div className="bg-gradient-to-br from-[#1a2e0f] via-dotan-green-dark to-emerald-900 px-6 py-10 sm:px-10 sm:py-12 text-center relative">
+                {/* Decorative background */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-dotan-gold/8 rounded-full blur-3xl animate-breathe" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/8 rounded-full blur-3xl animate-breathe" style={{ animationDelay: "2s" }} />
+                  {/* Diamond pattern */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] opacity-[0.03] animate-diamond">
+                    <svg viewBox="0 0 300 300" className="w-full h-full">
+                      <rect x="100" y="100" width="100" height="100" fill="none" stroke="#f0c040" strokeWidth="1" transform="rotate(45 150 150)" />
+                      <rect x="75" y="75" width="150" height="150" fill="none" stroke="#f0c040" strokeWidth="0.5" transform="rotate(45 150 150)" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center gap-3 mb-5">
+                    <MdFavorite className="text-red-400/70 text-lg animate-float" style={{ animationDelay: "0s" }} />
+                    <div className="w-3 h-3 rounded-full bg-dotan-gold/50 animate-float" style={{ animationDelay: "0.15s" }} />
+                    <MdFavorite className="text-dotan-gold/80 text-2xl animate-float" style={{ animationDelay: "0.3s" }} />
+                    <div className="w-3 h-3 rounded-full bg-dotan-gold/50 animate-float" style={{ animationDelay: "0.45s" }} />
+                    <MdFavorite className="text-red-400/70 text-lg animate-float" style={{ animationDelay: "0.6s" }} />
+                  </div>
+                  <p className="text-white text-xl sm:text-2xl font-black leading-relaxed mb-4">
+                    יחד, כצוות 16,<br />נוביל, נצליח ונישאר מאוחדים.
+                  </p>
+                  <div className="flex items-center justify-center gap-4 mt-5">
+                    <div className="w-20 h-px bg-gradient-to-l from-dotan-gold to-transparent" />
+                    <span className="text-dotan-gold font-black text-lg tracking-widest">16</span>
+                    <div className="w-20 h-px bg-gradient-to-r from-dotan-gold to-transparent" />
+                  </div>
+                </div>
               </div>
-              <span className="text-[11px] text-gray-400 font-medium">אמנת צוות 16 — פלוגת דותן</span>
-              <span className="text-[10px] text-gray-300">מי שליבו בדרך אינו מפחד מהמרחק</span>
+            </div>
+
+            {/* Signature */}
+            <div className="mt-8 text-center pb-4">
+              <div className="inline-flex flex-col items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-px bg-gradient-to-l from-gray-300 to-transparent" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                  <div className="w-12 h-px bg-gradient-to-r from-gray-300 to-transparent" />
+                </div>
+                <span className="text-[11px] text-gray-400 font-bold tracking-wide">אמנת צוות 16  -  פלוגת דותן</span>
+                <span className="text-[10px] text-gray-300 italic">מי שליבו בדרך אינו מפחד מהמרחק</span>
+              </div>
             </div>
           </div>
         </div>
