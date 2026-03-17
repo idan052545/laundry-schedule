@@ -72,7 +72,7 @@ export default function Navbar() {
     { href: "/formats", label: "פורמטים", icon: MdFolder },
     { href: "/aktualia", label: "אקטואליה", icon: MdNewspaper },
     { href: "/birthdays", label: "ימי הולדת", icon: MdCake },
-    { href: "/guard-duty", label: "שיבוץ תורנויות", icon: MdSecurity },
+    ...(session?.user?.name === "רוני קרפט" || session?.user?.email === "ohad@dotan.com" ? [{ href: "/guard-duty", label: "שיבוץ תורנויות", icon: MdSecurity }] : []),
     { href: "/daily-quote", label: "משפט היומי", icon: MdAutoAwesome },
     { href: "/amana", label: "אמנה צוותית", icon: MdFavorite },
     { href: "/schedule", label: "מכבסה", icon: MdLocalLaundryService },

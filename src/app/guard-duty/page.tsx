@@ -128,6 +128,7 @@ export default function GuardDutyPage() {
       setTable(data.table);
       setAllUsers(data.allUsers);
       setIsRoni(data.isRoni);
+      if (!data.isRoni) { router.push("/dashboard"); return; }
       setAppeals(data.appeals);
       setHoursMap(data.hoursMap);
       if (data.availableDates) setAvailableDates(data.availableDates);
