@@ -400,6 +400,8 @@ model DutyTable {
   roles       String
   // JSON array of time slot strings, e.g. ["08:00-12:00","12:00-16:00",...]
   timeSlots   String
+  // Optional JSON metadata (e.g. squads/חולייות)
+  metadata    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   assignments DutyAssignment[]

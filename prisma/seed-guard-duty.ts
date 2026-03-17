@@ -93,6 +93,14 @@ async function main() {
     await prisma.dutyTable.delete({ where: { id: existing.id } });
   }
 
+  // Squads (חולייות) data
+  const squads = [
+    { number: 1, members: ["מעיין מרדכי", "ורוורה טופן", "כפיר ברמן"] },
+    { number: 2, members: ["עידן סימנטוב", "אופק מזור", "רעות ניר"] },
+    { number: 3, members: ["יזן כנעאן", "עילי בן אברהם", "יהלי כוכבא"] },
+    { number: 4, members: ["יהלי לוי", "אלה בן גיא", "שילת נוימן"] },
+  ];
+
   const guardTable = await prisma.dutyTable.create({
     data: {
       date: DATE,
@@ -100,6 +108,7 @@ async function main() {
       title: "שיבוץ לשמירות",
       roles: JSON.stringify(guardRoles),
       timeSlots: JSON.stringify(guardSlots),
+      metadata: JSON.stringify({ squads }),
     },
   });
 

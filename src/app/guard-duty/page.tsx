@@ -7,7 +7,7 @@ import {
   MdSecurity, MdSwapHoriz, MdPerson, MdAdd, MdClose, MdCheck,
   MdDownload, MdWarning, MdAccessTime, MdGavel, MdTrendingUp,
   MdEdit, MdDelete, MdChevronRight, MdChevronLeft, MdSend,
-  MdNotifications, MdInfo, MdBarChart,
+  MdNotifications, MdInfo, MdBarChart, MdGroups,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
@@ -29,6 +29,7 @@ interface DutyTable {
   type: string;
   roles: string;
   timeSlots: string;
+  metadata: string | null;
   assignments: Assignment[];
 }
 
@@ -295,6 +296,15 @@ export default function GuardDutyPage() {
         .map(a => [a.userId, a] as const)
     ).values()],
   })).filter(r => r.people.length > 0) : [];
+
+  // Parse squads from metadata
+  const squads: { number: number; members: string[] }[] = (() => {
+    if (!table?.metadata) return [];
+    try {
+      const meta = JSON.parse(table.metadata);
+      return meta.squads || [];
+    } catch { return []; }
+  })();
 
   // Per-person data for summary
   const getPersonAssignments = (personId: string) =>
@@ -631,6 +641,37 @@ export default function GuardDutyPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Squads (חולייות) */}
+          {squads.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+              <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
+                <MdGroups className="text-indigo-500" /> חולייות
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border-b border-gray-200 bg-indigo-50 px-3 py-2 text-indigo-700 font-bold text-right">מס&apos; חולייה</th>
+                      <th className="border-b border-gray-200 bg-indigo-50 px-3 py-2 text-indigo-700 font-bold text-right">צוער 1</th>
+                      <th className="border-b border-gray-200 bg-indigo-50 px-3 py-2 text-indigo-700 font-bold text-right">צוער 2</th>
+                      <th className="border-b border-gray-200 bg-indigo-50 px-3 py-2 text-indigo-700 font-bold text-right">צוער 3</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {squads.map((s, i) => (
+                      <tr key={s.number} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                        <td className="border-b border-gray-100 px-3 py-2 font-bold text-indigo-600">{s.number}</td>
+                        {s.members.map((name, j) => (
+                          <td key={j} className="border-b border-gray-100 px-3 py-2 text-gray-700 font-medium">{name}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
