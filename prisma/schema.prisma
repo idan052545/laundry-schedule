@@ -418,6 +418,7 @@ model DutyAssignment {
   user        User     @relation("dutyAssignments", fields: [userId], references: [id])
   timeSlot    String   // e.g. "08:00-12:00" or "08:30-11:30"
   role        String   // e.g. "שג רכוב קדמי", "בונקר", slot number for עב"ס
+  note        String?  // e.g. sub-hours "17:00-20:00" when different from main timeSlot
   createdAt   DateTime @default(now())
 
   @@unique([tableId, timeSlot, role, userId])

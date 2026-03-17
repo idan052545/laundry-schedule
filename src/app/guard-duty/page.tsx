@@ -19,6 +19,7 @@ interface Assignment {
   userId: string;
   timeSlot: string;
   role: string;
+  note: string | null;
   user: UserMin;
 }
 
@@ -263,7 +264,7 @@ export default function GuardDutyPage() {
       const row: Record<string, string> = { "משמרת": slot };
       roles.forEach(role => {
         const found = table.assignments.filter(a => a.timeSlot === slot && a.role === role);
-        row[role] = found.map(a => a.user.name).join(", ");
+        row[role] = found.map(a => a.note ? `${a.note} ${a.user.name}` : a.user.name).join(", ");
       });
       return row;
     });
@@ -600,6 +601,7 @@ export default function GuardDutyPage() {
                                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                   }`}
                                   title={isRoni ? "החלף חייל" : a.userId === userId ? "ערער על שיבוץ" : a.user.name}>
+                                  {a.note && <span className="text-[8px] sm:text-[9px] opacity-60 block leading-none mb-0.5">{a.note}</span>}
                                   {a.user.name}
                                 </button>
                               </div>
