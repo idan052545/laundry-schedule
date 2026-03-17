@@ -359,34 +359,34 @@ export default function TasksPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] text-gray-500 font-medium block mb-1">תאריך</label>
                 <input type="date" value={form.startDate}
                   onChange={e => setForm({...form, startDate: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-sm" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
               </div>
               <div>
                 <label className="text-[10px] text-red-500 font-medium block mb-1">תאריך גמר ביצוע</label>
                 <input type="date" value={form.dueDate}
                   onChange={e => setForm({...form, dueDate: e.target.value})}
-                  className="w-full border border-red-200 rounded-xl px-2.5 py-2 text-sm focus:ring-2 focus:ring-red-300" />
+                  className="w-full border border-red-200 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-300" />
               </div>
             </div>
 
             {!form.allDay && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium block mb-1">שעת התחלה</label>
                   <input type="time" value={form.startTime}
                     onChange={e => setForm({...form, startTime: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-sm" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
                 </div>
                 <div>
                   <label className="text-[10px] text-gray-500 font-medium block mb-1">שעת סיום</label>
                   <input type="time" value={form.endTime}
                     onChange={e => setForm({...form, endTime: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-sm" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
                 </div>
               </div>
             )}
