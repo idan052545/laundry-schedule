@@ -48,7 +48,7 @@ const ROLE_COLORS: Record<string, string> = {
   "שג רכוב קדמי": "bg-purple-800 text-white",
   "שג רכוב אחורי": "bg-purple-600 text-white",
   "שג רגלי": "bg-gray-800 text-white",
-  "פט": "bg-red-600 text-white",
+  "פטל": "bg-red-600 text-white",
   "ימ\"ח": "bg-blue-700 text-white",
   "בונקר": "bg-red-700 text-white",
   "נשקייה": "bg-green-700 text-white",
@@ -66,7 +66,7 @@ const ROLE_NOTES: Record<string, string> = {
 };
 
 const DEFAULT_GUARD_ROLES = [
-  "שג רכוב קדמי", "שג רכוב אחורי", "שג רגלי", "פט",
+  "שג רכוב קדמי", "שג רכוב אחורי", "שג רגלי", "פטל",
   "ימ\"ח", "בונקר", "נשקייה", "תצפיתן", "עתודה", "כ\"כא", "כ\"כב",
 ];
 
