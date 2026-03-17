@@ -308,6 +308,15 @@ export default function GuardDutyPage() {
     } catch { return []; }
   })();
 
+  // Parse עבס גדודי from metadata
+  const obsGdudi: string[] = (() => {
+    if (!table?.metadata) return [];
+    try {
+      const meta = JSON.parse(table.metadata);
+      return meta.obsGdudi || [];
+    } catch { return []; }
+  })();
+
   // Per-person data for summary
   const getPersonAssignments = (personId: string) =>
     table?.assignments.filter(a => a.userId === personId) || [];
@@ -674,6 +683,22 @@ export default function GuardDutyPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* עבס גדודי */}
+          {obsGdudi.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+              <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
+                <MdSecurity className="text-amber-600" /> עב&quot;ס גדודי
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {obsGdudi.map((name, i) => (
+                  <span key={i} className="bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-1.5 text-xs font-medium">
+                    {name}
+                  </span>
+                ))}
               </div>
             </div>
           )}
