@@ -43,13 +43,13 @@ interface DashboardFeed {
   hasVotedThisWeek: boolean;
   dailyQuote: { id: string; text: string; date: string; user: { name: string; team: number | null } } | null;
   todayNotes: { id: string; title: string; startTime: string | null; visibility: string; user: { id: string; name: string } }[];
-  nextDutyTable: {
+  nextDutyTables: {
     id: string;
     title: string;
     date: string;
     type: string;
-    myAssignments: { role: string; timeSlot: string }[];
-  } | null;
+    myAssignments: { role: string; timeSlot: string; partners: string[] }[];
+  }[];
 }
 
 export default function DashboardPage() {
@@ -133,7 +133,7 @@ export default function DashboardPage() {
     feed.pendingPlatoonSurveys?.length > 0 ||
     feed.hasVotedThisWeek === false ||
     feed.dailyQuote ||
-    feed.nextDutyTable ||
+    feed.nextDutyTables?.length > 0 ||
     feed.todayNotes?.length > 0
   );
 
@@ -180,36 +180,51 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Next duty table preview */}
-          {feed.nextDutyTable && (
-            <Link href="/guard-duty" className="block bg-gradient-to-l from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3.5 hover:shadow-sm transition">
+          {/* Next duty tables preview (guard + obs) */}
+          {feed.nextDutyTables?.length > 0 && feed.nextDutyTables.map(dt => (
+            <Link key={dt.id} href="/guard-duty" className={`block border rounded-xl p-3.5 hover:shadow-sm transition ${
+              dt.type === "obs"
+                ? "bg-gradient-to-l from-blue-50 to-indigo-50 border-blue-200"
+                : "bg-gradient-to-l from-amber-50 to-orange-50 border-amber-200"
+            }`}>
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <MdSecurity className="text-lg text-amber-700" />
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                  dt.type === "obs"
+                    ? "bg-gradient-to-br from-blue-100 to-indigo-100"
+                    : "bg-gradient-to-br from-amber-100 to-orange-100"
+                }`}>
+                  <MdSecurity className={`text-lg ${dt.type === "obs" ? "text-blue-700" : "text-amber-700"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-bold text-amber-500 tracking-wide">{feed.nextDutyTable.title}</span>
-                    <span className="text-[10px] text-amber-400">
-                      {new Date(feed.nextDutyTable.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" })}
+                    <span className={`text-[10px] font-bold tracking-wide ${dt.type === "obs" ? "text-blue-500" : "text-amber-500"}`}>{dt.title}</span>
+                    <span className={`text-[10px] ${dt.type === "obs" ? "text-blue-400" : "text-amber-400"}`}>
+                      {new Date(dt.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" })}
                     </span>
                   </div>
-                  {feed.nextDutyTable.myAssignments.length > 0 ? (
+                  {dt.myAssignments.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {feed.nextDutyTable.myAssignments.map((a, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[11px] font-medium">
+                      {dt.myAssignments.map((a, i) => (
+                        <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${
+                          dt.type === "obs" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
+                        }`}>
                           <MdAccessTime className="text-xs" />
                           {a.role} {a.timeSlot}
+                          {a.partners.length > 0 && (
+                            <span className={`text-[10px] font-normal ${dt.type === "obs" ? "text-blue-600" : "text-amber-600"}`}>
+                              (עם {a.partners.join(", ")})
+                            </span>
+                          )}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-amber-600">אין שיבוצים עבורך</span>
+                    <span className={`text-xs ${dt.type === "obs" ? "text-blue-600" : "text-amber-600"}`}>אין שיבוצים עבורך</span>
                   )}
                 </div>
               </div>
             </Link>
-          )}
+          ))}
 
           {/* All-day schedule events */}
           {feed.allDaySchedule.length > 0 && (

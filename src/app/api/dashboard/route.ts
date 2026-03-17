@@ -39,7 +39,7 @@ export async function GET() {
     pendingSurveys,
     pendingPlatoonSurveys,
     dailyQuote,
-    nextDutyTable,
+    upcomingDutyTables,
     todayNotes,
   ] = await Promise.all([
     // Latest message
@@ -162,13 +162,13 @@ export async function GET() {
       include: { user: { select: { name: true, team: true } } },
     }),
 
-    // Next upcoming duty table (today or future) with user's assignments
-    prisma.dutyTable.findFirst({
+    // Next upcoming duty tables (today or future) with ALL assignments (to show partners)
+    prisma.dutyTable.findMany({
       where: { date: { gte: todayStr } },
       orderBy: { date: "asc" },
+      take: 10,
       include: {
         assignments: {
-          where: { userId },
           include: { user: { select: { id: true, name: true } } },
         },
       },
@@ -243,15 +243,27 @@ export async function GET() {
     hasVotedThisWeek,
     dailyQuote,
     todayNotes,
-    nextDutyTable: nextDutyTable ? {
-      id: nextDutyTable.id,
-      title: nextDutyTable.title,
-      date: nextDutyTable.date,
-      type: nextDutyTable.type,
-      myAssignments: nextDutyTable.assignments.map((a: { role: string; timeSlot: string }) => ({
-        role: a.role,
-        timeSlot: a.timeSlot,
-      })),
-    } : null,
+    nextDutyTables: (() => {
+      if (!upcomingDutyTables || upcomingDutyTables.length === 0) return [];
+      const firstDate = upcomingDutyTables[0].date;
+      return upcomingDutyTables
+        .filter((t: { date: string }) => t.date === firstDate)
+        .map((t: { id: string; title: string; date: string; type: string; assignments: { userId: string; role: string; timeSlot: string; user: { id: string; name: string } }[] }) => {
+          const myAssignments = t.assignments.filter(a => a.userId === userId);
+          return {
+            id: t.id,
+            title: t.title,
+            date: t.date,
+            type: t.type,
+            myAssignments: myAssignments.map(a => {
+              // Find partners: same role + timeSlot but different user
+              const partners = t.assignments
+                .filter(o => o.role === a.role && o.timeSlot === a.timeSlot && o.userId !== userId)
+                .map(o => o.user.name);
+              return { role: a.role, timeSlot: a.timeSlot, partners };
+            }),
+          };
+        });
+    })(),
   });
 }
