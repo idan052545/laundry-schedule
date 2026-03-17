@@ -70,7 +70,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ table, allUsers, isRoni: roni, appeals, hoursMap });
+  // Get all dates that have tables (for navigation)
+  const availableDates = await prisma.dutyTable.findMany({
+    select: { date: true, type: true },
+    orderBy: { date: "desc" },
+    distinct: ["date"],
+  });
+
+  return NextResponse.json({ table, allUsers, isRoni: roni, appeals, hoursMap, availableDates: availableDates.map(d => d.date) });
 }
 
 // POST — create or update entire duty table (Roni only)

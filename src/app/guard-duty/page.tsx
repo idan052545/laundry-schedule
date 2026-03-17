@@ -94,6 +94,8 @@ export default function GuardDutyPage() {
   const [isRoni, setIsRoni] = useState(false);
   const [appeals, setAppeals] = useState<Appeal[]>([]);
   const [hoursMap, setHoursMap] = useState<Record<string, number>>({});
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [initialDateSet, setInitialDateSet] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // UI state
@@ -123,9 +125,23 @@ export default function GuardDutyPage() {
       setIsRoni(data.isRoni);
       setAppeals(data.appeals);
       setHoursMap(data.hoursMap);
+      if (data.availableDates) setAvailableDates(data.availableDates);
+
+      // On first load, if today has no data but there are dates with data, jump to the nearest one
+      if (!initialDateSet && !data.table && data.availableDates?.length > 0) {
+        const today = toDateStr(new Date());
+        const sorted = [...data.availableDates].sort((a: string, b: string) =>
+          Math.abs(new Date(a).getTime() - new Date(today).getTime()) -
+          Math.abs(new Date(b).getTime() - new Date(today).getTime())
+        );
+        setInitialDateSet(true);
+        setDate(sorted[0]);
+        return; // will re-fetch with new date
+      }
+      setInitialDateSet(true);
     }
     setLoading(false);
-  }, [date, tableType]);
+  }, [date, tableType, initialDateSet]);
 
   useEffect(() => {
     if (authStatus === "unauthenticated") { router.push("/login"); return; }
@@ -344,6 +360,7 @@ export default function GuardDutyPage() {
           <button onClick={() => changeDate(-1)} className="text-gray-400 hover:text-gray-600"><MdChevronRight /></button>
           <div className="text-center">
             <span className="text-sm font-bold text-gray-700">{dateDisplay}</span>
+            {availableDates.includes(date) && <span className="inline-block w-1.5 h-1.5 rounded-full bg-dotan-green mr-1 align-middle" />}
             <input type="date" value={date} onChange={e => setDate(e.target.value)} className="block text-[10px] text-gray-400 text-center mt-0.5 bg-transparent border-none outline-none cursor-pointer" />
           </div>
           <button onClick={() => changeDate(1)} className="text-gray-400 hover:text-gray-600"><MdChevronLeft /></button>
