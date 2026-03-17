@@ -7,7 +7,7 @@ import {
   MdSecurity, MdSwapHoriz, MdPerson, MdAdd, MdClose, MdCheck,
   MdDownload, MdWarning, MdAccessTime, MdGavel, MdTrendingUp,
   MdEdit, MdDelete, MdChevronRight, MdChevronLeft, MdSend,
-  MdNotifications, MdInfo, MdBarChart, MdGroups,
+  MdNotifications, MdInfo, MdBarChart, MdGroups, MdErrorOutline,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
@@ -107,6 +107,8 @@ export default function GuardDutyPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showPersonSummary, setShowPersonSummary] = useState<string | null>(null);
   const [showFairness, setShowFairness] = useState(false);
+  const [showOverlaps, setShowOverlaps] = useState(false);
+  const [otherTable, setOtherTable] = useState<DutyTable | null>(null);
   const [swapping, setSwapping] = useState<Assignment | null>(null);
   const [swapUserId, setSwapUserId] = useState("");
   const [appealing, setAppealing] = useState<Assignment | null>(null);
@@ -132,6 +134,12 @@ export default function GuardDutyPage() {
       setAppeals(data.appeals);
       setHoursMap(data.hoursMap);
       if (data.availableDates) setAvailableDates(data.availableDates);
+
+      // Fetch the other table type for overlap detection
+      const otherType = tableType === "guard" ? "obs" : "guard";
+      fetch(`/api/guard-duty?date=${date}&type=${otherType}`).then(r => r.ok ? r.json() : null).then(d => {
+        setOtherTable(d?.table || null);
+      }).catch(() => setOtherTable(null));
 
       // On first load, if today has no data but there are dates with data, jump to the nearest one
       if (!initialDateSet && !data.table && data.availableDates?.length > 0) {
@@ -317,6 +325,105 @@ export default function GuardDutyPage() {
     } catch { return []; }
   })();
 
+  // ── Overlap detection ──
+  type Overlap = { type: "same-slot" | "cross-table"; userId: string; userName: string; details: string };
+  const overlaps: Overlap[] = (() => {
+    const result: Overlap[] = [];
+    if (!table) return result;
+
+    // Helper: parse "HH:MM" to minutes
+    const toMin = (t: string) => { const p = t.split(":").map(Number); return p.length === 2 && !p.some(isNaN) ? p[0] * 60 + p[1] : -1; };
+    // Helper: get effective time range for an assignment
+    const getRange = (a: Assignment): [number, number] | null => {
+      // Try note first, then timeSlot, then role
+      for (const src of [a.note, a.timeSlot, a.role]) {
+        if (!src) continue;
+        const parts = src.split("-");
+        if (parts.length === 2) {
+          const s = toMin(parts[0]), e = toMin(parts[1]);
+          if (s >= 0 && e >= 0) return [s, e < s ? e + 1440 : e]; // handle overnight
+        }
+      }
+      return null;
+    };
+    const rangesOverlap = (a: [number, number], b: [number, number]) => a[0] < b[1] && b[0] < a[1];
+
+    // 1. Same person in multiple roles within same time slot (current table)
+    const byPersonSlot = new Map<string, Assignment[]>();
+    for (const a of table.assignments) {
+      if (DAY_ROLES.includes(a.role)) continue;
+      const key = `${a.userId}__${a.timeSlot}`;
+      if (!byPersonSlot.has(key)) byPersonSlot.set(key, []);
+      byPersonSlot.get(key)!.push(a);
+    }
+    for (const [, assignments] of byPersonSlot) {
+      if (assignments.length > 1) {
+        const a = assignments[0];
+        result.push({
+          type: "same-slot",
+          userId: a.userId,
+          userName: a.user.name,
+          details: `${a.timeSlot}: ${assignments.map(x => x.role).join(" + ")}`,
+        });
+      }
+    }
+
+    // 2. Same person with overlapping time ranges across different slots (current table)
+    const byPerson = new Map<string, Assignment[]>();
+    for (const a of table.assignments) {
+      if (DAY_ROLES.includes(a.role)) continue;
+      if (!byPerson.has(a.userId)) byPerson.set(a.userId, []);
+      byPerson.get(a.userId)!.push(a);
+    }
+    for (const [uid, assignments] of byPerson) {
+      for (let i = 0; i < assignments.length; i++) {
+        for (let j = i + 1; j < assignments.length; j++) {
+          const ai = assignments[i], aj = assignments[j];
+          if (ai.timeSlot === aj.timeSlot) continue; // already caught above
+          const ri = getRange(ai), rj = getRange(aj);
+          if (ri && rj && rangesOverlap(ri, rj)) {
+            result.push({
+              type: "same-slot",
+              userId: uid,
+              userName: ai.user.name,
+              details: `חפיפת זמנים: ${ai.role} (${ai.note || ai.timeSlot}) ↔ ${aj.role} (${aj.note || aj.timeSlot})`,
+            });
+          }
+        }
+      }
+    }
+
+    // 3. Cross-table overlaps (guard ↔ OBS)
+    if (otherTable) {
+      const otherName = tableType === "guard" ? 'עב"ס' : "שמירות";
+      const currentName = tableType === "guard" ? "שמירות" : 'עב"ס';
+      for (const a of table.assignments) {
+        if (DAY_ROLES.includes(a.role)) continue;
+        const ra = getRange(a);
+        if (!ra) continue;
+        for (const b of otherTable.assignments) {
+          if (b.userId !== a.userId) continue;
+          if (DAY_ROLES.includes(b.role)) continue;
+          const rb = getRange(b);
+          if (rb && rangesOverlap(ra, rb)) {
+            // Avoid duplicates
+            const dupKey = `${a.userId}-${a.timeSlot}-${b.timeSlot}`;
+            if (!result.some(r => r.type === "cross-table" && r.details.includes(dupKey))) {
+              result.push({
+                type: "cross-table",
+                userId: a.userId,
+                userName: a.user.name,
+                details: `${currentName} ${a.role} (${a.note || a.timeSlot}) ↔ ${otherName} (${b.note || b.role || b.timeSlot}) [${dupKey}]`,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  })();
+
   // Per-person data for summary
   const getPersonAssignments = (personId: string) =>
     table?.assignments.filter(a => a.userId === personId) || [];
@@ -417,6 +524,11 @@ export default function GuardDutyPage() {
           <button onClick={() => setShowFairness(!showFairness)}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${showFairness ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
             <MdBarChart /> הוגנות
+          </button>
+          <button onClick={() => setShowOverlaps(!showOverlaps)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${showOverlaps ? "bg-red-50 border-red-300 text-red-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+            <MdErrorOutline /> חפיפות
+            {overlaps.length > 0 && <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{overlaps.length}</span>}
           </button>
           {appeals.filter(a => a.status === "pending").length > 0 && (
             <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 border border-red-200 text-red-600">
@@ -520,6 +632,49 @@ export default function GuardDutyPage() {
                   <>חיילים עם עומס נמוך (כחול): אפשר להגדיל ל{fairnessData.filter(u => u.hours - avgHours < -avgHours * 0.2).map(u => u.name).join(", ")}.</>
                 )}
               </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Overlaps panel (Roni only) */}
+      {showOverlaps && isRoni && (
+        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl border border-red-200 p-4 mb-6 shadow-sm">
+          <h3 className="font-bold text-red-800 mb-3 flex items-center gap-2">
+            <MdErrorOutline /> בדיקת חפיפות
+            <span className="text-[10px] text-red-500 font-normal mr-auto">
+              {overlaps.length === 0 ? "אין חפיפות" : `${overlaps.length} חפיפות נמצאו`}
+            </span>
+          </h3>
+          {overlaps.length === 0 ? (
+            <div className="text-center py-6">
+              <MdCheck className="text-green-500 text-3xl mx-auto mb-2" />
+              <p className="text-sm text-green-700 font-medium">הכל תקין! אין חפיפות או בעיות בשיבוץ הנוכחי.</p>
+              {otherTable && <p className="text-[11px] text-gray-400 mt-1">נבדק גם מול טבלת {tableType === "guard" ? 'עב"ס' : "שמירות"}</p>}
+              {!otherTable && <p className="text-[11px] text-gray-400 mt-1">אין טבלת {tableType === "guard" ? 'עב"ס' : "שמירות"} לתאריך זה</p>}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {overlaps.map((o, i) => (
+                <div key={i} className={`flex items-start gap-2 p-2.5 rounded-xl border text-xs ${
+                  o.type === "cross-table"
+                    ? "bg-orange-50 border-orange-200"
+                    : "bg-red-50 border-red-200"
+                }`}>
+                  <MdWarning className={`shrink-0 mt-0.5 ${o.type === "cross-table" ? "text-orange-500" : "text-red-500"}`} />
+                  <div>
+                    <span className="font-bold text-gray-800">{o.userName}</span>
+                    <span className={`text-[10px] mr-2 px-1.5 py-0.5 rounded-full font-medium ${
+                      o.type === "cross-table"
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-red-100 text-red-700"
+                    }`}>
+                      {o.type === "cross-table" ? "חפיפה בין טבלאות" : "חפיפה בתוך טבלה"}
+                    </span>
+                    <p className="text-gray-600 mt-0.5">{o.details.replace(/\[.*\]$/, "")}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
