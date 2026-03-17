@@ -69,8 +69,12 @@ export async function GET(req: NextRequest) {
     return h;
   }
 
+  // Roles that are per-day (not per-shift) — exclude from hours
+  const DAY_ROLES = ['כ"כא', 'כ"כב'];
+
   const hoursMap: Record<string, number> = {};
   for (const a of allAssignments) {
+    if (DAY_ROLES.includes(a.role)) continue;
     // Guard: timeSlot is time range. OBS: role is the time range, timeSlot is row number.
     const hours = parseHours(a.timeSlot) || parseHours(a.role);
     if (hours > 0) {

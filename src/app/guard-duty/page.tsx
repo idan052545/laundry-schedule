@@ -78,6 +78,9 @@ const DEFAULT_GUARD_SLOTS = [
 const DEFAULT_OBS_ROLES = ["08:30-11:30", "13:30-17:30", "18:30-20:00"];
 const DEFAULT_OBS_SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"];
 
+// Roles that are per-day (not per-shift) — excluded from hours and shown separately
+const DAY_ROLES = ['כ"כא', 'כ"כב'];
+
 function toDateStr(d: Date) {
   return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
 }
@@ -280,8 +283,18 @@ export default function GuardDutyPage() {
 
   if (authStatus === "loading" || loading) return <InlineLoading />;
 
-  const roles: string[] = table ? JSON.parse(table.roles) : [];
+  const allRoles: string[] = table ? JSON.parse(table.roles) : [];
   const slots: string[] = table ? JSON.parse(table.timeSlots) : [];
+  // Separate day-level roles (כ"כא, כ"כב) from shift roles
+  const roles = allRoles.filter(r => !DAY_ROLES.includes(r));
+  const dayRoleAssignments = table ? DAY_ROLES.map(role => ({
+    role,
+    people: [...new Map(
+      table.assignments
+        .filter(a => a.role === role)
+        .map(a => [a.userId, a] as const)
+    ).values()],
+  })).filter(r => r.people.length > 0) : [];
 
   // Per-person data for summary
   const getPersonAssignments = (personId: string) =>
@@ -302,7 +315,7 @@ export default function GuardDutyPage() {
   const getPersonHours = (personId: string) => {
     let total = 0;
     for (const a of getPersonAssignments(personId)) {
-      // For guard: timeSlot is "08:00-12:00", for OBS: timeSlot is "1","2".. but role is the time range
+      if (DAY_ROLES.includes(a.role)) continue;
       const fromSlot = parseTimeRange(a.timeSlot);
       const fromRole = parseTimeRange(a.role);
       total += fromSlot > 0 ? fromSlot : fromRole;
@@ -592,6 +605,35 @@ export default function GuardDutyPage() {
             </div>
           </div>
 
+          {/* Day-level roles (כ"כא, כ"כב) */}
+          {dayRoleAssignments.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {dayRoleAssignments.map(({ role, people }) => (
+                <div key={role} className={`rounded-xl border-2 p-3 ${ROLE_COLORS[role] ? "" : "border-gray-200"}`}
+                  style={{ borderColor: role === 'כ"כא' ? "#0d9488" : "#14b8a6" }}>
+                  <h4 className={`font-bold text-sm mb-2 flex items-center gap-2 ${role === 'כ"כא' ? "text-teal-700" : "text-teal-600"}`}>
+                    <MdSecurity /> {role} <span className="text-[10px] font-normal text-gray-400">(תפקיד יומי)</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {people.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-teal-100">
+                        <Avatar name={a.user.name} image={a.user.image} size="xs" />
+                        <span className="text-xs font-medium text-gray-700">{a.user.name}</span>
+                        <span className="text-[10px] text-gray-400">{a.timeSlot}</span>
+                        {isRoni && (
+                          <button onClick={() => { setSwapping(a); setSwapUserId(""); }}
+                            className="text-blue-500 hover:text-blue-700 mr-auto">
+                            <MdSwapHoriz className="text-sm" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* My assignments card */}
           {myAssignments.length > 0 && (
             <div className="bg-dotan-mint-light border-2 border-dotan-green rounded-2xl p-4 mb-6">
@@ -622,8 +664,11 @@ export default function GuardDutyPage() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {assignedPeople.map(p => {
-                const hrs = getPersonHours(p.id);
+                const localHrs = getPersonHours(p.id);
+                const totalHrs = hoursMap[p.id] || 0;
                 const tasks = getPersonAssignments(p.id);
+                const shiftTasks = tasks.filter(a => !DAY_ROLES.includes(a.role));
+                const dayTasks = tasks.filter(a => DAY_ROLES.includes(a.role));
                 const isOpen = showPersonSummary === p.id;
                 return (
                   <div key={p.id}>
@@ -634,9 +679,12 @@ export default function GuardDutyPage() {
                         <span className="font-bold text-xs text-gray-800 truncate">{p.name}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                        <span>{hrs.toFixed(1)} שעות</span>
+                        <span>{localHrs.toFixed(1)} שעות (טבלה)</span>
                         <span>|</span>
-                        <span>{tasks.length} משמרות</span>
+                        <span className="font-bold text-gray-700">{totalHrs.toFixed(1)} שעות (סה&quot;כ)</span>
+                        <span>|</span>
+                        <span>{shiftTasks.length} משמרות</span>
+                        {dayTasks.length > 0 && <span className="text-teal-600">+ {dayTasks.map(a => a.role).join(", ")}</span>}
                       </div>
                     </button>
                     {isOpen && (
@@ -645,6 +693,7 @@ export default function GuardDutyPage() {
                           <div key={a.id} className="flex items-center gap-2 text-[10px]">
                             <span className={`px-1.5 py-0.5 rounded font-bold text-white ${ROLE_COLORS[a.role] || "bg-gray-600"}`}>{a.role}</span>
                             <span className="text-gray-500">{a.timeSlot}</span>
+                            {DAY_ROLES.includes(a.role) && <span className="text-[9px] text-teal-500">(יומי)</span>}
                             {isRoni && (
                               <button onClick={() => { setSwapping(a); setSwapUserId(""); }}
                                 className="mr-auto text-blue-500 hover:text-blue-700"><MdSwapHoriz /></button>
