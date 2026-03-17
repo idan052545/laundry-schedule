@@ -7,6 +7,7 @@ import {
   MdAdd, MdClose, MdPoll, MdSend, MdDelete, MdDownload,
   MdNotifications, MdCheckCircle, MdLock, MdLockOpen, MdPerson,
   MdThumbUp, MdThumbDown, MdRadioButtonChecked, MdCheckBox, MdEdit,
+  MdGroups, MdPeople,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
@@ -62,7 +63,9 @@ export default function SurveysPage() {
   const [formDesc, setFormDesc] = useState("");
   const [formType, setFormType] = useState("yes_no");
   const [formOptions, setFormOptions] = useState(["", ""]);
+  const [formPlatoon, setFormPlatoon] = useState(false);
   const [sending, setSending] = useState(false);
+  const [viewScope, setViewScope] = useState<"team" | "platoon">("team");
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -73,7 +76,7 @@ export default function SurveysPage() {
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
   const fetchSurveys = useCallback(async () => {
-    const res = await fetch(`/api/surveys?status=all&scope=team`);
+    const res = await fetch(`/api/surveys?status=all`);
     if (res.ok) {
       const data = await res.json();
       setSurveys(data.surveys);
@@ -96,10 +99,10 @@ export default function SurveysPage() {
     const res = await fetch("/api/surveys", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: formTitle, description: formDesc || null, type: formType, options: opts }),
+      body: JSON.stringify({ title: formTitle, description: formDesc || null, type: formType, options: opts, platoon: formPlatoon }),
     });
     if (res.ok) {
-      setFormTitle(""); setFormDesc(""); setFormType("yes_no"); setFormOptions(["", ""]);
+      setFormTitle(""); setFormDesc(""); setFormType("yes_no"); setFormOptions(["", ""]); setFormPlatoon(false);
       setShowForm(false);
       await fetchSurveys();
     }
@@ -327,7 +330,7 @@ export default function SurveysPage() {
                   <span>•</span>
                   <span>{formatDate(selectedSurvey.createdAt)}</span>
                   <span>•</span>
-                  <span>צוות {selectedSurvey.team}</span>
+                  <span>{selectedSurvey.team === 0 ? "כל הפלוגה" : `צוות ${selectedSurvey.team}`}</span>
                 </div>
               </div>
               <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
@@ -492,11 +495,26 @@ export default function SurveysPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-dotan-green-dark flex items-center gap-2">
           <MdPoll className="text-purple-500" /> סקרים
-          <span className="text-sm font-normal text-gray-400">צוות {userTeam}</span>
         </h1>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-dotan-green-dark text-white px-3 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 text-sm">
           {showForm ? <><MdClose /> סגור</> : <><MdAdd /> סקר חדש</>}
+        </button>
+      </div>
+
+      {/* Scope tabs */}
+      <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+        <button onClick={() => setViewScope("team")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+            viewScope === "team" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}>
+          <MdPeople className="text-base" /> צוות {userTeam}
+        </button>
+        <button onClick={() => setViewScope("platoon")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
+            viewScope === "platoon" ? "bg-white text-violet-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          }`}>
+          <MdGroups className="text-base" /> כל הפלוגה
         </button>
       </div>
 
@@ -551,6 +569,22 @@ export default function SurveysPage() {
             </div>
           )}
 
+          {/* Scope: team vs platoon */}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setFormPlatoon(false)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition ${
+                !formPlatoon ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}>
+              <MdPeople /> צוות {userTeam}
+            </button>
+            <button type="button" onClick={() => setFormPlatoon(true)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition ${
+                formPlatoon ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}>
+              <MdGroups /> כל הפלוגה
+            </button>
+          </div>
+
           <div className="flex justify-end">
             <button type="submit" disabled={sending}
               className="bg-dotan-green-dark text-white px-5 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
@@ -562,21 +596,30 @@ export default function SurveysPage() {
 
       {/* Survey list */}
       <div className="space-y-2">
-        {surveys.map((survey) => {
+        {surveys
+          .filter((s) => viewScope === "platoon" ? s.team === 0 : s.team !== 0)
+          .map((survey) => {
           const myResponse = survey.responses.find((r) => r.user.id === userId);
           const cfg = TYPE_CONFIG[survey.type] || TYPE_CONFIG.yes_no;
+          const isPlatoon = survey.team === 0;
           return (
             <button key={survey.id} onClick={() => setSelectedSurvey(survey)}
-              className="w-full text-right bg-white p-4 rounded-xl shadow-sm border-2 border-gray-100 hover:border-dotan-mint hover:shadow-md transition">
+              className={`w-full text-right bg-white p-4 rounded-xl shadow-sm border-2 hover:shadow-md transition ${
+                isPlatoon ? "border-violet-100 hover:border-violet-300" : "border-gray-100 hover:border-dotan-mint"
+              }`}>
               <div className="flex items-start gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  survey.status === "active" ? "bg-purple-50 text-purple-500" : "bg-gray-100 text-gray-400"
+                  survey.status !== "active" ? "bg-gray-100 text-gray-400"
+                    : isPlatoon ? "bg-violet-50 text-violet-500" : "bg-purple-50 text-purple-500"
                 }`}>
                   <cfg.icon className="text-xl" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-bold text-gray-800 text-sm truncate">{survey.title}</h3>
+                    {isPlatoon && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 shrink-0 font-medium">פלוגה</span>
+                    )}
                     {survey.status === "closed" && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 shrink-0">סגור</span>
                     )}
@@ -586,7 +629,7 @@ export default function SurveysPage() {
                     <span>•</span>
                     <span>{formatDate(survey.createdAt)}</span>
                     <span>•</span>
-                    <span>{survey.responses.length}/{teamMembers.length} ענו</span>
+                    <span>{survey.responses.length} ענו</span>
                   </div>
                 </div>
                 <div className="shrink-0">
@@ -599,18 +642,18 @@ export default function SurveysPage() {
               </div>
 
               {/* Progress bar */}
-              <div className="mt-2 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                <div className="h-full bg-dotan-green rounded-full transition-all" style={{ width: `${(survey.responses.length / Math.max(teamMembers.length, 1)) * 100}%` }} />
+              <div className={`mt-2 bg-gray-100 rounded-full h-1.5 overflow-hidden`}>
+                <div className={`h-full rounded-full transition-all ${isPlatoon ? "bg-violet-500" : "bg-dotan-green"}`} style={{ width: `${Math.min((survey.responses.length / Math.max(teamMembers.length, 1)) * 100, 100)}%` }} />
               </div>
             </button>
           );
         })}
 
-        {surveys.length === 0 && (
+        {surveys.filter((s) => viewScope === "platoon" ? s.team === 0 : s.team !== 0).length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <MdPoll className="text-5xl mx-auto mb-3 text-gray-300" />
-            <p className="font-medium">אין סקרים עדיין</p>
-            <p className="text-sm mt-1">צרו סקר חדש לצוות שלכם</p>
+            <p className="font-medium">אין סקרים {viewScope === "platoon" ? "פלוגתיים" : "צוותיים"} עדיין</p>
+            <p className="text-sm mt-1">צרו סקר חדש</p>
           </div>
         )}
       </div>

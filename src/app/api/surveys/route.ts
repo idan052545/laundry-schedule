@@ -88,11 +88,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "נדרשות לפחות 2 אפשרויות" }, { status: 400 });
   }
 
-  // Platoon-wide survey requires commander/admin
   const surveyTeam = platoon ? 0 : (user?.team || 0);
-  if (platoon && !isAdmin) {
-    return NextResponse.json({ error: "רק מפקדים יכולים ליצור סקר פלוגתי" }, { status: 403 });
-  }
   if (!platoon && !user?.team) {
     return NextResponse.json({ error: "לא משויך לצוות" }, { status: 403 });
   }

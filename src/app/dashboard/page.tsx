@@ -260,9 +260,12 @@ export default function DashboardPage() {
             <Link href="/surveys" className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-3 hover:shadow-sm transition">
               <MdPoll className="text-2xl text-purple-500 shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-purple-700">
-                  {feed.pendingSurveys.length} סקרי צוות ממתינים לתשובה
-                </span>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 font-bold">צוות</span>
+                  <span className="text-sm font-medium text-purple-700">
+                    {feed.pendingSurveys.length} סקרים ממתינים
+                  </span>
+                </div>
                 <span className="text-xs text-purple-500 block truncate">
                   {feed.pendingSurveys.map((s) => s.title).join(", ")}
                 </span>
@@ -272,12 +275,15 @@ export default function DashboardPage() {
 
           {/* Pending platoon surveys */}
           {feed.pendingPlatoonSurveys?.length > 0 && (
-            <Link href={feed.platoonSurveyCommanderId ? `/commander?id=${feed.platoonSurveyCommanderId}` : "/surveys"} className="flex items-center gap-3 bg-violet-50 border border-violet-300 rounded-xl p-3 hover:shadow-sm transition">
+            <Link href="/surveys" className="flex items-center gap-3 bg-violet-50 border border-violet-300 rounded-xl p-3 hover:shadow-sm transition">
               <MdPoll className="text-2xl text-violet-600 shrink-0" />
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-violet-700">
-                  {feed.pendingPlatoonSurveys.length} סקרי פלוגה ממתינים לתשובה
-                </span>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-bold">פלוגה</span>
+                  <span className="text-sm font-medium text-violet-700">
+                    {feed.pendingPlatoonSurveys.length} סקרים ממתינים
+                  </span>
+                </div>
                 <span className="text-xs text-violet-500 block truncate">
                   {feed.pendingPlatoonSurveys.map((s) => s.title).join(", ")}
                 </span>
