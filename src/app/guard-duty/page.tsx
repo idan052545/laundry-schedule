@@ -287,15 +287,25 @@ export default function GuardDutyPage() {
   const getPersonAssignments = (personId: string) =>
     table?.assignments.filter(a => a.userId === personId) || [];
 
+  const parseTimeRange = (range: string) => {
+    const parts = range.split("-");
+    if (parts.length !== 2) return 0;
+    const [s, e] = parts;
+    const sp = s.split(":").map(Number);
+    const ep = e.split(":").map(Number);
+    if (sp.length < 2 || ep.length < 2 || sp.some(isNaN) || ep.some(isNaN)) return 0;
+    let h = (ep[0] * 60 + ep[1] - sp[0] * 60 - sp[1]) / 60;
+    if (h < 0) h += 24;
+    return h;
+  };
+
   const getPersonHours = (personId: string) => {
     let total = 0;
     for (const a of getPersonAssignments(personId)) {
-      const [s, e] = a.timeSlot.split("-");
-      const [sh, sm] = s.split(":").map(Number);
-      const [eh, em] = e.split(":").map(Number);
-      let h = (eh * 60 + em - sh * 60 - sm) / 60;
-      if (h < 0) h += 24;
-      total += h;
+      // For guard: timeSlot is "08:00-12:00", for OBS: timeSlot is "1","2".. but role is the time range
+      const fromSlot = parseTimeRange(a.timeSlot);
+      const fromRole = parseTimeRange(a.role);
+      total += fromSlot > 0 ? fromSlot : fromRole;
     }
     return total;
   };
@@ -318,26 +328,26 @@ export default function GuardDutyPage() {
   return (
     <div className="max-w-5xl mx-auto pb-16">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-dotan-green-dark flex items-center gap-2">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-dotan-green-dark flex items-center gap-2 shrink-0">
           <MdSecurity className="text-amber-600" /> שיבוץ תורנויות
         </h1>
         {isRoni && (
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-end">
             {table && (
               <>
                 <button onClick={handleExportXlsx}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium">
-                  <MdDownload className="text-green-600" /> XLSX
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium">
+                  <MdDownload className="text-green-600" /> <span className="hidden sm:inline">XLSX</span>
                 </button>
                 <button onClick={handleDeleteTable}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-500 hover:bg-red-50 text-xs font-medium">
-                  <MdDelete /> מחק
+                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-500 hover:bg-red-50 text-xs font-medium">
+                  <MdDelete />
                 </button>
               </>
             )}
             <button onClick={() => showCreate ? setShowCreate(false) : initCreateForm()}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-dotan-green-dark text-white text-sm font-medium hover:bg-dotan-green transition">
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg bg-dotan-green-dark text-white text-xs sm:text-sm font-medium hover:bg-dotan-green transition">
               {showCreate ? <><MdClose /> סגור</> : <><MdAdd /> טבלה חדשה</>}
             </button>
           </div>
@@ -525,29 +535,29 @@ export default function GuardDutyPage() {
       {table && (
         <>
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
-            <div className="bg-gradient-to-l from-gray-800 to-gray-900 px-4 py-3 flex items-center justify-between">
-              <h2 className="text-white font-bold text-sm">{table.title} — {dateDisplay}</h2>
+            <div className="bg-gradient-to-l from-gray-800 to-gray-900 px-3 sm:px-4 py-3 flex items-center justify-between gap-2">
+              <h2 className="text-white font-bold text-xs sm:text-sm truncate">{table.title} — {dateDisplay}</h2>
               <button onClick={handleExportXlsx} className="text-white/60 hover:text-white transition"><MdDownload /></button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr>
-                    <th className="border-b border-r border-gray-200 bg-gray-50 px-3 py-2.5 text-gray-500 text-right font-bold sticky right-0 z-10 min-w-[80px]">
+                    <th className="border-b border-r border-gray-200 bg-gray-50 px-2 sm:px-3 py-2.5 text-gray-500 text-right font-bold sticky right-0 z-10 min-w-[60px] sm:min-w-[80px]">
                       <MdAccessTime className="inline text-sm ml-1" />משמרת
                     </th>
                     {roles.map(r => (
-                      <th key={r} className={`border-b border-r border-gray-200 px-2 py-2 text-center font-bold min-w-[90px] ${ROLE_COLORS[r] || "bg-gray-700 text-white"}`}>
-                        <div className="leading-tight">{r}</div>
-                        {ROLE_NOTES[r] && <div className="text-[9px] font-normal opacity-70 mt-0.5">({ROLE_NOTES[r]})</div>}
+                      <th key={r} className={`border-b border-r border-gray-200 px-1.5 sm:px-2 py-2 text-center font-bold min-w-[75px] sm:min-w-[90px] ${ROLE_COLORS[r] || "bg-gray-700 text-white"}`}>
+                        <div className="leading-tight text-[10px] sm:text-xs">{r}</div>
+                        {ROLE_NOTES[r] && <div className="text-[8px] sm:text-[9px] font-normal opacity-70 mt-0.5">({ROLE_NOTES[r]})</div>}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {slots.map((slot, si) => (
-                    <tr key={slot} className={si % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                      <td className="border-b border-r border-gray-200 px-3 py-2 font-bold text-gray-700 sticky right-0 z-10 bg-inherit whitespace-nowrap">
+                    <tr key={slot} className={si % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                      <td className={`border-b border-r border-gray-200 px-2 sm:px-3 py-2 font-bold text-gray-700 text-[10px] sm:text-xs sticky right-0 z-10 whitespace-nowrap ${si % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
                         {slot}
                       </td>
                       {roles.map(role => {
@@ -561,7 +571,7 @@ export default function GuardDutyPage() {
                                     if (isRoni) { setSwapping(a); setSwapUserId(""); }
                                     else if (a.userId === userId) { setAppealing(a); setAppealReason(""); setAppealSuggestion(""); }
                                   }}
-                                  className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-medium transition cursor-pointer ${
+                                  className={`inline-block px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-medium transition cursor-pointer ${
                                     a.userId === userId
                                       ? "bg-dotan-green-dark text-white ring-2 ring-dotan-gold/50"
                                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -610,7 +620,7 @@ export default function GuardDutyPage() {
             <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
               <MdPerson /> סיכום לפי חייל ({assignedPeople.length})
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {assignedPeople.map(p => {
                 const hrs = getPersonHours(p.id);
                 const tasks = getPersonAssignments(p.id);

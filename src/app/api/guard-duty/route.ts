@@ -55,17 +55,25 @@ export async function GET(req: NextRequest) {
 
   // Compute hours per person across all tables (fairness)
   const allAssignments = await prisma.dutyAssignment.findMany({
-    select: { userId: true, timeSlot: true },
+    select: { userId: true, timeSlot: true, role: true },
   });
+
+  function parseHours(range: string): number {
+    const parts = range.split("-");
+    if (parts.length !== 2) return 0;
+    const sp = parts[0].split(":").map(Number);
+    const ep = parts[1].split(":").map(Number);
+    if (sp.length < 2 || ep.length < 2 || sp.some(isNaN) || ep.some(isNaN)) return 0;
+    let h = (ep[0] * 60 + ep[1] - sp[0] * 60 - sp[1]) / 60;
+    if (h < 0) h += 24;
+    return h;
+  }
 
   const hoursMap: Record<string, number> = {};
   for (const a of allAssignments) {
-    const parts = a.timeSlot.split("-");
-    if (parts.length === 2) {
-      const [sh, sm] = parts[0].split(":").map(Number);
-      const [eh, em] = parts[1].split(":").map(Number);
-      let hours = (eh * 60 + em - sh * 60 - sm) / 60;
-      if (hours < 0) hours += 24; // overnight
+    // Guard: timeSlot is time range. OBS: role is the time range, timeSlot is row number.
+    const hours = parseHours(a.timeSlot) || parseHours(a.role);
+    if (hours > 0) {
       hoursMap[a.userId] = (hoursMap[a.userId] || 0) + hours;
     }
   }

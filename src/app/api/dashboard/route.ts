@@ -39,6 +39,7 @@ export async function GET() {
     pendingSurveys,
     pendingPlatoonSurveys,
     dailyQuote,
+    nextDutyTable,
     todayNotes,
   ] = await Promise.all([
     // Latest message
@@ -161,6 +162,18 @@ export async function GET() {
       include: { user: { select: { name: true, team: true } } },
     }),
 
+    // Next upcoming duty table (today or future) with user's assignments
+    prisma.dutyTable.findFirst({
+      where: { date: { gte: todayStr } },
+      orderBy: { date: "asc" },
+      include: {
+        assignments: {
+          where: { userId },
+          include: { user: { select: { id: true, name: true } } },
+        },
+      },
+    }),
+
     // Today's schedule notes (personal + team)
     prisma.scheduleNote.findMany({
       where: {
@@ -230,5 +243,15 @@ export async function GET() {
     hasVotedThisWeek,
     dailyQuote,
     todayNotes,
+    nextDutyTable: nextDutyTable ? {
+      id: nextDutyTable.id,
+      title: nextDutyTable.title,
+      date: nextDutyTable.date,
+      type: nextDutyTable.type,
+      myAssignments: nextDutyTable.assignments.map((a: { role: string; timeSlot: string }) => ({
+        role: a.role,
+        timeSlot: a.timeSlot,
+      })),
+    } : null,
   });
 }

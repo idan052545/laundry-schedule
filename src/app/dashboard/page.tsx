@@ -11,7 +11,7 @@ import {
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
-  MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity,
+  MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity, MdAccessTime,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -43,6 +43,13 @@ interface DashboardFeed {
   hasVotedThisWeek: boolean;
   dailyQuote: { id: string; text: string; date: string; user: { name: string; team: number | null } } | null;
   todayNotes: { id: string; title: string; startTime: string | null; visibility: string; user: { id: string; name: string } }[];
+  nextDutyTable: {
+    id: string;
+    title: string;
+    date: string;
+    type: string;
+    myAssignments: { role: string; timeSlot: string }[];
+  } | null;
 }
 
 export default function DashboardPage() {
@@ -126,6 +133,7 @@ export default function DashboardPage() {
     feed.pendingPlatoonSurveys?.length > 0 ||
     feed.hasVotedThisWeek === false ||
     feed.dailyQuote ||
+    feed.nextDutyTable ||
     feed.todayNotes?.length > 0
   );
 
@@ -167,6 +175,37 @@ export default function DashboardPage() {
                   <span className="text-[11px] text-purple-500 mt-1.5 block">
                     {feed.dailyQuote.user.name}{feed.dailyQuote.user.team ? ` | צוות ${feed.dailyQuote.user.team}` : ""}
                   </span>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {/* Next duty table preview */}
+          {feed.nextDutyTable && (
+            <Link href="/guard-duty" className="block bg-gradient-to-l from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3.5 hover:shadow-sm transition">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <MdSecurity className="text-lg text-amber-700" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-amber-500 tracking-wide">{feed.nextDutyTable.title}</span>
+                    <span className="text-[10px] text-amber-400">
+                      {new Date(feed.nextDutyTable.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                  {feed.nextDutyTable.myAssignments.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {feed.nextDutyTable.myAssignments.map((a, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[11px] font-medium">
+                          <MdAccessTime className="text-xs" />
+                          {a.role} {a.timeSlot}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-amber-600">אין שיבוצים עבורך</span>
+                  )}
                 </div>
               </div>
             </Link>
