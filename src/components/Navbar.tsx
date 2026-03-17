@@ -10,7 +10,7 @@ import {
   MdLogin, MdPersonAdd, MdMessage, MdFactCheck, MdLocalLaundryService,
   MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook,
   MdFolder, MdNotifications, MdNewspaper, MdMoreHoriz, MdBuild,
-  MdPoll, MdEmojiEvents, MdFavorite,
+  MdPoll, MdEmojiEvents, MdFavorite, MdAutoAwesome,
 } from "react-icons/md";
 import NotificationBell from "./NotificationBell";
 
@@ -72,6 +72,7 @@ export default function Navbar() {
     { href: "/formats", label: "פורמטים", icon: MdFolder },
     { href: "/aktualia", label: "אקטואליה", icon: MdNewspaper },
     { href: "/birthdays", label: "ימי הולדת", icon: MdCake },
+    { href: "/daily-quote", label: "משפט היומי", icon: MdAutoAwesome },
     { href: "/amana", label: "אמנה צוותית", icon: MdFavorite },
     { href: "/schedule", label: "מכבסה", icon: MdLocalLaundryService },
     { href: "/notifications", label: "שליחת התראות", icon: MdNotifications },

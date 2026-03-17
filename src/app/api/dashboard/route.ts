@@ -38,6 +38,7 @@ export async function GET() {
     allDayEvents,
     pendingSurveys,
     pendingPlatoonSurveys,
+    dailyQuote,
     todayNotes,
   ] = await Promise.all([
     // Latest message
@@ -154,6 +155,12 @@ export async function GET() {
       select: { id: true, title: true, createdAt: true },
     }),
 
+    // Today's daily quote
+    prisma.dailyQuote.findUnique({
+      where: { date: todayStr },
+      include: { user: { select: { name: true, team: true } } },
+    }),
+
     // Today's schedule notes (personal + team)
     prisma.scheduleNote.findMany({
       where: {
@@ -221,6 +228,7 @@ export async function GET() {
     pendingPlatoonSurveys,
     platoonSurveyCommanderId,
     hasVotedThisWeek,
+    dailyQuote,
     todayNotes,
   });
 }

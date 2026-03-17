@@ -50,6 +50,7 @@ model User {
   scheduleNotes     ScheduleNote[] @relation("scheduleNotes")
   tasks             Task[]         @relation("userTasks")
   taskResponses     TaskResponse[] @relation("taskResponses")
+  dailyQuotes       DailyQuote[]   @relation("dailyQuotes")
 }
 
 model Machine {
@@ -372,4 +373,15 @@ model ScheduleNote {
   userId      String
   createdAt   DateTime @default(now())
   user        User     @relation("scheduleNotes", fields: [userId], references: [id])
+}
+
+// ─── Daily Quote (משפט היומי) ───
+
+model DailyQuote {
+  id        String   @id @default(uuid())
+  text      String
+  date      String   @unique // YYYY-MM-DD — one quote per day
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation("dailyQuotes", fields: [userId], references: [id])
 }

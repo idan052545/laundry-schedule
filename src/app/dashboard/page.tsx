@@ -11,7 +11,7 @@ import {
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
-  MdNotifications, MdStickyNote2, MdRefresh,
+  MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -41,6 +41,7 @@ interface DashboardFeed {
   pendingPlatoonSurveys: { id: string; title: string; createdAt: string }[];
   platoonSurveyCommanderId: string | null;
   hasVotedThisWeek: boolean;
+  dailyQuote: { id: string; text: string; date: string; user: { name: string; team: number | null } } | null;
   todayNotes: { id: string; title: string; startTime: string | null; visibility: string; user: { id: string; name: string } }[];
 }
 
@@ -105,6 +106,7 @@ export default function DashboardPage() {
     { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
     { href: "/schedule", icon: MdLocalLaundryService, title: "מכבסה", desc: "קבע תור לכביסה או מייבש", color: "text-dotan-green" },
     { href: "/birthdays", icon: MdCake, title: "ימי הולדת", desc: "קיר ימי הולדת של הפלוגה", color: "text-pink-600" },
+    { href: "/daily-quote", icon: MdAutoAwesome, title: "משפט היומי", desc: "השראה יומית לפלוגה", color: "text-purple-600" },
     { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", desc: "נושאי דיון יומי לכל חדר", color: "text-emerald-600" },
     { href: "/notifications", icon: MdNotifications, title: "שליחת התראות", desc: "שלח התראות לפלוגה", color: "text-gray-600" },
     { href: "/profile", icon: MdPerson, title: "פרופיל", desc: "הפרופיל שלי", color: "text-gray-500" },
@@ -122,6 +124,7 @@ export default function DashboardPage() {
     feed.pendingSurveys?.length > 0 ||
     feed.pendingPlatoonSurveys?.length > 0 ||
     feed.hasVotedThisWeek === false ||
+    feed.dailyQuote ||
     feed.todayNotes?.length > 0
   );
 
@@ -149,6 +152,25 @@ export default function DashboardPage() {
       {/* Personalized Feed */}
       {hasFeedItems && (
         <div className="space-y-2 mb-6">
+          {/* Daily quote */}
+          {feed.dailyQuote && (
+            <Link href="/daily-quote" className="block bg-gradient-to-l from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3.5 hover:shadow-sm transition relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-l from-purple-400 via-amber-400 to-indigo-400" />
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <MdAutoAwesome className="text-lg text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold text-purple-400 tracking-wide block mb-1">משפט היומי</span>
+                  <p className="text-sm font-bold text-gray-800 leading-relaxed">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
+                  <span className="text-[11px] text-purple-500 mt-1.5 block">
+                    {feed.dailyQuote.user.name}{feed.dailyQuote.user.team ? ` | צוות ${feed.dailyQuote.user.team}` : ""}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )}
+
           {/* All-day schedule events */}
           {feed.allDaySchedule.length > 0 && (
             <Link href="/schedule-daily" className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3 hover:shadow-sm transition">
