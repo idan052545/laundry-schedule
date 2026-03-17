@@ -11,7 +11,7 @@ import {
   MdMessage, MdFactCheck, MdCake, MdCalendarMonth, MdAssignment, MdPeople,
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
-  MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome,
+  MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -106,6 +106,7 @@ export default function DashboardPage() {
     { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
     { href: "/schedule", icon: MdLocalLaundryService, title: "מכבסה", desc: "קבע תור לכביסה או מייבש", color: "text-dotan-green" },
     { href: "/birthdays", icon: MdCake, title: "ימי הולדת", desc: "קיר ימי הולדת של הפלוגה", color: "text-pink-600" },
+    { href: "/guard-duty", icon: MdSecurity, title: "שיבוץ תורנויות", desc: "שמירות, עב\"ס ותורנויות", color: "text-amber-700" },
     { href: "/daily-quote", icon: MdAutoAwesome, title: "משפט היומי", desc: "השראה יומית לפלוגה", color: "text-purple-600" },
     { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", desc: "נושאי דיון יומי לכל חדר", color: "text-emerald-600" },
     { href: "/notifications", icon: MdNotifications, title: "שליחת התראות", desc: "שלח התראות לפלוגה", color: "text-gray-600" },

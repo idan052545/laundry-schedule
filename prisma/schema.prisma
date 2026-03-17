@@ -51,6 +51,9 @@ model User {
   tasks             Task[]         @relation("userTasks")
   taskResponses     TaskResponse[] @relation("taskResponses")
   dailyQuotes       DailyQuote[]   @relation("dailyQuotes")
+  dutyAssignments   DutyAssignment[] @relation("dutyAssignments")
+  dutyAppeals       DutyAppeal[]     @relation("dutyAppeals")
+  dutySuggested     DutyAppeal[]     @relation("dutySuggested")
 }
 
 model Machine {
@@ -384,4 +387,50 @@ model DailyQuote {
   userId    String
   createdAt DateTime @default(now())
   user      User     @relation("dailyQuotes", fields: [userId], references: [id])
+}
+
+// ─── Guard Duty Tables (שיבוץ שמירות / עב"ס) ───
+
+model DutyTable {
+  id          String   @id @default(uuid())
+  title       String   // e.g. "שיבוץ לשמירות", "עב"ס בהד"י"
+  date        String   // YYYY-MM-DD
+  type        String   // "guard" or "obs" (שמירות / עב"ס)
+  // JSON array of role column names, e.g. ["שג רכוב קדמי","שג רכוב אחורי","פט",...]
+  roles       String
+  // JSON array of time slot strings, e.g. ["08:00-12:00","12:00-16:00",...]
+  timeSlots   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignments DutyAssignment[]
+  appeals     DutyAppeal[]
+
+  @@unique([date, type])
+}
+
+model DutyAssignment {
+  id          String   @id @default(uuid())
+  tableId     String
+  table       DutyTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation("dutyAssignments", fields: [userId], references: [id])
+  timeSlot    String   // e.g. "08:00-12:00" or "08:30-11:30"
+  role        String   // e.g. "שג רכוב קדמי", "בונקר", slot number for עב"ס
+  createdAt   DateTime @default(now())
+
+  @@unique([tableId, timeSlot, role, userId])
+}
+
+model DutyAppeal {
+  id              String   @id @default(uuid())
+  tableId         String
+  table           DutyTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  assignmentId    String
+  userId          String
+  user            User     @relation("dutyAppeals", fields: [userId], references: [id])
+  reason          String
+  suggestedUserId String?
+  suggestedUser   User?    @relation("dutySuggested", fields: [suggestedUserId], references: [id])
+  status          String   @default("pending") // "pending", "approved", "rejected"
+  createdAt       DateTime @default(now())
 }
