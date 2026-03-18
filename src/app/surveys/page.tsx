@@ -204,9 +204,10 @@ export default function SurveysPage() {
       return { שם: r.user.name, תשובה: answerStr };
     });
 
-    // Add non-responders
+    // Add non-responders (only from the survey's target group)
     const respondedIds = new Set(survey.responses.map((r) => r.user.id));
-    teamMembers.filter((m) => !respondedIds.has(m.id)).forEach((m) => {
+    const exportMembers = survey.team === 0 ? teamMembers : teamMembers.filter(m => m.team === survey.team);
+    exportMembers.filter((m) => !respondedIds.has(m.id)).forEach((m) => {
       rows.push({ שם: m.name, תשובה: "לא ענה" });
     });
 
@@ -247,7 +248,11 @@ export default function SurveysPage() {
     const myAnswer = myResponse ? JSON.parse(myResponse.answer) : null;
     const isCreator = selectedSurvey.createdById === userId;
     const respondedIds = new Set(selectedSurvey.responses.map((r) => r.user.id));
-    const notResponded = teamMembers.filter((m) => !respondedIds.has(m.id));
+    // For team surveys, only show team members as expected respondents
+    const relevantMembers = selectedSurvey.team === 0
+      ? teamMembers
+      : teamMembers.filter((m) => m.team === selectedSurvey.team);
+    const notResponded = relevantMembers.filter((m) => !respondedIds.has(m.id));
 
     // Calculate results
     const resultMap = new Map<string, number>();
@@ -387,7 +392,7 @@ export default function SurveysPage() {
 
           {/* Results */}
           <div className="space-y-3">
-            <h3 className="font-medium text-gray-700 text-sm">תוצאות ({totalResponses}/{teamMembers.length})</h3>
+            <h3 className="font-medium text-gray-700 text-sm">תוצאות ({totalResponses}/{relevantMembers.length})</h3>
 
             {selectedSurvey.type === "yes_no" && (
               <div className="space-y-2">
@@ -643,7 +648,7 @@ export default function SurveysPage() {
 
               {/* Progress bar */}
               <div className={`mt-2 bg-gray-100 rounded-full h-1.5 overflow-hidden`}>
-                <div className={`h-full rounded-full transition-all ${isPlatoon ? "bg-violet-500" : "bg-dotan-green"}`} style={{ width: `${Math.min((survey.responses.length / Math.max(teamMembers.length, 1)) * 100, 100)}%` }} />
+                <div className={`h-full rounded-full transition-all ${isPlatoon ? "bg-violet-500" : "bg-dotan-green"}`} style={{ width: `${Math.min((survey.responses.length / Math.max(isPlatoon ? teamMembers.length : teamMembers.filter(m => m.team === survey.team).length, 1)) * 100, 100)}%` }} />
               </div>
             </button>
           );

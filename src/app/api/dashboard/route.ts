@@ -212,6 +212,23 @@ export async function GET() {
     }),
   ]);
 
+  // Check chopal registration for tomorrow
+  const tomorrowDate = (() => {
+    const t = new Date();
+    const il = new Date(t.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+    il.setDate(il.getDate() + 1);
+    return `${il.getFullYear()}-${(il.getMonth() + 1).toString().padStart(2, "0")}-${il.getDate().toString().padStart(2, "0")}`;
+  })();
+  const israelHour = parseInt(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem", hour: "2-digit", hour12: false }));
+  const chopalRequest = await prisma.chopalRequest.findUnique({
+    where: { userId_date: { userId, date: tomorrowDate } },
+  });
+  const chopalStatus = {
+    registered: !!chopalRequest,
+    isOpen: israelHour < 21,
+    date: tomorrowDate,
+  };
+
   // Check if user voted this week
   const nowDate = new Date();
   const d = new Date(Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate()));
@@ -266,6 +283,7 @@ export async function GET() {
     hasVotedThisWeek,
     dailyQuote,
     todayNotes,
+    chopalStatus,
     nextDutyTables: (() => {
       if (!upcomingDutyTables || upcomingDutyTables.length === 0) return [];
       const firstDate = upcomingDutyTables[0].date;

@@ -12,6 +12,7 @@ import {
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
   MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity, MdAccessTime,
+  MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -51,6 +52,48 @@ interface DashboardFeed {
     type: string;
     myAssignments: { role: string; timeSlot: string; partners: string[] }[];
   }[];
+  chopalStatus: { registered: boolean; isOpen: boolean; date: string };
+}
+
+// Section keys for visibility toggle
+type SectionKey = "quote" | "schedule" | "duty" | "teamSchedule" | "notes" | "tasks" | "forms" | "surveys" | "birthdays" | "messages" | "materials" | "commander" | "vote" | "machines" | "chopal";
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  quote: "משפט היומי",
+  schedule: 'לו"ז',
+  duty: "תורנויות",
+  teamSchedule: "לו\"ז צוות",
+  notes: "הערות",
+  tasks: "משימות",
+  forms: "טפסים",
+  surveys: "סקרים",
+  birthdays: "ימי הולדת",
+  messages: "הודעות",
+  materials: "חומר מקצועי",
+  commander: "מפקדים",
+  vote: "איש השבוע",
+  machines: "מכונות",
+  chopal: 'חופ"ל',
+};
+
+const DEFAULT_VISIBLE: SectionKey[] = Object.keys(SECTION_LABELS) as SectionKey[];
+
+function loadVisibleSections(): Set<SectionKey> {
+  if (typeof window === "undefined") return new Set(DEFAULT_VISIBLE);
+  try {
+    const saved = localStorage.getItem("dashboard-sections");
+    if (saved) return new Set(JSON.parse(saved) as SectionKey[]);
+  } catch { /* ignore */ }
+  return new Set(DEFAULT_VISIBLE);
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 6) return "לילה טוב";
+  if (h < 12) return "בוקר טוב";
+  if (h < 17) return "צהריים טובים";
+  if (h < 21) return "ערב טוב";
+  return "לילה טוב";
 }
 
 export default function DashboardPage() {
@@ -60,10 +103,21 @@ export default function DashboardPage() {
   const [feed, setFeed] = useState<DashboardFeed | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [visible, setVisible] = useState<Set<SectionKey>>(() => loadVisibleSections());
 
   const today = new Date().toISOString().split("T")[0];
   const currentHour = new Date().getHours();
   const currentSlot = `${currentHour.toString().padStart(2, "0")}:00`;
+
+  const toggleSection = (key: SectionKey) => {
+    setVisible(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      localStorage.setItem("dashboard-sections", JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   const fetchData = useCallback(async () => {
     const [machinesRes, feedRes] = await Promise.all([
@@ -100,173 +154,195 @@ export default function DashboardPage() {
   }
 
   const features = [
-    { href: "/schedule-daily", icon: MdCalendarMonth, title: 'לו"ז יומי', desc: "לוח זמנים יומי של הפלוגה", color: "text-sky-600" },
-    { href: "/messages", icon: MdMessage, title: "לוח הודעות", desc: "הודעות והתראות לפלוגה", color: "text-blue-600" },
-    { href: "/tasks", icon: MdAssignment, title: "לוח משימות", desc: "משימות, דדליינים ותזכורות", color: "text-purple-600" },
-    { href: "/forms", icon: MdDescription, title: "טפסים", desc: "קישורים לטפסים שיש למלא", color: "text-indigo-600" },
-    { href: "/attendance", icon: MdFactCheck, title: "מצל", desc: "נוכחות לפי צוותים", color: "text-orange-600" },
-    { href: "/commander", icon: MdStar, title: "לוח מפקדים", desc: "הודעות ומשימות מהמפקדים", color: "text-amber-600" },
-    { href: "/surveys", icon: MdPoll, title: "סקרים", desc: "סקרים לצוות שלך", color: "text-violet-600" },
-    { href: "/person-of-week", icon: MdEmojiEvents, title: "איש השבוע", desc: "הצביעו למי שבלט השבוע", color: "text-yellow-600" },
-    { href: "/issues", icon: MdBuild, title: "תקלות", desc: "דיווח ומעקב תקלות", color: "text-red-600" },
-    { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", desc: "מידע על כל חיילי הפלוגה", color: "text-teal-600" },
-    { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", desc: 'ל"ע, נהלים וחומרי לימוד', color: "text-rose-600" },
-    { href: "/formats", icon: MdFolder, title: "פורמטים", desc: "תבניות עבודה ופורמטים", color: "text-cyan-600" },
-    { href: "/schedule", icon: MdLocalLaundryService, title: "מכבסה", desc: "קבע תור לכביסה או מייבש", color: "text-dotan-green" },
-    { href: "/birthdays", icon: MdCake, title: "ימי הולדת", desc: "קיר ימי הולדת של הפלוגה", color: "text-pink-600" },
-    { href: "/guard-duty", icon: MdSecurity, title: "שיבוץ תורנויות", desc: "שמירות, עב\"ס ותורנויות", color: "text-amber-700" },
-    { href: "/daily-quote", icon: MdAutoAwesome, title: "משפט היומי", desc: "השראה יומית לפלוגה", color: "text-purple-600" },
-    { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", desc: "נושאי דיון יומי לכל חדר", color: "text-emerald-600" },
-    { href: "/notifications", icon: MdNotifications, title: "שליחת התראות", desc: "שלח התראות לפלוגה", color: "text-gray-600" },
-    { href: "/profile", icon: MdPerson, title: "פרופיל", desc: "הפרופיל שלי", color: "text-gray-500" },
+    { href: "/schedule-daily", icon: MdCalendarMonth, title: 'לו"ז יומי', color: "text-sky-600", bg: "bg-sky-50" },
+    { href: "/messages", icon: MdMessage, title: "הודעות", color: "text-blue-600", bg: "bg-blue-50" },
+    { href: "/tasks", icon: MdAssignment, title: "משימות", color: "text-purple-600", bg: "bg-purple-50" },
+    { href: "/forms", icon: MdDescription, title: "טפסים", color: "text-indigo-600", bg: "bg-indigo-50" },
+    { href: "/attendance", icon: MdFactCheck, title: "מצל", color: "text-orange-600", bg: "bg-orange-50" },
+    { href: "/commander", icon: MdStar, title: "מפקדים", color: "text-amber-600", bg: "bg-amber-50" },
+    { href: "/surveys", icon: MdPoll, title: "סקרים", color: "text-violet-600", bg: "bg-violet-50" },
+    { href: "/person-of-week", icon: MdEmojiEvents, title: "איש השבוע", color: "text-yellow-600", bg: "bg-yellow-50" },
+    { href: "/issues", icon: MdBuild, title: "תקלות", color: "text-red-600", bg: "bg-red-50" },
+    { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", color: "text-teal-600", bg: "bg-teal-50" },
+    { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", color: "text-rose-600", bg: "bg-rose-50" },
+    { href: "/formats", icon: MdFolder, title: "פורמטים", color: "text-cyan-600", bg: "bg-cyan-50" },
+    { href: "/schedule", icon: MdLocalLaundryService, title: "מכבסה", color: "text-dotan-green", bg: "bg-green-50" },
+    { href: "/birthdays", icon: MdCake, title: "ימי הולדת", color: "text-pink-600", bg: "bg-pink-50" },
+    { href: "/guard-duty", icon: MdSecurity, title: "תורנויות", color: "text-amber-700", bg: "bg-amber-50" },
+    { href: "/daily-quote", icon: MdAutoAwesome, title: "משפט היומי", color: "text-purple-600", bg: "bg-purple-50" },
+    { href: "/chopal", icon: MdLocalHospital, title: 'חופ"ל', color: "text-rose-600", bg: "bg-rose-50" },
+    { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", color: "text-emerald-600", bg: "bg-emerald-50" },
+    { href: "/notifications", icon: MdNotifications, title: "התראות", color: "text-gray-600", bg: "bg-gray-50" },
+    { href: "/profile", icon: MdPerson, title: "פרופיל", color: "text-gray-500", bg: "bg-gray-50" },
   ];
 
-  const hasFeedItems = feed && (
-    feed.birthdayUsers.length > 0 ||
-    feed.pendingForms.length > 0 ||
-    feed.todayTasks.length > 0 ||
-    feed.pinnedPosts.length > 0 ||
-    feed.latestMessage ||
-    feed.unreadMaterials.length > 0 ||
-    feed.currentSchedule ||
-    feed.allDaySchedule.length > 0 ||
-    feed.pendingSurveys?.length > 0 ||
-    feed.pendingPlatoonSurveys?.length > 0 ||
-    feed.hasVotedThisWeek === false ||
-    feed.dailyQuote ||
-    feed.nextDutyTables?.length > 0 ||
-    feed.todayNotes?.length > 0 ||
-    feed.myTeamAssignments?.length > 0
-  );
+  const firstName = session?.user?.name?.split(" ")[0] || "";
+
+  // Count urgent items
+  const urgentCount = (feed?.pendingForms.length || 0)
+    + (feed?.todayTasks.filter(t => t.priority === "urgent" || (t.dueDate && new Date(t.dueDate) < new Date())).length || 0);
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full shadow overflow-hidden shrink-0">
-          <Image src="/dotanLogo.png" alt="דותן" width={56} height={56} className="w-full h-full object-cover" />
+    <div className="max-w-2xl mx-auto">
+      {/* Header — compact, elegant */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="w-11 h-11 rounded-2xl shadow-sm overflow-hidden shrink-0 border border-dotan-mint">
+          <Image src="/dotanLogo.png" alt="דותן" width={44} height={44} className="w-full h-full object-cover" />
         </div>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-dotan-green-dark">
-            שלום, {session?.user?.name}!
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold text-gray-900 truncate">
+            {getGreeting()}, {firstName}
           </h1>
-          <p className="text-gray-500 mt-1">
-            {new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          <p className="text-xs text-gray-400">
+            {new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <button onClick={handleRefresh} disabled={refreshing}
-          className="p-2.5 rounded-xl bg-white border border-dotan-mint text-dotan-green hover:bg-dotan-mint-light transition shrink-0 disabled:opacity-50">
-          <MdRefresh className={`text-xl ${refreshing ? "animate-spin" : ""}`} />
-        </button>
+        <div className="flex gap-1 shrink-0">
+          <button onClick={() => setShowSettings(!showSettings)}
+            className={`p-2 rounded-xl transition ${showSettings ? "bg-dotan-green text-white" : "bg-white border border-gray-200 text-gray-400 hover:text-gray-600"}`}>
+            <MdTune className="text-lg" />
+          </button>
+          <button onClick={handleRefresh} disabled={refreshing}
+            className="p-2 rounded-xl bg-white border border-gray-200 text-gray-400 hover:text-dotan-green transition disabled:opacity-50">
+            <MdRefresh className={`text-lg ${refreshing ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Personalized Feed */}
-      {hasFeedItems && (
-        <div className="space-y-2 mb-6">
-          {/* Daily quote */}
-          {feed.dailyQuote && (
-            <Link href="/daily-quote" className="block bg-gradient-to-l from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-3.5 hover:shadow-sm transition relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-l from-purple-400 via-amber-400 to-indigo-400" />
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <MdAutoAwesome className="text-lg text-amber-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-bold text-purple-400 tracking-wide block mb-1">משפט היומי</span>
-                  <p className="text-sm font-bold text-gray-800 leading-relaxed">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
-                  <span className="text-[11px] text-purple-500 mt-1.5 block">
-                    {feed.dailyQuote.user.name}{feed.dailyQuote.user.team ? ` | צוות ${feed.dailyQuote.user.team}` : ""}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          )}
-
-          {/* Next duty tables preview (guard + obs) */}
-          {feed.nextDutyTables?.length > 0 && feed.nextDutyTables.map(dt => (
-            <Link key={dt.id} href="/guard-duty" className={`block border rounded-xl p-3.5 hover:shadow-sm transition ${
-              dt.type === "obs"
-                ? "bg-gradient-to-l from-blue-50 to-indigo-50 border-blue-200"
-                : "bg-gradient-to-l from-amber-50 to-orange-50 border-amber-200"
-            }`}>
-              <div className="flex items-start gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                  dt.type === "obs"
-                    ? "bg-gradient-to-br from-blue-100 to-indigo-100"
-                    : "bg-gradient-to-br from-amber-100 to-orange-100"
+      {/* Settings panel — toggle sections */}
+      {showSettings && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-bold text-gray-700">מה להציג בדף הבית?</span>
+            <button onClick={() => setShowSettings(false)} className="text-xs text-gray-400 hover:text-gray-600">סגור</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(SECTION_LABELS) as SectionKey[]).map(key => (
+              <button key={key} onClick={() => toggleSection(key)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                  visible.has(key) ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-400"
                 }`}>
-                  <MdSecurity className={`text-lg ${dt.type === "obs" ? "text-blue-700" : "text-amber-700"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-bold tracking-wide ${dt.type === "obs" ? "text-blue-500" : "text-amber-500"}`}>{dt.title}</span>
-                    <span className={`text-[10px] ${dt.type === "obs" ? "text-blue-400" : "text-amber-400"}`}>
-                      {new Date(dt.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" })}
-                    </span>
-                  </div>
-                  {dt.myAssignments.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {dt.myAssignments.map((a, i) => (
-                        <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${
-                          dt.type === "obs" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"
-                        }`}>
-                          <MdAccessTime className="text-xs" />
-                          {a.role} {a.timeSlot}
-                          {a.partners.length > 0 && (
-                            <span className={`text-[10px] font-normal ${dt.type === "obs" ? "text-blue-600" : "text-amber-600"}`}>
-                              (עם {a.partners.join(", ")})
-                            </span>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className={`text-xs ${dt.type === "obs" ? "text-blue-600" : "text-amber-600"}`}>אין שיבוצים עבורך</span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
+                {visible.has(key) ? <MdVisibility className="text-sm" /> : <MdVisibilityOff className="text-sm" />}
+                {SECTION_LABELS[key]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-          {/* My team schedule assignments */}
-          {feed.myTeamAssignments?.length > 0 && (
-            <Link href="/schedule-daily" className="block bg-gradient-to-l from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-3.5 hover:shadow-sm transition">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <MdCalendarMonth className="text-lg text-teal-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] font-bold text-teal-500 tracking-wide">לו&quot;ז צוות — עבורך</span>
-                    <span className="text-[9px] bg-teal-500 text-white px-1.5 py-0.5 rounded font-bold">עבורך</span>
-                  </div>
-                  <div className="space-y-1">
-                    {feed.myTeamAssignments.map((e) => (
-                      <div key={e.id} className="flex items-center gap-2 bg-white/70 rounded-lg px-2.5 py-1.5 border border-teal-100">
-                        <span className="text-[11px] font-bold text-teal-700 shrink-0 tabular-nums" dir="ltr">
-                          {e.allDay ? "כל היום" : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                        </span>
-                        <span className="text-sm text-teal-800 font-medium truncate">{e.title}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+      {/* Urgent banner — forms + overdue tasks */}
+      {urgentCount > 0 && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3">
+          <MdWarning className="text-red-500 shrink-0" />
+          <span className="text-xs font-medium text-red-700 flex-1">
+            {urgentCount} פריטים דורשים טיפול
+          </span>
+          {(feed?.pendingForms.length || 0) > 0 && (
+            <Link href="/forms" className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold hover:bg-red-200 transition">
+              {feed?.pendingForms.length} טפסים
+            </Link>
+          )}
+        </div>
+      )}
+
+      {feed && (
+        <div className="space-y-2.5 mb-5">
+          {/* Daily quote — minimal */}
+          {visible.has("quote") && feed.dailyQuote && (
+            <Link href="/daily-quote" className="block bg-gradient-to-l from-purple-50/80 to-indigo-50/80 border border-purple-100 rounded-xl px-3.5 py-3 hover:shadow-sm transition">
+              <p className="text-[13px] font-medium text-gray-700 leading-relaxed">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
+              <span className="text-[10px] text-purple-400 mt-1 block">{feed.dailyQuote.user.name} — משפט היומי</span>
             </Link>
           )}
 
-          {/* All-day schedule events */}
-          {feed.allDaySchedule.length > 0 && (
-            <Link href="/schedule-daily" className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdCalendarMonth className="text-2xl text-gray-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-xs text-gray-400 block">כל היום</span>
-                <div className="flex flex-wrap gap-1.5 mt-0.5">
+          {/* Schedule glance — current + all-day combined */}
+          {visible.has("schedule") && (feed.currentSchedule || feed.allDaySchedule.length > 0) && (
+            <Link href="/schedule-daily" className="block bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 hover:shadow-sm transition">
+              <div className="flex items-center gap-2 mb-1">
+                <MdCalendarMonth className="text-sm text-dotan-green" />
+                <span className="text-[10px] font-bold text-gray-400 tracking-wide">לו&quot;ז היום</span>
+              </div>
+              {feed.currentSchedule && (() => {
+                const cs = feed.currentSchedule;
+                const isNow = cs.status === "now";
+                return (
+                  <div className={`flex items-center gap-2 ${isNow ? "" : "opacity-80"}`}>
+                    {isNow && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse shrink-0" />}
+                    <span className="text-sm font-medium text-gray-800 truncate">{cs.title}</span>
+                    <span className="text-[11px] text-gray-400 shrink-0 tabular-nums" dir="ltr">
+                      {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                      –
+                      {new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                    </span>
+                    {cs.assignees?.length > 0 && <span className="text-[8px] bg-teal-500 text-white px-1 rounded font-bold shrink-0">עבורך</span>}
+                  </div>
+                );
+              })()}
+              {feed.allDaySchedule.length > 0 && (
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
                   {feed.allDaySchedule.map((e) => (
-                    <span key={e.id} className={`text-sm font-medium ${e.assignees?.length > 0 ? "text-teal-700" : e.target !== "all" ? "text-teal-600" : "text-gray-700"}`}>
+                    <span key={e.id} className="text-[11px] text-gray-500">
                       {e.title}
-                      {e.target !== "all" && <span className="text-[9px] text-teal-500 mr-1">(צוות)</span>}
-                      {e.assignees?.length > 0 && <span className="text-[9px] bg-teal-100 text-teal-700 px-1 rounded font-bold mr-1">עבורך</span>}
+                      {e.assignees?.length > 0 && <span className="text-[8px] bg-teal-100 text-teal-700 px-1 rounded font-bold mr-0.5">עבורך</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Link>
+          )}
+
+          {/* Duty tables — compact */}
+          {visible.has("duty") && feed.nextDutyTables?.length > 0 && (
+            <div className="space-y-1.5">
+              {feed.nextDutyTables.map(dt => (
+                <Link key={dt.id} href="/guard-duty" className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 hover:shadow-sm transition ${
+                  dt.type === "obs" ? "bg-blue-50/60 border-blue-100" : "bg-amber-50/60 border-amber-100"
+                }`}>
+                  <MdSecurity className={`text-lg shrink-0 ${dt.type === "obs" ? "text-blue-600" : "text-amber-600"}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-xs font-bold ${dt.type === "obs" ? "text-blue-700" : "text-amber-700"}`}>{dt.title}</span>
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(dt.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                    {dt.myAssignments.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        {dt.myAssignments.map((a, i) => (
+                          <span key={i} className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                            dt.type === "obs" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
+                          }`}>
+                            <MdAccessTime className="inline text-[9px] ml-0.5" />
+                            {a.role} {a.timeSlot}
+                            {a.partners.length > 0 && <span className="font-normal opacity-70"> (עם {a.partners.join(", ")})</span>}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-400">אין שיבוצים עבורך</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Team schedule assignments */}
+          {visible.has("teamSchedule") && feed.myTeamAssignments?.length > 0 && (
+            <Link href="/schedule-daily" className="flex items-center gap-2.5 bg-teal-50/60 border border-teal-100 rounded-xl px-3 py-2.5 hover:shadow-sm transition">
+              <MdCalendarMonth className="text-lg text-teal-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-teal-700">לו&quot;ז צוות</span>
+                  <span className="text-[8px] bg-teal-500 text-white px-1 rounded font-bold">עבורך</span>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                  {feed.myTeamAssignments.map((e) => (
+                    <span key={e.id} className="text-[11px] text-teal-800">
+                      <span className="font-bold tabular-nums" dir="ltr">
+                        {e.allDay ? "כל היום" : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                      </span>
+                      {" "}{e.title}
                     </span>
                   ))}
                 </div>
@@ -274,67 +350,32 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Current/next timed schedule event */}
-          {feed.currentSchedule && (() => {
-            const cs = feed.currentSchedule;
-            const isPersonal = cs.assignees?.length > 0;
-            const isTeam = cs.target !== "all";
-            return (
-              <Link href="/schedule-daily" className={`flex items-center gap-3 ${
-                cs.status === "now"
-                  ? isPersonal ? "bg-teal-50 border-teal-400 ring-1 ring-teal-400" : "bg-dotan-mint-light border-dotan-green ring-1 ring-dotan-green"
-                  : isPersonal ? "bg-teal-50 border-teal-200" : "bg-sky-50 border-sky-200"
-              } border rounded-xl p-3 hover:shadow-sm transition`}>
-                <MdCalendarMonth className={`text-2xl shrink-0 ${cs.status === "now" ? isPersonal ? "text-teal-500 animate-pulse" : "text-dotan-green animate-pulse" : isPersonal ? "text-teal-500" : "text-sky-500"}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`text-sm font-medium ${cs.status === "now" ? isPersonal ? "text-teal-800" : "text-dotan-green-dark" : isPersonal ? "text-teal-700" : "text-sky-700"}`}>
-                      {cs.status === "now" ? "עכשיו: " : "הבא: "}
-                      {cs.title}
+          {/* Notes — compact */}
+          {visible.has("notes") && feed.todayNotes?.length > 0 && (
+            <Link href="/schedule-daily" className="flex items-center gap-2.5 bg-amber-50/60 border border-amber-100 rounded-xl px-3 py-2.5 hover:shadow-sm transition">
+              <MdStickyNote2 className="text-lg text-amber-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold text-amber-700 block">ההערות שלי</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                  {feed.todayNotes.map((n) => (
+                    <span key={n.id} className="text-[11px] text-gray-600">
+                      {n.startTime && <span className="font-bold text-amber-600 tabular-nums ml-1" dir="ltr">{n.startTime}</span>}
+                      {n.title}
+                      {n.visibility === "team" && <span className="text-[9px] text-orange-500 mr-0.5">(צוות)</span>}
                     </span>
-                    {isTeam && <span className="text-[9px] text-teal-500 bg-teal-100 px-1.5 py-0.5 rounded font-bold">צוות</span>}
-                    {isPersonal && <span className="text-[9px] text-teal-700 bg-teal-200 px-1.5 py-0.5 rounded font-bold">עבורך</span>}
-                  </div>
-                  <span className={`text-xs block ${cs.status === "now" ? isPersonal ? "text-teal-600" : "text-dotan-green" : isPersonal ? "text-teal-500" : "text-sky-500"}`}>
-                    {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                    {" - "}
-                    {new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                  </span>
+                  ))}
                 </div>
-              </Link>
-            );
-          })()}
-
-          {/* Today's personal/team notes — full list */}
-          {feed.todayNotes?.length > 0 && (
-            <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 space-y-2">
-              <Link href="/schedule-daily" className="flex items-center gap-2 text-sm font-bold text-amber-700">
-                <MdStickyNote2 className="text-lg text-amber-500" />
-                ההערות שלי להיום
-              </Link>
-              {feed.todayNotes.map((n) => (
-                <div key={n.id} className="flex items-center gap-2.5 bg-white/70 rounded-lg px-3 py-2 border border-amber-100">
-                  {n.startTime && (
-                    <span className="text-[11px] font-bold text-amber-600 shrink-0 tabular-nums" dir="ltr">{n.startTime}</span>
-                  )}
-                  <span className="text-sm text-gray-800 font-medium truncate">{n.title}</span>
-                  {n.visibility === "team" && (
-                    <span className="text-[9px] text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full font-medium shrink-0">צוות</span>
-                  )}
-                </div>
-              ))}
-            </div>
+              </div>
+            </Link>
           )}
 
-          {/* Birthdays today */}
-          {feed.birthdayUsers.length > 0 && (
-            <Link href="/birthdays" className="flex items-center gap-3 bg-pink-50 border border-pink-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdCake className="text-2xl text-pink-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-pink-700">
-                  יום הולדת היום: {feed.birthdayUsers.map((u) => u.name).join(", ")}
-                </span>
-              </div>
+          {/* Birthdays */}
+          {visible.has("birthdays") && feed.birthdayUsers.length > 0 && (
+            <Link href="/birthdays" className="flex items-center gap-2.5 bg-pink-50/60 border border-pink-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdCake className="text-lg text-pink-500 shrink-0" />
+              <span className="text-xs font-medium text-pink-700 flex-1 truncate">
+                יום הולדת: {feed.birthdayUsers.map((u) => u.name).join(", ")}
+              </span>
               <div className="flex -space-x-1 shrink-0">
                 {feed.birthdayUsers.slice(0, 3).map((u) => (
                   <Avatar key={u.id} name={u.name} image={u.image} size="xs" />
@@ -343,199 +384,167 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Pending forms */}
-          {feed.pendingForms.length > 0 && (
-            <Link href="/forms" className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdWarning className="text-2xl text-amber-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-amber-700">
-                  {feed.pendingForms.length} טפסים ממתינים למילוי
-                </span>
-                <span className="text-xs text-amber-500 block truncate">
-                  {feed.pendingForms.map((f) => f.title).join(", ")}
-                </span>
-              </div>
+          {/* Forms */}
+          {visible.has("forms") && feed.pendingForms.length > 0 && (
+            <Link href="/forms" className="flex items-center gap-2.5 bg-amber-50/60 border border-amber-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdDescription className="text-lg text-amber-500 shrink-0" />
+              <span className="text-xs font-medium text-amber-700 flex-1 truncate">
+                {feed.pendingForms.length} טפסים למילוי: {feed.pendingForms.map((f) => f.title).join(", ")}
+              </span>
             </Link>
           )}
 
-          {/* Pending team surveys */}
-          {feed.pendingSurveys?.length > 0 && (
-            <Link href="/surveys" className="flex items-center gap-3 bg-purple-50 border border-purple-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdPoll className="text-2xl text-purple-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 font-bold">צוות</span>
-                  <span className="text-sm font-medium text-purple-700">
-                    {feed.pendingSurveys.length} סקרים ממתינים
-                  </span>
-                </div>
-                <span className="text-xs text-purple-500 block truncate">
-                  {feed.pendingSurveys.map((s) => s.title).join(", ")}
-                </span>
-              </div>
+          {/* Chopal */}
+          {visible.has("chopal") && feed.chopalStatus?.isOpen && !feed.chopalStatus?.registered && (
+            <Link href="/chopal" className="flex items-center gap-2.5 bg-rose-50/60 border border-rose-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdLocalHospital className="text-lg text-rose-500 shrink-0" />
+              <span className="text-xs font-medium text-rose-700 flex-1 truncate">
+                מסדר חופ&quot;ל — הירשם/י למחר (עד 21:00)
+              </span>
+            </Link>
+          )}
+          {visible.has("chopal") && feed.chopalStatus?.registered && (
+            <Link href="/chopal" className="flex items-center gap-2.5 bg-green-50/60 border border-green-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdCheckCircle className="text-lg text-green-500 shrink-0" />
+              <span className="text-xs font-medium text-green-700 flex-1 truncate">
+                נרשמת לחופ&quot;ל למחר ✓
+              </span>
             </Link>
           )}
 
-          {/* Pending platoon surveys */}
-          {feed.pendingPlatoonSurveys?.length > 0 && (
-            <Link href="/surveys" className="flex items-center gap-3 bg-violet-50 border border-violet-300 rounded-xl p-3 hover:shadow-sm transition">
-              <MdPoll className="text-2xl text-violet-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-bold">פלוגה</span>
-                  <span className="text-sm font-medium text-violet-700">
-                    {feed.pendingPlatoonSurveys.length} סקרים ממתינים
-                  </span>
-                </div>
-                <span className="text-xs text-violet-500 block truncate">
-                  {feed.pendingPlatoonSurveys.map((s) => s.title).join(", ")}
-                </span>
-              </div>
+          {/* Surveys */}
+          {visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0) && (
+            <Link href="/surveys" className="flex items-center gap-2.5 bg-violet-50/60 border border-violet-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdPoll className="text-lg text-violet-500 shrink-0" />
+              <span className="text-xs font-medium text-violet-700 flex-1 truncate">
+                {(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} סקרים ממתינים
+              </span>
             </Link>
           )}
 
           {/* Weekly vote */}
-          {feed.hasVotedThisWeek === false && (
-            <Link href="/person-of-week" className="flex items-center gap-3 bg-yellow-50 border border-yellow-300 rounded-xl p-3 hover:shadow-sm transition">
-              <MdEmojiEvents className="text-2xl text-yellow-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-yellow-800">
-                  בחרו את איש/אשת השבוע!
-                </span>
-                <span className="text-xs text-yellow-600 block">
-                  עדיין לא הצבעתם השבוע
-                </span>
-              </div>
+          {visible.has("vote") && feed.hasVotedThisWeek === false && (
+            <Link href="/person-of-week" className="flex items-center gap-2.5 bg-yellow-50/60 border border-yellow-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdEmojiEvents className="text-lg text-yellow-500 shrink-0" />
+              <span className="text-xs font-medium text-yellow-700">בחרו את איש/אשת השבוע!</span>
             </Link>
           )}
 
-          {/* Today's tasks — with overdue/due soon indicators */}
-          {feed.todayTasks.length > 0 && (
-            <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-3 space-y-2">
-              <Link href="/tasks" className="flex items-center gap-2 text-sm font-bold text-purple-700">
-                <MdAssignment className="text-lg text-purple-500" />
-                המשימות שלי ({feed.todayTasks.length})
+          {/* Tasks */}
+          {visible.has("tasks") && feed.todayTasks.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-2.5">
+              <Link href="/tasks" className="flex items-center gap-2 mb-1.5">
+                <MdAssignment className="text-sm text-purple-500" />
+                <span className="text-[10px] font-bold text-gray-400 tracking-wide">משימות ({feed.todayTasks.length})</span>
               </Link>
-              {feed.todayTasks.map((t) => {
-                const isOverdue = t.dueDate && new Date(t.dueDate) < new Date();
-                return (
-                  <Link key={t.id} href="/tasks"
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 border text-xs transition hover:shadow-sm ${
-                      isOverdue ? "bg-red-50 border-red-200" : "bg-white/70 border-purple-100"
-                    }`}>
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${
-                      t.priority === "urgent" ? "bg-red-500" : t.priority === "high" ? "bg-orange-400" : "bg-dotan-green"
-                    }`} />
-                    <span className={`font-medium truncate flex-1 ${isOverdue ? "text-red-700" : "text-gray-800"}`}>{t.title}</span>
-                    {t.dueDate && (
-                      <span className={`text-[10px] font-bold shrink-0 ${isOverdue ? "text-red-500" : "text-purple-500"}`}>
-                        {isOverdue ? "באיחור!" : `יעד: ${new Date(t.dueDate).toLocaleDateString("he-IL",{day:"numeric",month:"short"})}`}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
+              <div className="space-y-1">
+                {feed.todayTasks.slice(0, 4).map((t) => {
+                  const isOverdue = t.dueDate && new Date(t.dueDate) < new Date();
+                  return (
+                    <Link key={t.id} href="/tasks" className="flex items-center gap-2 group">
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        t.priority === "urgent" ? "bg-red-500" : t.priority === "high" ? "bg-orange-400" : "bg-gray-300"
+                      }`} />
+                      <span className={`text-xs truncate flex-1 group-hover:underline ${isOverdue ? "text-red-600 font-medium" : "text-gray-600"}`}>{t.title}</span>
+                      {isOverdue && <span className="text-[9px] text-red-500 font-bold shrink-0">באיחור</span>}
+                    </Link>
+                  );
+                })}
+                {feed.todayTasks.length > 4 && (
+                  <Link href="/tasks" className="text-[10px] text-purple-500 hover:underline">+ עוד {feed.todayTasks.length - 4}</Link>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Pinned commander posts */}
-          {feed.pinnedPosts.length > 0 && feed.pinnedPosts.map((post) => (
-            <Link key={post.id} href="/commander" className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdPushPin className="text-2xl text-yellow-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-yellow-800 truncate block">{post.title}</span>
-                <span className="text-xs text-yellow-600">
-                  {post.author.name}
-                  {post.dueDate && (
-                    <> | <MdSchedule className="inline text-xs" /> {new Date(post.dueDate + "T12:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</>
-                  )}
-                </span>
-              </div>
-            </Link>
-          ))}
+          {/* Commander pinned */}
+          {visible.has("commander") && feed.pinnedPosts.length > 0 && (
+            <div className="space-y-1.5">
+              {feed.pinnedPosts.map((post) => (
+                <Link key={post.id} href="/commander" className="flex items-center gap-2.5 bg-yellow-50/60 border border-yellow-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+                  <MdPushPin className="text-base text-yellow-600 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium text-yellow-800 truncate block">{post.title}</span>
+                    <span className="text-[10px] text-yellow-500">
+                      {post.author.name}
+                      {post.dueDate && <> | <MdSchedule className="inline text-[10px]" /> {new Date(post.dueDate + "T12:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</>}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
 
-          {/* Latest message */}
-          {feed.latestMessage && (
-            <Link href="/messages" className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdMessage className="text-2xl text-blue-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-blue-700 truncate block">{feed.latestMessage.title}</span>
-                <span className="text-xs text-blue-500">{feed.latestMessage.author.name} | {new Date(feed.latestMessage.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</span>
-              </div>
+          {/* Messages */}
+          {visible.has("messages") && feed.latestMessage && (
+            <Link href="/messages" className="flex items-center gap-2.5 bg-blue-50/60 border border-blue-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdMessage className="text-base text-blue-500 shrink-0" />
+              <span className="text-xs font-medium text-blue-700 truncate flex-1">{feed.latestMessage.title}</span>
+              <span className="text-[10px] text-blue-400 shrink-0">{feed.latestMessage.author.name}</span>
             </Link>
           )}
 
-          {/* Unread materials */}
-          {feed.unreadMaterials.length > 0 && (
-            <Link href="/materials" className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl p-3 hover:shadow-sm transition">
-              <MdNewReleases className="text-2xl text-rose-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-rose-700">
-                  {feed.unreadMaterials.length} חומרים מקצועיים שלא נקראו
-                </span>
-                <span className="text-xs text-rose-500 block truncate">
-                  {feed.unreadMaterials.map((m) => m.title).join(", ")}
-                </span>
-              </div>
+          {/* Materials */}
+          {visible.has("materials") && feed.unreadMaterials.length > 0 && (
+            <Link href="/materials" className="flex items-center gap-2.5 bg-rose-50/60 border border-rose-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdNewReleases className="text-base text-rose-500 shrink-0" />
+              <span className="text-xs font-medium text-rose-700 truncate flex-1">
+                {feed.unreadMaterials.length} חומרים שלא נקראו
+              </span>
             </Link>
           )}
         </div>
       )}
 
-      {/* Feature Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 mb-8">
-        {features.map(({ href, icon: Icon, title, desc, color }) => (
-          <Link key={href} href={href} className="bg-white p-3 sm:p-5 rounded-xl shadow-sm border border-dotan-mint hover:shadow-md transition group">
-            <Icon className={`text-2xl sm:text-3xl ${color} mb-2 sm:mb-3 group-hover:scale-110 transition`} />
-            <h3 className="font-bold text-gray-800 mb-0.5 sm:mb-1 text-sm sm:text-base">{title}</h3>
-            <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">{desc}</p>
+      {/* Feature Cards — clean grid */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {features.map(({ href, icon: Icon, title, color, bg }) => (
+          <Link key={href} href={href} className={`${bg} p-3 rounded-xl border border-transparent hover:border-gray-200 hover:shadow-sm transition group text-center`}>
+            <Icon className={`text-xl ${color} mx-auto mb-1 group-hover:scale-110 transition`} />
+            <span className="text-[11px] font-medium text-gray-700 block leading-tight">{title}</span>
           </Link>
         ))}
       </div>
 
-      {/* Machine Status */}
-      <h2 className="text-xl font-bold text-dotan-green-dark mb-4">סטטוס מכונות</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        {machines.map((machine) => {
-          const available = isMachineAvailable(machine);
-          const currentUser = getCurrentUser(machine);
-          const isWasher = machine.type === "washer";
-
-          return (
-            <div key={machine.id} className={`p-5 rounded-xl border-2 transition ${
-              machine.status === "maintenance" ? "bg-yellow-50 border-yellow-300"
-              : available ? "bg-dotan-mint-light border-dotan-green"
-              : "bg-red-50 border-red-300"
-            }`}>
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold text-gray-800">{machine.name}</h3>
-                  <div className={`text-sm font-medium mt-1 flex items-center gap-1 ${
-                    machine.status === "maintenance" ? "text-yellow-600" : available ? "text-dotan-green" : "text-red-600"
-                  }`}>
-                    {machine.status === "maintenance" ? <><MdBuild /> בתחזוקה</>
-                    : available ? <><MdCheckCircle /> {isWasher ? "פנויה" : "פנוי"}</>
-                    : <><MdCancel /> {isWasher ? "תפוסה" : "תפוס"}</>}
+      {/* Machine Status — compact */}
+      {visible.has("machines") && machines.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-gray-500 mb-2 flex items-center gap-1.5">
+            <MdLocalLaundryService className="text-base" /> מכונות
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {machines.map((machine) => {
+              const available = isMachineAvailable(machine);
+              const currentUser = getCurrentUser(machine);
+              const isWasher = machine.type === "washer";
+              return (
+                <div key={machine.id} className={`px-3 py-2.5 rounded-xl border transition ${
+                  machine.status === "maintenance" ? "bg-yellow-50 border-yellow-200"
+                  : available ? "bg-green-50 border-green-200"
+                  : "bg-red-50 border-red-200"
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700">{machine.name}</span>
+                    {isWasher ? <MdLocalLaundryService className={`text-base ${available ? "text-green-500" : "text-red-400"}`} /> : <MdDry className={`text-base ${available ? "text-green-500" : "text-red-400"}`} />}
                   </div>
-                  {currentUser && (
-                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                      <MdPerson /> {currentUser.name}
-                    </div>
-                  )}
+                  <div className={`text-[10px] font-medium mt-0.5 flex items-center gap-0.5 ${
+                    machine.status === "maintenance" ? "text-yellow-600" : available ? "text-green-600" : "text-red-500"
+                  }`}>
+                    {machine.status === "maintenance" ? <><MdBuild className="text-[10px]" /> תחזוקה</>
+                    : available ? <><MdCheckCircle className="text-[10px]" /> {isWasher ? "פנויה" : "פנוי"}</>
+                    : <><MdCancel className="text-[10px]" /> {currentUser?.name || (isWasher ? "תפוסה" : "תפוס")}</>}
+                  </div>
                 </div>
-                <div className={`text-3xl ${available ? "text-dotan-green" : "text-red-400"}`}>
-                  {isWasher ? <MdLocalLaundryService /> : <MdDry />}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-      {/* Footer logos */}
-      <div className="mt-8 pt-6 border-t border-dotan-mint flex items-center justify-center gap-8 opacity-50">
-        <Image src="/bahad1Logo.png" alt="בהד 1" width={36} height={36} className="rounded-full bg-white p-0.5" />
-        <Image src="/erezLogo.png" alt="ארז" width={36} height={36} className="rounded-full bg-white p-0.5" />
+      {/* Footer */}
+      <div className="pt-4 pb-2 border-t border-gray-100 flex items-center justify-center gap-6 opacity-40">
+        <Image src="/bahad1Logo.png" alt="בהד 1" width={28} height={28} className="rounded-full" />
+        <Image src="/erezLogo.png" alt="ארז" width={28} height={28} className="rounded-full" />
       </div>
     </div>
   );

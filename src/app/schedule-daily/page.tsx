@@ -24,6 +24,7 @@ export default function ScheduleDailyPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userTeam, setUserTeam] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [typeFilter, setTypeFilter] = useState("all");
   const [targetFilter, setTargetFilter] = useState("all");
@@ -55,7 +56,9 @@ export default function ScheduleDailyPage() {
     allDay: false, target: "all", type: "general",
   });
 
+  const initialLoadDone = useRef(false);
   const fetchEvents = useCallback(async () => {
+    if (initialLoadDone.current) setRefreshing(true);
     const res = await fetch(`/api/schedule?date=${date}&type=${typeFilter}`);
     if (res.ok) {
       const data = await res.json();
@@ -64,6 +67,8 @@ export default function ScheduleDailyPage() {
       if (data.userTeam !== undefined) setUserTeam(data.userTeam);
     }
     setLoading(false);
+    setRefreshing(false);
+    initialLoadDone.current = true;
   }, [date, typeFilter]);
 
   const fetchNotes = useCallback(async () => {
@@ -71,29 +76,22 @@ export default function ScheduleDailyPage() {
     if (res.ok) setNotes(await res.json());
   }, [date]);
 
-  const fetchUsers = useCallback(async () => {
-    const res = await fetch("/api/users-wall");
-    if (res.ok) {
-      const data = await res.json();
-      setAllUsers(data.map((u: UserOption) => ({ id: u.id, name: u.name, image: u.image, team: u.team })));
-    }
-  }, []);
+  const usersLoaded = useRef(false);
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") {
-      fetchEvents();
-      fetchUsers();
-      fetchNotes();
+      // Fetch events and notes in parallel
+      Promise.all([fetchEvents(), fetchNotes()]);
+      // Only fetch users once
+      if (!usersLoaded.current) {
+        usersLoaded.current = true;
+        fetch("/api/users-wall").then(res => res.ok ? res.json() : []).then(data => {
+          setAllUsers(data.map((u: UserOption) => ({ id: u.id, name: u.name, image: u.image, team: u.team })));
+        });
+      }
     }
-  }, [status, router, fetchEvents, fetchUsers, fetchNotes]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchEvents();
-      fetchNotes();
-    }
-  }, [date, typeFilter, status, fetchEvents, fetchNotes]);
+  }, [status, router, date, typeFilter, fetchEvents, fetchNotes]);
 
   // Apply target filter
   const filteredEvents = targetFilter === "all"
@@ -457,12 +455,16 @@ export default function ScheduleDailyPage() {
     return <InlineLoading />;
   }
 
+  // Subtle refresh indicator (not full loading)
+  const isRefreshing = refreshing;
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-2 flex items-center gap-3">
-        <MdCalendarMonth className="text-dotan-green" />
+        <MdCalendarMonth className={`text-dotan-green ${isRefreshing ? "animate-spin" : ""}`} />
         לו&quot;ז יומי
+        {isRefreshing && <span className="text-xs font-normal text-gray-400">מעדכן...</span>}
       </h1>
 
       {/* Date navigation */}

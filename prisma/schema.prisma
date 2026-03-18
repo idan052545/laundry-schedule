@@ -55,6 +55,7 @@ model User {
   dutyAppeals       DutyAppeal[]     @relation("dutyAppeals")
   dutySuggested     DutyAppeal[]     @relation("dutySuggested")
   simSessions       SimSession[]     @relation("simSessions")
+  chopalRequests    ChopalRequest[]  @relation("chopalRequests")
 }
 
 model Machine {
@@ -437,6 +438,20 @@ model DutyAppeal {
   suggestedUser   User?    @relation("dutySuggested", fields: [suggestedUserId], references: [id])
   status          String   @default("pending") // "pending", "approved", "rejected"
   createdAt       DateTime @default(now())
+}
+
+// ─── מסדר חופ"ל (Daily Leave Registration) ───
+
+model ChopalRequest {
+  id          String   @id @default(uuid())
+  userId      String
+  date        String   // YYYY-MM-DD — the date user registers FOR (tomorrow)
+  needed      Boolean  @default(true) // אני צריך/ה חופ"ל
+  note        String?  // משהו נוסף שתרצה להוסיף
+  createdAt   DateTime @default(now())
+  user        User     @relation("chopalRequests", fields: [userId], references: [id])
+
+  @@unique([userId, date])
 }
 
 // ─── סימולטור פיקודי (Commander Simulator) ───
