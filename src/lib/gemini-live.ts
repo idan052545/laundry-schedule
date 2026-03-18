@@ -45,6 +45,7 @@ export class GeminiLiveClient {
   private audioQueue: Float32Array[] = [];
   private isPlayingAudio = false;
   private playbackContext: AudioContext | null = null;
+  private _muted = false;
 
   constructor(config: GeminiLiveConfig) {
     this.config = config;
@@ -173,10 +174,13 @@ export class GeminiLiveClient {
       if (data.serverContent) {
         const sc = data.serverContent;
 
-        // Audio from model
+        // Audio from model - auto-mute mic to prevent echo/interruption
         if (sc.modelTurn?.parts) {
           for (const part of sc.modelTurn.parts) {
             if (part.inlineData?.data) {
+              if (this.status !== "ai-speaking") {
+                this.mute(); // Auto-mute while AI speaks
+              }
               this.setStatus("ai-speaking");
               this.queueAudioPlayback(part.inlineData.data);
             }
@@ -269,21 +273,21 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
       this.workletNode = new AudioWorkletNode(this.audioContext, "pcm-capture");
 
       this.workletNode.port.onmessage = (event) => {
-        if (this.ws?.readyState === WebSocket.OPEN && this.status !== "disconnected") {
-          const float32Data = event.data as Float32Array;
-          const pcm16 = this.float32ToPCM16(float32Data);
-          const base64 = this.arrayBufferToBase64(pcm16.buffer as ArrayBuffer);
+        // Don't send audio when muted or disconnected
+        if (this._muted || !this.ws || this.ws.readyState !== WebSocket.OPEN || this.status === "disconnected") return;
 
-          // Use the correct Gemini Live API format: realtimeInput.audio
-          this.ws.send(JSON.stringify({
-            realtimeInput: {
-              audio: {
-                data: base64,
-                mimeType: "audio/pcm",
-              },
+        const float32Data = event.data as Float32Array;
+        const pcm16 = this.float32ToPCM16(float32Data);
+        const base64 = this.arrayBufferToBase64(pcm16.buffer as ArrayBuffer);
+
+        this.ws.send(JSON.stringify({
+          realtimeInput: {
+            audio: {
+              data: base64,
+              mimeType: "audio/pcm",
             },
-          }));
-        }
+          },
+        }));
       };
 
       this.sourceNode.connect(this.workletNode);
@@ -329,6 +333,31 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
     }));
   }
 
+  /** Signal to Gemini that the user finished their turn (manual end-of-speech) */
+  sendEndOfTurn() {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    console.log("[GeminiLive] Sending manual end-of-turn");
+    this.ws.send(JSON.stringify({
+      clientContent: { turnComplete: true },
+    }));
+  }
+
+  /** Mute mic (stop sending audio but keep stream alive) */
+  mute() {
+    this._muted = true;
+    console.log("[GeminiLive] Muted");
+  }
+
+  /** Unmute mic */
+  unmute() {
+    this._muted = false;
+    console.log("[GeminiLive] Unmuted");
+  }
+
+  get isMuted() {
+    return this._muted;
+  }
+
   disconnect() {
     console.log("[GeminiLive] Disconnecting...");
     this.stopMicrophone();
@@ -356,6 +385,7 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
     if (this.audioQueue.length === 0) {
       this.isPlayingAudio = false;
       if (this.status === "ai-speaking") {
+        this.unmute(); // Auto-unmute when AI finishes speaking
         this.setStatus("listening");
       }
       return;

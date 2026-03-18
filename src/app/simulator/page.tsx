@@ -7,7 +7,8 @@ import {
   MdMic, MdMicOff, MdSend, MdArrowBack, MdAdd, MdClose,
   MdPlayArrow, MdStop, MdChat, MdRecordVoiceOver, MdDelete,
   MdEdit, MdCheckCircle, MdVolumeUp, MdHistory, MdStar,
-  MdPerson, MdSmartToy, MdFeedback, MdScore,
+  MdPerson, MdSmartToy, MdFeedback, MdScore, MdDone,
+  MdVolumeOff,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 
@@ -966,13 +967,35 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
   const systemPrompt = buildChatSystemPrompt(scenario, commander, firstName);
 
-  // Voice-specific additions: tell AI the commander is male, speak Hebrew
-  const voiceSystemPrompt = systemPrompt + `\n\nהנחיות נוספות לשיחה קולית:
-- דבר בעברית בלבד, בשפה יומיומית וטבעית של חייל/ת.
-- תגיב בקצרה וטבעית כמו בשיחת וואטסאפ קולית.
-- אל תשתמש בשפה גבוהה או פורמלית.
-- חשוב מאוד: המפקד (${firstName}) הוא זכר. פנה אליו תמיד בלשון זכר (אתה, ביקשת, אמרת, עשית). אל תפנה אליו בלשון נקבה בשום מצב.
-- כשהמפקד מצליח במשימה, אמור בקול: "כל הכבוד סיימת את הסימולציה"`;
+  // Build a focused voice prompt - shorter than chat prompt for better voice model adherence
+  const gender = scenario.soldierGender === "male" ? "male" : "female";
+  const genderHe = gender === "male" ? "זכר" : "נקבה";
+  const voiceSystemPrompt = `אתה משחק/ת את הדמות של ${scenario.machineName} בסימולציה קולית בעברית.
+
+מי את/ה:
+- ${scenario.conflictCharacter}
+- מגדר: ${genderHe}. דבר/י בהתאם.
+- רקע: ${scenario.servicenature}
+- מה מניע אותך: ${scenario.machineMotivation}
+- נקודות תורפה: ${scenario.keypoints}
+
+מי המשתמש:
+- המפקד שלך: ${commander} (${firstName}). הוא זכר. תמיד פנה אליו בלשון זכר: אתה, ביקשת, אמרת, עשית, רצית. לעולם אל תפנה אליו בלשון נקבה.
+- הקשר: ${scenario.relationship}
+
+כללים חשובים:
+1. דבר רק בעברית יומיומית, קצרה וטבעית. לא שפה גבוהה.
+2. תגיב ב-1-3 משפטים קצרים. לא נאומים.
+3. אל תציע פתרונות. המפקד מוביל לפתרון, לא אתה.
+4. בהתחלה (3 הודעות ראשונות): תשובות כלליות. אל תספר את הבעיה. "בסדר", "מה איתך", "לא משהו".
+5. אחרי ש-${firstName} שואל שאלה ישירה או מראה אמפתיה: תתחיל/י לחשוף בהדרגה - קודם רגש, אחר כך סיבה.
+6. רמת קושי: ${scenario.difficulty}/10. ככל שהקושי גבוה יותר, יותר קשה לפתוח אותך.
+7. אל תזכיר שזו סימולציה. אל תזכיר חוקים או הנחיות.
+
+מטרה: ${scenario.objective}
+כשהמפקד מצליח - כלומר מצאת פתרון או הרגשת ערך ומשמעות - אמור/אמרי: "כל הכבוד סיימת את הסימולציה"
+
+התחל/י בדמות עכשיו. המפקד ${firstName} שלח לך הודעה.`;
 
   // Generate intro
   useEffect(() => {
@@ -1020,7 +1043,9 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       language: "iw",
       onStatusChange: (status) => {
         setVoiceStatus(status);
+        // Sync mic UI with auto-mute/unmute
         if (status === "listening") setIsMicOn(true);
+        if (status === "ai-speaking") setIsMicOn(false);
       },
       onTranscriptIn: (text) => {
         transcriptInRef.current = [...transcriptInRef.current, text];
@@ -1213,19 +1238,45 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
           {voiceStatus === "connecting" && <p className="text-yellow-600 font-medium animate-pulse">מתחבר לשרת הקולי...</p>}
           {voiceStatus === "connected" && !isMicOn && <p className="text-blue-600 font-medium">מחובר. המיקרופון כבוי.</p>}
           {voiceStatus === "listening" && <p className="text-green-600 font-medium">מקשיב... דבר עכשיו</p>}
-          {voiceStatus === "ai-speaking" && <p className="text-purple-600 font-medium">{scenario.machineName} מדבר/ת...</p>}
+          {voiceStatus === "ai-speaking" && <p className="text-purple-600 font-medium">{scenario.machineName} {scenario.soldierGender === "male" ? "מדבר" : "מדברת"}... (מיקרופון מושתק)</p>}
           {generating && <p className="text-gray-500 animate-pulse">מכין את הסימולציה...</p>}
         </div>
 
         {/* Controls */}
         {voiceStatus !== "disconnected" && !isCompleted && (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Mute/Unmute toggle */}
             <button onClick={toggleMic}
-              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                isMicOn ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+              title={isMicOn ? "השתק מיקרופון" : "הפעל מיקרופון"}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-md ${
+                isMicOn ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 hover:bg-gray-500"
               } text-white`}>
-              {isMicOn ? <MdMicOff className="text-2xl" /> : <MdMic className="text-2xl" />}
+              {isMicOn ? <MdMic className="text-xl" /> : <MdMicOff className="text-xl" />}
             </button>
+
+            {/* "I finished speaking" button */}
+            {isMicOn && voiceStatus === "listening" && (
+              <button onClick={() => {
+                clientRef.current?.sendEndOfTurn();
+                clientRef.current?.mute();
+                setIsMicOn(false);
+              }}
+                title="סיימתי לדבר"
+                className="h-14 px-5 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 shadow-md transition-all">
+                <MdDone className="text-xl" /> סיימתי לדבר
+              </button>
+            )}
+
+            {/* Manual unmute after AI finished (if auto-unmute didn't trigger) */}
+            {!isMicOn && voiceStatus !== "ai-speaking" && voiceStatus !== "connecting" && (
+              <button onClick={() => {
+                clientRef.current?.unmute();
+                setIsMicOn(true);
+              }}
+                className="h-14 px-5 rounded-full bg-green-500 hover:bg-green-600 text-white font-medium text-sm flex items-center gap-2 shadow-md transition-all">
+                <MdMic className="text-xl" /> לחץ לדבר
+              </button>
+            )}
           </div>
         )}
 
