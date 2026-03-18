@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         return false;
       });
 
-  return NextResponse.json({ events: filtered, isAdmin });
+  return NextResponse.json({ events: filtered, isAdmin, userTeam: user?.team || null });
 }
 
 export async function POST(request: Request) {

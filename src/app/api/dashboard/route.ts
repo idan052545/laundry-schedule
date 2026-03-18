@@ -124,18 +124,25 @@ export async function GET() {
       },
       orderBy: { startTime: "asc" },
       take: 2,
-      select: { id: true, title: true, startTime: true, endTime: true, type: true },
+      select: {
+        id: true, title: true, startTime: true, endTime: true, type: true, target: true,
+        assignees: { where: { userId }, select: { id: true } },
+      },
     }),
 
     // Today's all-day events
     prisma.scheduleEvent.findMany({
       where: {
-        startTime: { gte: new Date(todayStr + "T00:00:00Z"), lte: new Date(todayStr + "T23:59:59Z") },
+        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
+        endTime: { gt: new Date(todayStr + "T00:00:00Z") },
         allDay: true,
         OR: targetFilter,
       },
       orderBy: { startTime: "asc" },
-      select: { id: true, title: true, type: true },
+      select: {
+        id: true, title: true, type: true, target: true,
+        assignees: { where: { userId }, select: { id: true } },
+      },
     }),
 
     // Pending team surveys (active, user's team, not yet responded)
@@ -205,7 +212,7 @@ export async function GET() {
   const hasVotedThisWeek = !!weeklyVote;
 
   // Pick current (happening now) or next upcoming timed event
-  let currentSchedule: { id: string; title: string; startTime: Date; endTime: Date; type: string; status: "now" | "next" } | null = null;
+  let currentSchedule: { id: string; title: string; startTime: Date; endTime: Date; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" } | null = null;
   for (const ev of timedEvents) {
     const start = new Date(ev.startTime);
     const end = new Date(ev.endTime);

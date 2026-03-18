@@ -17,6 +17,7 @@ interface EventCardProps {
   isToday: boolean;
   timedEventsLength: number;
   reminding: string | null;
+  currentUserId?: string;
   onDetail: (event: ScheduleEvent) => void;
   onEdit: (event: ScheduleEvent) => void;
   onDelete: (id: string) => void;
@@ -27,17 +28,18 @@ interface EventCardProps {
 
 export default function EventCard({
   event, idx, compact, isAdmin, isToday, timedEventsLength,
-  reminding, onDetail, onEdit, onDelete, onRemind, onAssign, onMove,
+  reminding, currentUserId, onDetail, onEdit, onDelete, onRemind, onAssign, onMove,
 }: EventCardProps) {
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
   const Icon = config.icon;
   const active = isEventNow(event, isToday);
   const duration = getDurationMin(event);
+  const isAssignedToMe = currentUserId ? event.assignees.some(a => a.userId === currentUserId) : false;
 
   return (
     <div
       onClick={() => onDetail(event)}
-      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer overflow-hidden ${config.bg} ${config.border} ${active ? "ring-2 ring-dotan-green shadow-md" : "shadow-sm"}`}
+      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer overflow-hidden ${isAssignedToMe ? "bg-teal-50 border-teal-300" : `${config.bg} ${config.border}`} ${active ? "ring-2 ring-dotan-green shadow-md" : isAssignedToMe ? "ring-1 ring-teal-400 shadow-sm" : "shadow-sm"}`}
     >
       <div className="flex items-start gap-1.5">
         {isAdmin && !compact && (
@@ -63,6 +65,11 @@ export default function EventCard({
             {active && (
               <span className="px-1 py-0.5 bg-dotan-green text-white rounded text-[8px] font-bold animate-pulse">
                 עכשיו
+              </span>
+            )}
+            {isAssignedToMe && (
+              <span className="px-1 py-0.5 bg-teal-500 text-white rounded text-[8px] font-bold">
+                עבורך
               </span>
             )}
           </div>

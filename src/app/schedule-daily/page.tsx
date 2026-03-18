@@ -22,6 +22,7 @@ export default function ScheduleDailyPage() {
   const router = useRouter();
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userTeam, setUserTeam] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [typeFilter, setTypeFilter] = useState("all");
@@ -44,6 +45,8 @@ export default function ScheduleDailyPage() {
   const [noteReminding, setNoteReminding] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncDiff, setSyncDiff] = useState<{ added: string[]; removed: string[]; unchanged: boolean } | null>(null);
+  const [teamSyncing, setTeamSyncing] = useState(false);
+  const [teamSyncDiff, setTeamSyncDiff] = useState<{ added: string[]; removed: string[]; unchanged: boolean } | null>(null);
   const noteFormRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<EventFormData>({
@@ -57,6 +60,7 @@ export default function ScheduleDailyPage() {
       const data = await res.json();
       setEvents(data.events);
       setIsAdmin(data.isAdmin);
+      if (data.userTeam !== undefined) setUserTeam(data.userTeam);
     }
     setLoading(false);
   }, [date, typeFilter]);
@@ -203,6 +207,45 @@ export default function ScheduleDailyPage() {
       alert("שגיאה בשליחה");
     }
     setSyncing(false);
+  };
+
+  const handleTeamSync = async () => {
+    if (!confirm("לסנכרן את הלוז מיומן הצוות? אירועי הצוות הקיימים יוחלפו.")) return;
+    setTeamSyncing(true);
+    setTeamSyncDiff(null);
+    try {
+      const res = await fetch("/api/schedule/sync-team", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.todayDiff) setTeamSyncDiff(data.todayDiff);
+        await fetchEvents();
+      } else {
+        alert(data.error || "שגיאה בסנכרון");
+      }
+    } catch {
+      alert("שגיאה בסנכרון");
+    }
+    setTeamSyncing(false);
+  };
+
+  const handleTeamNotifyChanges = async () => {
+    if (!teamSyncDiff || teamSyncDiff.unchanged) return;
+    setTeamSyncing(true);
+    const lines: string[] = [];
+    if (teamSyncDiff.added.length > 0) lines.push(`נוספו: ${teamSyncDiff.added.join(", ")}`);
+    if (teamSyncDiff.removed.length > 0) lines.push(`הוסרו: ${teamSyncDiff.removed.join(", ")}`);
+    const body = lines.join(" | ");
+    try {
+      await fetch("/api/schedule/sync-team", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changes: body }),
+      });
+      alert("נשלחה התראה לצוות");
+    } catch {
+      alert("שגיאה בשליחה");
+    }
+    setTeamSyncing(false);
   };
 
   const handleRemind = async (id: string) => {
@@ -438,6 +481,55 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
+      {/* Team 16: Sync button */}
+      {userTeam === 16 && !showAdd && !editingEvent && (
+        <div className="flex gap-2 mb-3">
+          <button onClick={handleTeamSync} disabled={teamSyncing}
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-sm font-medium disabled:opacity-50">
+            <MdSync className={teamSyncing ? "animate-spin" : ""} /> {teamSyncing ? "מסנכרן צוות..." : "סנכרון לו\"ז צוות 16"}
+          </button>
+        </div>
+      )}
+
+      {/* Team sync diff panel */}
+      {teamSyncDiff && !teamSyncDiff.unchanged && (
+        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl border border-teal-200 p-4 mb-3 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-teal-800 text-sm flex items-center gap-2">
+              <MdSync className="text-teal-500" /> שינויים בלוז צוות 16 היום
+            </h3>
+            <div className="flex gap-2">
+              <button onClick={handleTeamNotifyChanges} disabled={teamSyncing}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg bg-teal-600 text-white text-xs font-medium hover:bg-teal-700 transition disabled:opacity-50">
+                <MdNotifications className="text-xs" /> שלח התראה לצוות
+              </button>
+              <button onClick={() => setTeamSyncDiff(null)} className="text-gray-400 hover:text-gray-600"><MdClose /></button>
+            </div>
+          </div>
+          {teamSyncDiff.added.length > 0 && (
+            <div className="mb-2">
+              <span className="text-[10px] font-bold text-green-700 uppercase">נוספו:</span>
+              {teamSyncDiff.added.map((t, i) => (
+                <div key={i} className="text-xs text-green-800 bg-green-50 rounded-lg px-2 py-1 mt-1 border border-green-200">+ {t}</div>
+              ))}
+            </div>
+          )}
+          {teamSyncDiff.removed.length > 0 && (
+            <div>
+              <span className="text-[10px] font-bold text-red-700 uppercase">הוסרו:</span>
+              {teamSyncDiff.removed.map((t, i) => (
+                <div key={i} className="text-xs text-red-800 bg-red-50 rounded-lg px-2 py-1 mt-1 border border-red-200">- {t}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {teamSyncDiff?.unchanged && (
+        <div className="bg-teal-50 rounded-xl border border-teal-200 p-3 mb-3 text-center text-sm text-teal-700 font-medium">
+          לוז הצוות של היום לא השתנה
+        </div>
+      )}
+
       {/* Sync diff panel */}
       {syncDiff && !syncDiff.unchanged && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-4 mb-3 shadow-sm">
@@ -645,7 +737,7 @@ export default function ScheduleDailyPage() {
                           <EventCard
                             event={group.events[0].event} idx={group.events[0].idx} compact={false}
                             isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
-                            reminding={reminding} onDetail={setDetailEvent} onEdit={openEdit}
+                            reminding={reminding} currentUserId={myUserId} onDetail={setDetailEvent} onEdit={openEdit}
                             onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
                           />
                         </div>
@@ -656,7 +748,7 @@ export default function ScheduleDailyPage() {
                               key={evItem.event.id}
                               event={evItem.event} idx={evItem.idx} compact={true}
                               isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
-                              reminding={reminding} onDetail={setDetailEvent} onEdit={openEdit}
+                              reminding={reminding} currentUserId={myUserId} onDetail={setDetailEvent} onEdit={openEdit}
                               onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
                             />
                           ))}

@@ -35,8 +35,8 @@ interface DashboardFeed {
   pendingForms: { id: string; title: string; deadline: string | null }[];
   birthdayUsers: { id: string; name: string; image: string | null }[];
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
-  currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; status: "now" | "next" } | null;
-  allDaySchedule: { id: string; title: string; type: string }[];
+  currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" } | null;
+  allDaySchedule: { id: string; title: string; type: string; target: string; assignees: { id: string }[] }[];
   pendingSurveys: { id: string; title: string; createdAt: string }[];
   pendingPlatoonSurveys: { id: string; title: string; createdAt: string }[];
   platoonSurveyCommanderId: string | null;
@@ -232,30 +232,49 @@ export default function DashboardPage() {
               <MdCalendarMonth className="text-2xl text-gray-500 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-xs text-gray-400 block">כל היום</span>
-                <span className="text-sm font-medium text-gray-700">
-                  {feed.allDaySchedule.map((e) => e.title).join(" | ")}
-                </span>
+                <div className="flex flex-wrap gap-1.5 mt-0.5">
+                  {feed.allDaySchedule.map((e) => (
+                    <span key={e.id} className={`text-sm font-medium ${e.assignees?.length > 0 ? "text-teal-700" : e.target !== "all" ? "text-teal-600" : "text-gray-700"}`}>
+                      {e.title}
+                      {e.target !== "all" && <span className="text-[9px] text-teal-500 mr-1">(צוות)</span>}
+                      {e.assignees?.length > 0 && <span className="text-[9px] bg-teal-100 text-teal-700 px-1 rounded font-bold mr-1">עבורך</span>}
+                    </span>
+                  ))}
+                </div>
               </div>
             </Link>
           )}
 
           {/* Current/next timed schedule event */}
-          {feed.currentSchedule && (
-            <Link href="/schedule-daily" className={`flex items-center gap-3 ${feed.currentSchedule.status === "now" ? "bg-dotan-mint-light border-dotan-green ring-1 ring-dotan-green" : "bg-sky-50 border-sky-200"} border rounded-xl p-3 hover:shadow-sm transition`}>
-              <MdCalendarMonth className={`text-2xl shrink-0 ${feed.currentSchedule.status === "now" ? "text-dotan-green animate-pulse" : "text-sky-500"}`} />
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm font-medium ${feed.currentSchedule.status === "now" ? "text-dotan-green-dark" : "text-sky-700"}`}>
-                  {feed.currentSchedule.status === "now" ? "עכשיו: " : "הבא: "}
-                  {feed.currentSchedule.title}
-                </span>
-                <span className={`text-xs block ${feed.currentSchedule.status === "now" ? "text-dotan-green" : "text-sky-500"}`}>
-                  {new Date(feed.currentSchedule.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                  {" - "}
-                  {new Date(feed.currentSchedule.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                </span>
-              </div>
-            </Link>
-          )}
+          {feed.currentSchedule && (() => {
+            const cs = feed.currentSchedule;
+            const isPersonal = cs.assignees?.length > 0;
+            const isTeam = cs.target !== "all";
+            return (
+              <Link href="/schedule-daily" className={`flex items-center gap-3 ${
+                cs.status === "now"
+                  ? isPersonal ? "bg-teal-50 border-teal-400 ring-1 ring-teal-400" : "bg-dotan-mint-light border-dotan-green ring-1 ring-dotan-green"
+                  : isPersonal ? "bg-teal-50 border-teal-200" : "bg-sky-50 border-sky-200"
+              } border rounded-xl p-3 hover:shadow-sm transition`}>
+                <MdCalendarMonth className={`text-2xl shrink-0 ${cs.status === "now" ? isPersonal ? "text-teal-500 animate-pulse" : "text-dotan-green animate-pulse" : isPersonal ? "text-teal-500" : "text-sky-500"}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`text-sm font-medium ${cs.status === "now" ? isPersonal ? "text-teal-800" : "text-dotan-green-dark" : isPersonal ? "text-teal-700" : "text-sky-700"}`}>
+                      {cs.status === "now" ? "עכשיו: " : "הבא: "}
+                      {cs.title}
+                    </span>
+                    {isTeam && <span className="text-[9px] text-teal-500 bg-teal-100 px-1.5 py-0.5 rounded font-bold">צוות</span>}
+                    {isPersonal && <span className="text-[9px] text-teal-700 bg-teal-200 px-1.5 py-0.5 rounded font-bold">עבורך</span>}
+                  </div>
+                  <span className={`text-xs block ${cs.status === "now" ? isPersonal ? "text-teal-600" : "text-dotan-green" : isPersonal ? "text-teal-500" : "text-sky-500"}`}>
+                    {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                    {" - "}
+                    {new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                  </span>
+                </div>
+              </Link>
+            );
+          })()}
 
           {/* Today's personal/team notes — full list */}
           {feed.todayNotes?.length > 0 && (
