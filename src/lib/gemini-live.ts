@@ -148,9 +148,19 @@ export class GeminiLiveClient {
     this.ws.send(JSON.stringify(configMessage));
   }
 
-  private handleMessage(event: MessageEvent) {
+  private async handleMessage(event: MessageEvent) {
     try {
-      const data = JSON.parse(event.data);
+      // Gemini Live API can send both text (JSON) and binary messages
+      let rawText: string;
+      if (event.data instanceof Blob) {
+        rawText = await event.data.text();
+      } else if (event.data instanceof ArrayBuffer) {
+        rawText = new TextDecoder().decode(event.data);
+      } else {
+        rawText = event.data;
+      }
+
+      const data = JSON.parse(rawText);
 
       // Handle setup complete
       if (data.setupComplete) {
