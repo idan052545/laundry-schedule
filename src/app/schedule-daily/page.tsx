@@ -287,6 +287,16 @@ export default function ScheduleDailyPage() {
     setReminding(null);
   };
 
+  const handleRemindAssigned = async (id: string) => {
+    setReminding(id);
+    await fetch("/api/schedule", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "remind-assigned" }),
+    });
+    setReminding(null);
+  };
+
   const openEdit = (event: ScheduleEvent) => {
     setShowAdd(false);
     const start = new Date(event.startTime);
@@ -802,7 +812,7 @@ export default function ScheduleDailyPage() {
                             event={group.events[0].event} idx={group.events[0].idx} compact={false}
                             isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
                             reminding={reminding} currentUserId={myUserId} onDetail={setDetailEvent} onEdit={openEdit}
-                            onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
+                            onDelete={handleDelete} onRemind={handleRemind} onRemindAssigned={handleRemindAssigned} onAssign={openAssign} onMove={moveEvent}
                           />
                         </div>
                       ) : (
@@ -813,7 +823,7 @@ export default function ScheduleDailyPage() {
                               event={evItem.event} idx={evItem.idx} compact={true}
                               isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
                               reminding={reminding} currentUserId={myUserId} onDetail={setDetailEvent} onEdit={openEdit}
-                              onDelete={handleDelete} onRemind={handleRemind} onAssign={openAssign} onMove={moveEvent}
+                              onDelete={handleDelete} onRemind={handleRemind} onRemindAssigned={handleRemindAssigned} onAssign={openAssign} onMove={moveEvent}
                             />
                           ))}
                         </div>

@@ -2,7 +2,7 @@
 
 import {
   MdEdit, MdDelete, MdNotifications, MdPersonAdd,
-  MdArrowUpward, MdArrowDownward,
+  MdArrowUpward, MdArrowDownward, MdAccessAlarm,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { TYPE_CONFIG, TARGET_LABELS } from "./constants";
@@ -22,13 +22,14 @@ interface EventCardProps {
   onEdit: (event: ScheduleEvent) => void;
   onDelete: (id: string) => void;
   onRemind: (id: string) => void;
+  onRemindAssigned: (id: string) => void;
   onAssign: (event: ScheduleEvent) => void;
   onMove: (idx: number, direction: "up" | "down") => void;
 }
 
 export default function EventCard({
   event, idx, compact, isAdmin, isToday, timedEventsLength,
-  reminding, currentUserId, onDetail, onEdit, onDelete, onRemind, onAssign, onMove,
+  reminding, currentUserId, onDetail, onEdit, onDelete, onRemind, onRemindAssigned, onAssign, onMove,
 }: EventCardProps) {
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
   const Icon = config.icon;
@@ -120,6 +121,17 @@ export default function EventCard({
                 <span className="text-[10px] text-gray-400">+{event.assignees.length - 4}</span>
               )}
             </div>
+          )}
+
+          {!active && event.assignees.length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemindAssigned(event.id); }}
+              disabled={reminding === event.id}
+              className={`flex items-center gap-1 ${compact ? "mt-1" : "mt-1.5"} text-[10px] font-medium text-blue-500 hover:text-blue-700 transition disabled:opacity-50`}
+            >
+              <MdAccessAlarm className={`text-xs ${reminding === event.id ? "animate-bounce" : ""}`} />
+              <span>הזכר משובצים</span>
+            </button>
           )}
 
           {isAdmin && (

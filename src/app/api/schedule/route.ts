@@ -148,6 +148,36 @@ export async function PUT(request: Request) {
     return NextResponse.json(event);
   }
 
+  // Handle remind-assigned: notify assigned users with minutes countdown
+  if (action === "remind-assigned") {
+    const event = await prisma.scheduleEvent.findUnique({
+      where: { id },
+      include: { assignees: true },
+    });
+    if (!event) return NextResponse.json({ error: "אירוע לא נמצא" }, { status: 404 });
+    if (event.assignees.length === 0) return NextResponse.json({ error: "אין משובצים" }, { status: 400 });
+
+    const now = new Date();
+    const start = new Date(event.startTime);
+    const diffMs = start.getTime() - now.getTime();
+    const diffMin = Math.max(1, Math.round(diffMs / 60000));
+
+    const startStr = start.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+    const bodyText = diffMs > 0
+      ? `עוד ${diffMin} דקות (${startStr})`
+      : `עכשיו! (${startStr})`;
+
+    const userIds = event.assignees.map((a) => a.userId);
+    await sendPushToUsers(userIds, {
+      title: `⏰ ${event.title}`,
+      body: bodyText,
+      url: "/schedule-daily",
+      tag: `schedule-remind-assigned-${id}`,
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
   // Handle remind action
   if (action === "remind") {
     const event = await prisma.scheduleEvent.findUnique({
