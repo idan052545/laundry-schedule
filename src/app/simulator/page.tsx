@@ -1029,9 +1029,12 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       onTranscriptOut: (text) => {
         transcriptOutRef.current = [...transcriptOutRef.current, text];
         setTranscriptOut([...transcriptOutRef.current]);
-        // Accumulate full output for end detection
+        // Accumulate full output for end detection (normalize spaces)
         fullOutputRef.current += " " + text;
-        if (fullOutputRef.current.includes("כל הכבוד") && fullOutputRef.current.includes("סיימת את הסימולציה")) {
+        const normalized = fullOutputRef.current.replace(/\s+/g, " ").trim();
+        // Check for end phrase - flexible matching for fragmented transcripts
+        if (normalized.includes("כל הכבוד") && normalized.includes("סיימת") && normalized.includes("סימולציה")) {
+          console.log("[Voice] End detected in transcript:", normalized);
           triggerEnd();
         }
       },

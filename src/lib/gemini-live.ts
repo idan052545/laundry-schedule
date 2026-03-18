@@ -195,7 +195,9 @@ export class GeminiLiveClient {
           console.log("[GeminiLive] AI said:", text);
           this.config.onTranscriptOut?.(text);
 
-          if (text.includes("כל הכבוד") && text.includes("סיימת את הסימולציה")) {
+          // Flexible end detection - check individual keywords
+          if (text.includes("כל הכבוד") && text.includes("סיימת") && text.includes("סימולציה")) {
+            console.log("[GeminiLive] End phrase detected in single transcript chunk");
             this.config.onSimulationEnd?.();
           }
         }
