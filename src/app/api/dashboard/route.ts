@@ -124,7 +124,7 @@ export async function GET() {
         OR: targetFilter,
       },
       orderBy: { startTime: "asc" },
-      take: 2,
+      take: 10,
       select: {
         id: true, title: true, startTime: true, endTime: true, type: true, target: true,
         assignees: { where: { userId }, select: { id: true } },
@@ -243,19 +243,21 @@ export async function GET() {
   });
   const hasVotedThisWeek = !!weeklyVote;
 
-  // Pick current (happening now) or next upcoming timed event
-  let currentSchedule: { id: string; title: string; startTime: Date; endTime: Date; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" } | null = null;
+  // Collect all "now" events + first upcoming "next" event
+  const scheduleItems: { id: string; title: string; startTime: Date; endTime: Date; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" }[] = [];
+  let foundNext = false;
   for (const ev of timedEvents) {
     const start = new Date(ev.startTime);
     const end = new Date(ev.endTime);
     if (now >= start && now <= end) {
-      currentSchedule = { ...ev, startTime: start, endTime: end, status: "now" };
-      break;
-    } else if (start > now) {
-      currentSchedule = { ...ev, startTime: start, endTime: end, status: "next" };
-      break;
+      scheduleItems.push({ ...ev, startTime: start, endTime: end, status: "now" });
+    } else if (start > now && !foundNext) {
+      scheduleItems.push({ ...ev, startTime: start, endTime: end, status: "next" });
+      foundNext = true;
     }
   }
+  // Keep backward compat: currentSchedule = first item
+  const currentSchedule = scheduleItems.length > 0 ? scheduleItems[0] : null;
 
   // Find simulations commander for platoon survey link
   let platoonSurveyCommanderId: string | null = null;
@@ -275,6 +277,7 @@ export async function GET() {
     birthdayUsers,
     unreadMaterials: latestMaterial,
     currentSchedule,
+    scheduleItems,
     allDaySchedule: allDayEvents,
     myTeamAssignments,
     pendingSurveys,

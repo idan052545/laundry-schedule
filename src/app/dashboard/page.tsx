@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { InlineLoading } from "@/components/LoadingScreen";
 import Image from "next/image";
@@ -37,6 +37,7 @@ interface DashboardFeed {
   birthdayUsers: { id: string; name: string; image: string | null }[];
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
   currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" } | null;
+  scheduleItems: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" }[];
   allDaySchedule: { id: string; title: string; type: string; target: string; assignees: { id: string }[] }[];
   myTeamAssignments: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; allDay: boolean }[];
   pendingSurveys: { id: string; title: string; createdAt: string }[];
@@ -105,9 +106,9 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [visible, setVisible] = useState<Set<SectionKey>>(() => loadVisibleSections());
-  const [dashStyle, setDashStyle] = useState<"new" | "classic">(() => {
+  const [dashStyle, setDashStyle] = useState<"new" | "classic" | "carousel">(() => {
     if (typeof window === "undefined") return "new";
-    return (localStorage.getItem("dashboard-style") as "new" | "classic") || "new";
+    return (localStorage.getItem("dashboard-style") as "new" | "classic" | "carousel") || "new";
   });
 
   const today = new Date().toISOString().split("T")[0];
@@ -221,15 +222,13 @@ export default function DashboardPage() {
             <button onClick={() => setShowSettings(false)} className="text-xs text-gray-400 hover:text-gray-600">סגור</button>
           </div>
           {/* Style toggle */}
-          <div className="flex gap-1.5 mb-3 bg-gray-100 rounded-xl p-1">
-            <button onClick={() => { setDashStyle("new"); localStorage.setItem("dashboard-style", "new"); }}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${dashStyle === "new" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
-              עיצוב חדש
-            </button>
-            <button onClick={() => { setDashStyle("classic"); localStorage.setItem("dashboard-style", "classic"); }}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${dashStyle === "classic" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
-              עיצוב קלאסי
-            </button>
+          <div className="flex gap-1 mb-3 bg-gray-100 rounded-xl p-1">
+            {([["new", "כרטיסים"], ["carousel", "קרוסלה"], ["classic", "קלאסי"]] as const).map(([key, label]) => (
+              <button key={key} onClick={() => { setDashStyle(key); localStorage.setItem("dashboard-style", key); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition ${dashStyle === key ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
+                {label}
+              </button>
+            ))}
           </div>
           <div className="flex flex-wrap gap-2">
             {(Object.keys(SECTION_LABELS) as SectionKey[]).map(key => (
@@ -404,39 +403,36 @@ export default function DashboardPage() {
             </Link>
           )}
 
-          {/* Schedule glance — redesigned with timeline feel */}
-          {visible.has("schedule") && (feed.currentSchedule || feed.allDaySchedule.length > 0) && (
+          {/* Schedule glance — show all current + next */}
+          {visible.has("schedule") && ((feed.scheduleItems?.length > 0) || feed.allDaySchedule.length > 0) && (
             <Link href="/schedule-daily" className="block bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition">
               <div className="bg-gradient-to-l from-emerald-500 to-dotan-green px-3.5 py-2 flex items-center gap-2">
                 <MdCalendarMonth className="text-sm text-white/90" />
                 <span className="text-[11px] font-bold text-white/90">לו&quot;ז היום</span>
+                {feed.scheduleItems?.some(s => s.status === "now") && (
+                  <span className="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-bold mr-auto flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> עכשיו
+                  </span>
+                )}
               </div>
-              <div className="px-3.5 py-2.5">
-                {feed.currentSchedule && (() => {
-                  const cs = feed.currentSchedule;
-                  const isNow = cs.status === "now";
+              <div className="px-3.5 py-2.5 space-y-1.5">
+                {(feed.scheduleItems || []).map((ev) => {
+                  const isNow = ev.status === "now";
                   return (
-                    <div className="flex items-center gap-2.5">
-                      {isNow ? (
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0 ring-4 ring-green-100" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-semibold text-gray-800 truncate block">{cs.title}</span>
-                        <span className="text-[11px] text-gray-400 tabular-nums" dir="ltr">
-                          {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                          {" – "}
-                          {new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                        </span>
-                      </div>
-                      {isNow && <span className="text-[9px] bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shrink-0">עכשיו</span>}
-                      {cs.assignees?.length > 0 && <span className="text-[8px] bg-teal-500 text-white px-1.5 py-0.5 rounded-full font-bold shrink-0">עבורך</span>}
+                    <div key={ev.id} className={`flex items-center gap-2.5 ${!isNow ? "opacity-60" : ""}`}>
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${isNow ? "bg-green-500 animate-pulse ring-4 ring-green-100" : "bg-gray-300"}`} />
+                      <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0 w-[90px]" dir="ltr">
+                        {new Date(ev.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                        {" – "}
+                        {new Date(ev.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-800 truncate">{ev.title}</span>
+                      {ev.assignees?.length > 0 && <span className="text-[8px] bg-teal-500 text-white px-1.5 py-0.5 rounded-full font-bold shrink-0">עבורך</span>}
                     </div>
                   );
-                })()}
+                })}
                 {feed.allDaySchedule.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-50">
+                  <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-gray-50">
                     {feed.allDaySchedule.map((e) => (
                       <span key={e.id} className="text-[10px] bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full border border-gray-100">
                         {e.title}
@@ -622,6 +618,11 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Carousel view */}
+      {feed && dashStyle === "carousel" && (
+        <CarouselFeed feed={feed} visible={visible} />
+      )}
+
       {/* Feature Cards — clean grid */}
       <div className="grid grid-cols-3 gap-2 mb-6">
         {features.map(({ href, icon: Icon, title, color, bg }) => (
@@ -672,6 +673,340 @@ export default function DashboardPage() {
         <Image src="/bahad1Logo.png" alt="בהד 1" width={28} height={28} className="rounded-full" />
         <Image src="/erezLogo.png" alt="ארז" width={28} height={28} className="rounded-full" />
       </div>
+    </div>
+  );
+}
+
+// ─── Carousel Feed Component ───
+
+interface CarouselCard {
+  key: string;
+  href: string;
+  gradient: string;
+  iconBg: string;
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  content?: React.ReactNode;
+}
+
+function CarouselFeed({ feed, visible }: { feed: DashboardFeed; visible: Set<SectionKey> }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  const cards: CarouselCard[] = [];
+
+  // Quote
+  if (visible.has("quote") && feed.dailyQuote) {
+    cards.push({
+      key: "quote",
+      href: "/daily-quote",
+      gradient: "from-indigo-500 via-purple-500 to-pink-500",
+      iconBg: "bg-white/20",
+      icon: <MdAutoAwesome className="text-xl text-white" />,
+      title: "משפט היומי",
+      subtitle: feed.dailyQuote.user.name,
+      content: (
+        <p className="text-white/90 text-sm leading-relaxed mt-2 line-clamp-3">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
+      ),
+    });
+  }
+
+  // Schedule
+  if (visible.has("schedule") && ((feed.scheduleItems?.length > 0) || feed.allDaySchedule.length > 0)) {
+    const hasNow = feed.scheduleItems?.some(s => s.status === "now");
+    cards.push({
+      key: "schedule",
+      href: "/schedule-daily",
+      gradient: hasNow ? "from-green-500 to-emerald-600" : "from-emerald-500 to-teal-600",
+      iconBg: "bg-white/20",
+      icon: <MdCalendarMonth className="text-xl text-white" />,
+      title: "לו\"ז היום",
+      subtitle: hasNow ? "עכשיו" : undefined,
+      content: (
+        <div className="mt-2 space-y-1">
+          {(feed.scheduleItems || []).slice(0, 4).map(ev => (
+            <div key={ev.id} className={`flex items-center gap-2 ${ev.status !== "now" ? "opacity-60" : ""}`}>
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${ev.status === "now" ? "bg-white animate-pulse" : "bg-white/40"}`} />
+              <span className="text-[10px] text-white/70 tabular-nums shrink-0" dir="ltr">
+                {new Date(ev.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+              </span>
+              <span className="text-xs text-white truncate">{ev.title}</span>
+            </div>
+          ))}
+          {feed.allDaySchedule.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {feed.allDaySchedule.slice(0, 3).map(e => (
+                <span key={e.id} className="text-[10px] bg-white/15 text-white/80 px-2 py-0.5 rounded-full">{e.title}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+    });
+  }
+
+  // Duty
+  if (visible.has("duty") && feed.nextDutyTables?.length > 0) {
+    for (const dt of feed.nextDutyTables) {
+      const isObs = dt.type === "obs";
+      cards.push({
+        key: `duty-${dt.id}`,
+        href: "/guard-duty",
+        gradient: isObs ? "from-blue-500 to-indigo-600" : "from-amber-500 to-orange-600",
+        iconBg: "bg-white/20",
+        icon: <MdSecurity className="text-xl text-white" />,
+        title: dt.title,
+        subtitle: new Date(dt.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" }),
+        content: dt.myAssignments.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {dt.myAssignments.map((a, i) => (
+              <span key={i} className="text-[10px] bg-white/20 text-white px-2 py-1 rounded-lg font-medium">
+                {a.role} · {a.timeSlot}
+              </span>
+            ))}
+          </div>
+        ) : <p className="text-white/60 text-xs mt-2">אין שיבוצים עבורך</p>,
+      });
+    }
+  }
+
+  // Team assignments
+  if (visible.has("teamSchedule") && feed.myTeamAssignments?.length > 0) {
+    cards.push({
+      key: "team",
+      href: "/schedule-daily",
+      gradient: "from-teal-500 to-cyan-600",
+      iconBg: "bg-white/20",
+      icon: <MdCalendarMonth className="text-xl text-white" />,
+      title: "לו\"ז צוות — עבורך",
+      subtitle: `${feed.myTeamAssignments.length} משימות`,
+      content: (
+        <div className="space-y-1 mt-2">
+          {feed.myTeamAssignments.slice(0, 3).map(e => (
+            <div key={e.id} className="flex items-center gap-2 bg-white/10 rounded-lg px-2 py-1">
+              <span className="text-[11px] font-bold text-white/80 tabular-nums w-12 text-center" dir="ltr">
+                {e.allDay ? "כל היום" : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+              </span>
+              <span className="text-xs text-white truncate">{e.title}</span>
+            </div>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // Tasks
+  if (visible.has("tasks") && feed.todayTasks.length > 0) {
+    cards.push({
+      key: "tasks",
+      href: "/tasks",
+      gradient: "from-purple-500 to-indigo-600",
+      iconBg: "bg-white/20",
+      icon: <MdAssignment className="text-xl text-white" />,
+      title: `${feed.todayTasks.length} משימות`,
+      content: (
+        <div className="space-y-1 mt-2">
+          {feed.todayTasks.slice(0, 3).map(t => (
+            <div key={t.id} className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.priority === "urgent" ? "bg-red-300" : t.priority === "high" ? "bg-orange-300" : "bg-white/40"}`} />
+              <span className="text-xs text-white/90 truncate">{t.title}</span>
+            </div>
+          ))}
+          {feed.todayTasks.length > 3 && <span className="text-[10px] text-white/50">+ עוד {feed.todayTasks.length - 3}</span>}
+        </div>
+      ),
+    });
+  }
+
+  // Forms
+  if (visible.has("forms") && feed.pendingForms.length > 0) {
+    cards.push({
+      key: "forms",
+      href: "/forms",
+      gradient: "from-orange-500 to-amber-600",
+      iconBg: "bg-white/20",
+      icon: <MdDescription className="text-xl text-white" />,
+      title: `${feed.pendingForms.length} טפסים למילוי`,
+      content: (
+        <div className="space-y-0.5 mt-2">
+          {feed.pendingForms.slice(0, 3).map(f => (
+            <p key={f.id} className="text-xs text-white/80 truncate">{f.title}</p>
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // Chopal
+  if (visible.has("chopal") && feed.chopalStatus?.isOpen && !feed.chopalStatus?.registered) {
+    cards.push({
+      key: "chopal",
+      href: "/chopal",
+      gradient: "from-rose-500 to-pink-600",
+      iconBg: "bg-white/20",
+      icon: <MdLocalHospital className="text-xl text-white" />,
+      title: "מסדר חופ\"ל",
+      subtitle: "הירשם/י למחר (עד 21:00)",
+    });
+  }
+  if (visible.has("chopal") && feed.chopalStatus?.registered) {
+    cards.push({
+      key: "chopal-done",
+      href: "/chopal",
+      gradient: "from-green-500 to-emerald-600",
+      iconBg: "bg-white/20",
+      icon: <MdCheckCircle className="text-xl text-white" />,
+      title: "נרשמת לחופ\"ל למחר",
+      subtitle: "✓",
+    });
+  }
+
+  // Surveys
+  if (visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0)) {
+    const total = (feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0);
+    cards.push({
+      key: "surveys",
+      href: "/surveys",
+      gradient: "from-violet-500 to-purple-600",
+      iconBg: "bg-white/20",
+      icon: <MdPoll className="text-xl text-white" />,
+      title: `${total} סקרים ממתינים`,
+    });
+  }
+
+  // Birthdays
+  if (visible.has("birthdays") && feed.birthdayUsers.length > 0) {
+    cards.push({
+      key: "birthdays",
+      href: "/birthdays",
+      gradient: "from-pink-500 to-rose-600",
+      iconBg: "bg-white/20",
+      icon: <MdCake className="text-xl text-white" />,
+      title: "יום הולדת שמח!",
+      subtitle: feed.birthdayUsers.map(u => u.name).join(", "),
+      content: (
+        <div className="flex -space-x-2 mt-2">
+          {feed.birthdayUsers.slice(0, 4).map(u => (
+            <Avatar key={u.id} name={u.name} image={u.image} size="sm" />
+          ))}
+        </div>
+      ),
+    });
+  }
+
+  // Messages
+  if (visible.has("messages") && feed.latestMessage) {
+    cards.push({
+      key: "messages",
+      href: "/messages",
+      gradient: "from-blue-500 to-indigo-600",
+      iconBg: "bg-white/20",
+      icon: <MdMessage className="text-xl text-white" />,
+      title: feed.latestMessage.title,
+      subtitle: feed.latestMessage.author.name,
+    });
+  }
+
+  // Commander
+  if (visible.has("commander") && feed.pinnedPosts.length > 0) {
+    cards.push({
+      key: "commander",
+      href: "/commander",
+      gradient: "from-yellow-500 to-amber-600",
+      iconBg: "bg-white/20",
+      icon: <MdPushPin className="text-xl text-white" />,
+      title: feed.pinnedPosts[0].title,
+      subtitle: feed.pinnedPosts[0].author.name,
+    });
+  }
+
+  // Vote
+  if (visible.has("vote") && feed.hasVotedThisWeek === false) {
+    cards.push({
+      key: "vote",
+      href: "/person-of-week",
+      gradient: "from-yellow-400 to-orange-500",
+      iconBg: "bg-white/20",
+      icon: <MdEmojiEvents className="text-xl text-white" />,
+      title: "בחרו את איש/ת השבוע!",
+    });
+  }
+
+  // Materials
+  if (visible.has("materials") && feed.unreadMaterials.length > 0) {
+    cards.push({
+      key: "materials",
+      href: "/materials",
+      gradient: "from-rose-500 to-red-600",
+      iconBg: "bg-white/20",
+      icon: <MdNewReleases className="text-xl text-white" />,
+      title: `${feed.unreadMaterials.length} חומרים חדשים`,
+    });
+  }
+
+  // Notes
+  if (visible.has("notes") && feed.todayNotes?.length > 0) {
+    cards.push({
+      key: "notes",
+      href: "/schedule-daily",
+      gradient: "from-amber-500 to-yellow-600",
+      iconBg: "bg-white/20",
+      icon: <MdStickyNote2 className="text-xl text-white" />,
+      title: `${feed.todayNotes.length} הערות להיום`,
+    });
+  }
+
+  if (cards.length === 0) return null;
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const el = scrollRef.current;
+    const cardWidth = el.scrollWidth / cards.length;
+    const idx = Math.round(el.scrollLeft / cardWidth);
+    setActiveIdx(Math.min(idx, cards.length - 1));
+  };
+
+  return (
+    <div className="mb-5 -mx-4">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-3 scrollbar-hide"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+      >
+        {cards.map((card) => (
+          <Link
+            key={card.key}
+            href={card.href}
+            className={`snap-center shrink-0 w-[75vw] max-w-[300px] rounded-2xl bg-gradient-to-br ${card.gradient} p-4 shadow-lg hover:shadow-xl transition-shadow min-h-[140px] flex flex-col`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className={`w-10 h-10 rounded-xl ${card.iconBg} flex items-center justify-center backdrop-blur-sm`}>
+                {card.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-white truncate">{card.title}</h3>
+                {card.subtitle && <p className="text-[11px] text-white/60 truncate">{card.subtitle}</p>}
+              </div>
+            </div>
+            {card.content && <div className="flex-1">{card.content}</div>}
+          </Link>
+        ))}
+      </div>
+      {/* Dots indicator */}
+      {cards.length > 1 && (
+        <div className="flex justify-center gap-1 mt-1">
+          {cards.map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-full transition-all ${
+                i === activeIdx ? "w-4 h-1.5 bg-dotan-green" : "w-1.5 h-1.5 bg-gray-300"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
