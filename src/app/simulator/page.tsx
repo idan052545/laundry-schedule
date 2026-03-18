@@ -325,30 +325,41 @@ ${noSolutionPool}
 }
 
 function buildFeedbackPrompt(s: Scenario, commander: string, messagesJson: string) {
+  // Exact prompt from PDF pages 13-14: הנחיית משוב AI ברירת מחדל
   return `אתה מהווה סימולציה צבאית מדויקת של אדם: ${s.conflictCharacter}. תפקידך הוא לדמות באופן מציאותי את האישיות, ההתנהגות והתגובות של דמות זו, בהתאם לפרמטרים שיסופקו.
-האדם שאתה מנהל עמו את הסימולציה (המשתמש) הוא: ${commander} הקשר בינך לבין המשתמש הוא: ${s.relationship} הסיפור רקע של הסימולציה הוא: ${s.servicenature} המטרה הסמויה של המשתמש בסימולציה זו היא: ${s.objective}
-רמת הקושי של הסימולציה היא: ${s.difficulty} (בין 1 ל-10).
-הערכים והמוטיבים שמניעים אותך כדמות בסימולציה הם: ${s.machineMotivation}
-נקודות התורפה שניתן לנצל בסימולציה כדי לשכנע אותך הן: ${s.keypoints}
+האדם שאתה מנהל עמו את הסימולציה (המשתמש) הוא: ${commander} הקשר בינך לבין המשתמש הוא: ${s.relationship} הסיפור רקע של הסימולציה הוא: ${s.servicenature} המטרה הסמויה של המשתמש בסימולציה זו היא: ${s.objective} *חשוב:* אינך מודע ישירות למטרה זו, ואינך צריך להכיר בה או להתייחס אליה באופן ישיר במהלך הסימולציה. תפקידך הוא לדמות את הדמות שלך בצורה אמינה. עם זאת, עליך לעקוב ולבחון את התנהלות המשתמש לאורך הסימולציה כדי להעריך עד כמה הוא מתקרב או מצליח להשיג מטרה זו. רמת הקושי של הסימולציה היא: ${s.difficulty} (בין 1 ל-10). ככל שרמת הקושי גבוהה יותר, כך עליך להיות קשה יותר לשכנוע. דרש מהמשתמש להתמקד ביותר מיומנויות ו/או נקודות תורפה כדי להשפיע עליך.
+הערכים והמוטיבים שמניעים אותך כדמות בסימולציה הם: ${s.machineMotivation} נקודות התורפה שניתן לנצל בסימולציה כדי לשכנע אותך או להשפיע עליך הן: ${s.keypoints} המשך לשחק את הדמות שלך בצורה מופתית ואמינה לכל אורך הסימולציה. סיים את הסימולציה ותרשום "כל הכבוד – סיימת את הסימולציה" כאשר המשתמש הצליח להשיג את המטרה: ${s.objective}
 
-להלן היסטוריית השיחה:
+להלן היסטוריית השיחה לאורך כל הסימולציה עד סיומה:
 ${messagesJson}
+(אם לא הופיעה כלום בין השורה הזו לשורה שרשום בה "עד סיומה" - משמע לא הייתה שיחה כלל)
 
-כעת תשלח ביקורת מקיפה על התנהגות המשתמש בסימולציה בגוף שני (פנייה ישירה למשתמש) במבנה הבא:
-"(פסקה קצרה המתארת את התנהלות הסימולציה)"
+כעת תשלח ביקורת מקיפה על התנהגות המשתמש בסימולציה בגוף שני (פנייה ישירה למשתמש) במבנה המדויק הבא:
+"(פסקה קצרה המתארת את התנהלות הסימולציה, מה היה ומה קרה)"
 "האם המשתמש עמד במטרת הסימולציה: ${s.objective}. והסבר בקצרה למה"
-נקודות לשימור (עם ציטוטים)
-נקודות לשיפור (עם ציטוטים)
-הערכות מיומנויות:
-מיומנויות לציון לחיוב - (2 מיומנויות בולטות)
-מיומנויות נדרשות לחיזוק - (2 מיומנויות בולטות)
+
+נקודות לשימור (רצוי להוסיף לכל נקודה ציטוטים משיחת המשתמש המבססים את טענותיך)
+- (נקודות עצמן)
+
+נקודות לשיפור (רצוי להוסיף לכל נקודה ציטוטים משיחת המשתמש המבססים את טענותיך)
+- (נקודות עצמן)
+
+הערכות מיומנויות: (רצוי להוסיף לכל נקודה ציטוטים משיחת המשתמש המבססים את טענותיך)
+מיומנויות לציון לחיוב
+- (2 מיומנויות בולטות)
+
+מיומנויות נדרשות לחיזוק
+- (2 מיומנויות בולטות)
+
 הערכת טון דיבור (רלוונטי במיוחד לסימולציה קולית):
 התייחס לטון הדיבור של המשתמש לאורך הסימולציה:
 - האם הטון התאים למילים? (למשל: מילים אמפתיות בטון קר = חוסר התאמה)
 - האם הטון עזר או הפריע להתקדמות? (למשל: טון רגוע ופתוח עוזר, טון תוקפני סוגר)
-- נקודות שימור בטון: מה היה טוב בטון (למשל: "הטון הרגוע והסבלני עזר לפתוח את רונה")
-- נקודות שיפור בטון: מה אפשר לשפר (למשל: "היה רגע שהטון היה קצר מדי / חסר חום / לא התאים למילים")
-שים לב לגעת בכל נקודה בצורה תמציתית ומדויקת עד 4 משפטים. המשוב הכולל לא יכול להיות יותר מ25 שורות`;
+- נקודות שימור בטון: מה היה טוב בטון
+- נקודות שיפור בטון: מה אפשר לשפר
+
+שים לב לגעת בכל נקודה בצורה תמציתית ומדויקת עד 4 משפטים.
+המשוב הכולל לא יכול להיות יותר מ20 שורות`;
 }
 
 function buildScorePrompt(s: Scenario, commander: string, messagesJson: string) {
@@ -955,8 +966,8 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   onBack: () => void;
 }) {
   const [voiceStatus, setVoiceStatus] = useState<string>("disconnected");
-  const [transcriptIn, setTranscriptIn] = useState<string[]>([]); // what user said (for UI)
-  const [transcriptOut, setTranscriptOut] = useState<string[]>([]); // what AI said (for UI)
+  // Aggregated complete turns (for UI and saving)
+  const [turns, setTurns] = useState<ChatMessage[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [introText, setIntroText] = useState("");
@@ -964,11 +975,15 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const [errorMsg, setErrorMsg] = useState("");
   const clientRef = useRef<import("@/lib/gemini-live").GeminiLiveClient | null>(null);
   const completedRef = useRef(false);
-  // Use refs for transcripts so callbacks always see latest values
-  const transcriptInRef = useRef<string[]>([]);
-  const transcriptOutRef = useRef<string[]>([]);
-  // Accumulate all output text for end detection (transcripts come in fragments)
+  // Fragment accumulators for current turn
+  const currentUserFragments = useRef("");
+  const currentAiFragments = useRef("");
+  // Complete turns ref (always up to date for callbacks)
+  const turnsRef = useRef<ChatMessage[]>([]);
+  // Full AI output for end detection
   const fullOutputRef = useRef("");
+  // Track previous status for turn boundary detection
+  const voiceStatusRef = useRef("disconnected");
 
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
   const systemPrompt = buildChatSystemPrompt(scenario, commander, firstName);
@@ -1049,22 +1064,44 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       systemInstruction: voiceSystemPrompt,
       language: "iw",
       onStatusChange: (status) => {
+        const prevStatus = voiceStatusRef.current;
+        voiceStatusRef.current = status;
         setVoiceStatus(status);
-        // Sync mic UI with auto-mute/unmute
-        if (status === "listening") setIsMicOn(true);
-        if (status === "ai-speaking") setIsMicOn(false);
+
+        // When AI starts speaking → flush user's accumulated fragments as one turn
+        if (status === "ai-speaking" && prevStatus === "listening") {
+          const userText = currentUserFragments.current.replace(/\s+/g, " ").trim();
+          if (userText) {
+            const msg: ChatMessage = { role: "user", content: userText, timestamp: Date.now() };
+            turnsRef.current = [...turnsRef.current, msg];
+            setTurns([...turnsRef.current]);
+          }
+          currentUserFragments.current = "";
+          setIsMicOn(false);
+        }
+
+        // When AI stops speaking → flush AI's accumulated fragments as one turn
+        if (status === "listening" && prevStatus === "ai-speaking") {
+          const aiText = currentAiFragments.current.replace(/\s+/g, " ").trim();
+          if (aiText) {
+            const msg: ChatMessage = { role: "assistant", content: aiText, timestamp: Date.now() };
+            turnsRef.current = [...turnsRef.current, msg];
+            setTurns([...turnsRef.current]);
+          }
+          currentAiFragments.current = "";
+          setIsMicOn(true);
+        }
       },
       onTranscriptIn: (text) => {
-        transcriptInRef.current = [...transcriptInRef.current, text];
-        setTranscriptIn([...transcriptInRef.current]);
+        // Accumulate user fragments (will be flushed on status change)
+        currentUserFragments.current += " " + text;
       },
       onTranscriptOut: (text) => {
-        transcriptOutRef.current = [...transcriptOutRef.current, text];
-        setTranscriptOut([...transcriptOutRef.current]);
-        // Accumulate full output for end detection (normalize spaces)
+        // Accumulate AI fragments (will be flushed on status change)
+        currentAiFragments.current += " " + text;
+        // Also accumulate for end detection
         fullOutputRef.current += " " + text;
         const normalized = fullOutputRef.current.replace(/\s+/g, " ").trim();
-        // Check for end phrase - flexible matching for fragmented transcripts
         if (normalized.includes("כל הכבוד") && normalized.includes("סיימת") && normalized.includes("סימולציה")) {
           console.log("[Voice] End detected in transcript:", normalized);
           triggerEnd();
@@ -1097,28 +1134,30 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const sendTextInVoice = (text: string) => {
     if (!text.trim() || !clientRef.current) return;
     clientRef.current.sendText(text);
-    transcriptInRef.current = [...transcriptInRef.current, text];
-    setTranscriptIn([...transcriptInRef.current]);
+    // Add as a complete user turn
+    const msg: ChatMessage = { role: "user", content: text.trim(), timestamp: Date.now() };
+    turnsRef.current = [...turnsRef.current, msg];
+    setTurns([...turnsRef.current]);
   };
 
   const handleSimulationEnd = async () => {
     setIsCompleted(true);
     setGenerating(true);
+
+    // Flush any remaining fragments before ending
+    const remainingUser = currentUserFragments.current.replace(/\s+/g, " ").trim();
+    if (remainingUser) {
+      turnsRef.current = [...turnsRef.current, { role: "user" as const, content: remainingUser, timestamp: Date.now() }];
+    }
+    const remainingAi = currentAiFragments.current.replace(/\s+/g, " ").trim();
+    if (remainingAi) {
+      turnsRef.current = [...turnsRef.current, { role: "assistant" as const, content: remainingAi, timestamp: Date.now() }];
+    }
+    setTurns([...turnsRef.current]);
+
     clientRef.current?.disconnect();
 
-    // Build messages from refs (always have latest values)
-    const inArr = transcriptInRef.current;
-    const outArr = transcriptOutRef.current;
-    const msgs: ChatMessage[] = [];
-    const maxLen = Math.max(inArr.length, outArr.length);
-    for (let i = 0; i < maxLen; i++) {
-      if (i < inArr.length && inArr[i]) {
-        msgs.push({ role: "user", content: inArr[i], timestamp: Date.now() - (maxLen - i) * 1000 });
-      }
-      if (i < outArr.length && outArr[i]) {
-        msgs.push({ role: "assistant", content: outArr[i], timestamp: Date.now() - (maxLen - i) * 1000 + 500 });
-      }
-    }
+    const msgs = turnsRef.current;
 
     const messagesJson = msgs.length > 0
       ? msgs.map(m => `${m.role === "user" ? "אתה" : scenario.machineName}: ${m.content}`).join("\n")
@@ -1261,21 +1300,30 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
               {isMicOn ? <MdMic className="text-xl" /> : <MdMicOff className="text-xl" />}
             </button>
 
-            {/* "I finished speaking" button */}
+            {/* "I finished speaking" button - sends end-of-turn, mutes mic, waits for AI */}
             {isMicOn && voiceStatus === "listening" && (
               <button onClick={() => {
+                // Flush user fragments as a complete turn
+                const userText = currentUserFragments.current.replace(/\s+/g, " ").trim();
+                if (userText) {
+                  const msg: ChatMessage = { role: "user", content: userText, timestamp: Date.now() };
+                  turnsRef.current = [...turnsRef.current, msg];
+                  setTurns([...turnsRef.current]);
+                  currentUserFragments.current = "";
+                }
+                // Signal to Gemini that user finished, then mute mic
                 clientRef.current?.sendEndOfTurn();
                 clientRef.current?.mute();
                 setIsMicOn(false);
               }}
-                title="סיימתי לדבר"
+                title="סיימתי לדבר - תור הבוט"
                 className="h-14 px-5 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 shadow-md transition-all">
                 <MdDone className="text-xl" /> סיימתי לדבר
               </button>
             )}
 
-            {/* Manual unmute after AI finished (if auto-unmute didn't trigger) */}
-            {!isMicOn && voiceStatus !== "ai-speaking" && voiceStatus !== "connecting" && (
+            {/* Manual unmute after AI finished */}
+            {!isMicOn && voiceStatus !== "ai-speaking" && voiceStatus !== "connecting" && voiceStatus !== "disconnected" && (
               <button onClick={() => {
                 clientRef.current?.unmute();
                 setIsMicOn(true);
@@ -1287,15 +1335,15 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
           </div>
         )}
 
-        {/* Live transcripts */}
-        {(transcriptIn.length > 0 || transcriptOut.length > 0) && (
+        {/* Live transcripts - aggregated turns */}
+        {turns.length > 0 && (
           <div className="w-full max-w-md max-h-48 overflow-y-auto bg-white rounded-xl border border-gray-200 p-3 space-y-2">
             <h4 className="text-xs font-bold text-gray-500 mb-1">תמליל חי</h4>
-            {transcriptIn.map((t, i) => (
-              <div key={`in-${i}`} className="text-xs text-dotan-green-dark"><MdPerson className="inline text-sm" /> {t}</div>
-            ))}
-            {transcriptOut.map((t, i) => (
-              <div key={`out-${i}`} className="text-xs text-purple-600"><MdSmartToy className="inline text-sm" /> {t}</div>
+            {turns.map((t, i) => (
+              <div key={i} className={`text-xs ${t.role === "user" ? "text-dotan-green-dark" : "text-purple-600"}`}>
+                {t.role === "user" ? <MdPerson className="inline text-sm" /> : <MdSmartToy className="inline text-sm" />}
+                {" "}{t.content}
+              </div>
             ))}
           </div>
         )}
