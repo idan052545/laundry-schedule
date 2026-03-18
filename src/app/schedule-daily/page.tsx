@@ -26,6 +26,7 @@ export default function ScheduleDailyPage() {
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [typeFilter, setTypeFilter] = useState("all");
+  const [targetFilter, setTargetFilter] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
   const [editingEvent, setEditingEvent] = useState<ScheduleEvent | null>(null);
   const [showAssign, setShowAssign] = useState<string | null>(null);
@@ -94,8 +95,15 @@ export default function ScheduleDailyPage() {
     }
   }, [date, typeFilter, status, fetchEvents, fetchNotes]);
 
-  const allDayEvents = events.filter((e) => e.allDay);
-  const timedEvents = events.filter((e) => !e.allDay);
+  // Apply target filter
+  const filteredEvents = targetFilter === "all"
+    ? events
+    : targetFilter === "platoon"
+      ? events.filter((e) => e.target === "all")
+      : events.filter((e) => e.target !== "all");
+
+  const allDayEvents = filteredEvents.filter((e) => e.allDay);
+  const timedEvents = filteredEvents.filter((e) => !e.allDay);
   const timedGroups = groupTimedEvents(timedEvents);
 
   const isToday = date === new Date().toISOString().split("T")[0];
@@ -489,6 +497,25 @@ export default function ScheduleDailyPage() {
           </button>
         ))}
       </div>
+
+      {/* Target filter (platoon / team) — only for team members */}
+      {userTeam && (
+        <div className="flex items-center gap-1.5 mb-3">
+          <MdPeople className="text-gray-400 shrink-0" />
+          <button onClick={() => setTargetFilter("all")}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition shrink-0 ${targetFilter === "all" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-600"}`}>
+            הכל
+          </button>
+          <button onClick={() => setTargetFilter("platoon")}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition shrink-0 ${targetFilter === "platoon" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600"}`}>
+            פלוגה
+          </button>
+          <button onClick={() => setTargetFilter("team")}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition shrink-0 ${targetFilter === "team" ? "bg-cyan-600 text-white" : "bg-gray-100 text-gray-600"}`}>
+            צוות {userTeam}
+          </button>
+        </div>
+      )}
 
       {/* Admin: Add + Sync buttons */}
       {isAdmin && !showAdd && !editingEvent && (
