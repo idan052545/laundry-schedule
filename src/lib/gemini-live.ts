@@ -111,6 +111,8 @@ export class GeminiLiveClient {
               },
             },
           },
+          // Enable affective dialog - AI adapts tone based on user's voice emotion
+          enableAffectiveDialog: true,
         },
         systemInstruction: {
           parts: [{ text: this.config.systemInstruction }],
