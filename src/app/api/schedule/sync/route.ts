@@ -5,91 +5,21 @@ import prisma from "@/lib/prisma";
 
 const CALENDAR_ID =
   "7590b2db7ff25ede43ffcec312f64af8ff12a5baa4703494c765c1c8cca0d72f@group.calendar.google.com";
-const ICAL_URL = `https://calendar.google.com/calendar/ical/${encodeURIComponent(CALENDAR_ID)}/public/basic.ics`;
+const API_KEY = process.env.GOOGLE_CALENDAR_API_KEY;
 
-interface ParsedEvent {
-  uid: string;
-  title: string;
-  description: string | null;
-  startTime: Date;
-  endTime: Date;
-  allDay: boolean;
+interface GCalEvent {
+  id: string;
+  summary?: string;
+  description?: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+  status?: string;
 }
 
-// Minimal iCal parser — handles VEVENT blocks
-function parseICS(text: string): ParsedEvent[] {
-  const events: ParsedEvent[] = [];
-  const blocks = text.split("BEGIN:VEVENT");
-
-  for (let i = 1; i < blocks.length; i++) {
-    const block = blocks[i].split("END:VEVENT")[0];
-    const lines = unfoldLines(block);
-
-    const props: Record<string, string> = {};
-    for (const line of lines) {
-      const colonIdx = line.indexOf(":");
-      if (colonIdx === -1) continue;
-      const key = line.substring(0, colonIdx);
-      const val = line.substring(colonIdx + 1);
-      // Strip params like DTSTART;VALUE=DATE → DTSTART
-      const baseKey = key.split(";")[0].trim();
-      props[baseKey] = val.trim();
-    }
-
-    const uid = props["UID"] || `evt-${i}`;
-    const summary = unescapeICS(props["SUMMARY"] || "ללא כותרת");
-    const description = props["DESCRIPTION"] ? unescapeICS(props["DESCRIPTION"]) : null;
-
-    // Parse dates
-    const dtStart = props["DTSTART"];
-    const dtEnd = props["DTEND"];
-    if (!dtStart) continue;
-
-    const allDay = !dtStart.includes("T");
-    const start = parseICSDate(dtStart);
-    const end = dtEnd ? parseICSDate(dtEnd) : (allDay ? new Date(start.getTime() + 86400000) : new Date(start.getTime() + 3600000));
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
-
-    events.push({ uid, title: summary, description, startTime: start, endTime: end, allDay });
-  }
-
-  return events;
-}
-
-// Unfold iCal continuation lines (lines starting with space/tab)
-function unfoldLines(text: string): string[] {
-  const raw = text.split(/\r?\n/);
-  const result: string[] = [];
-  for (const line of raw) {
-    if (line.startsWith(" ") || line.startsWith("\t")) {
-      if (result.length > 0) result[result.length - 1] += line.substring(1);
-    } else {
-      result.push(line);
-    }
-  }
-  return result;
-}
-
-// Parse iCal date: 20260318 or 20260318T090000 or 20260318T090000Z
-function parseICSDate(s: string): Date {
-  const clean = s.replace(/[^0-9TZ]/g, "");
-  if (clean.length === 8) {
-    // Date only: YYYYMMDD — treat as midnight in Israel timezone
-    return new Date(`${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}T00:00:00+03:00`);
-  }
-  const tIdx = clean.indexOf("T");
-  if (tIdx === -1) return new Date(NaN);
-  const datePart = clean.slice(0, tIdx);
-  const timePart = clean.slice(tIdx + 1).replace("Z", "");
-  const iso = `${datePart.slice(0, 4)}-${datePart.slice(4, 6)}-${datePart.slice(6, 8)}T${timePart.slice(0, 2)}:${timePart.slice(2, 4)}:${timePart.slice(4, 6)}`;
-  // If original had Z, it's UTC; otherwise assume Israel time
-  if (clean.endsWith("Z")) return new Date(iso + "Z");
-  return new Date(iso + "+03:00");
-}
-
-function unescapeICS(s: string): string {
-  return s.replace(/\\n/g, "\n").replace(/\\,/g, ",").replace(/\\\\/g, "\\").replace(/\\;/g, ";");
+interface GCalResponse {
+  items?: GCalEvent[];
+  nextPageToken?: string;
+  error?: { message: string; code: number };
 }
 
 // POST — sync Google Calendar → ScheduleEvent (admin only)
@@ -103,25 +33,72 @@ export async function POST() {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 
-  // Fetch iCal feed
-  let icsText: string;
+  if (!API_KEY) {
+    return NextResponse.json({ error: "חסר מפתח Google API" }, { status: 500 });
+  }
+
+  // Fetch events from Google Calendar API
+  const now = new Date();
+  const timeMin = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const timeMax = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
+
+  const allEvents: GCalEvent[] = [];
+  let pageToken: string | undefined;
+
   try {
-    const res = await fetch(ICAL_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    icsText = await res.text();
+    do {
+      const params = new URLSearchParams({
+        key: API_KEY,
+        timeMin,
+        timeMax,
+        singleEvents: "true",
+        orderBy: "startTime",
+        maxResults: "2500",
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${params}`;
+      const res = await fetch(url, { cache: "no-store" });
+      const data: GCalResponse = await res.json();
+
+      if (!res.ok) {
+        console.error("Google Calendar API error:", data.error);
+        return NextResponse.json({
+          error: `שגיאה מ-Google: ${data.error?.message || res.status}`,
+        }, { status: 502 });
+      }
+
+      if (data.items) allEvents.push(...data.items);
+      pageToken = data.nextPageToken;
+    } while (pageToken);
   } catch (err) {
     console.error("Failed to fetch calendar:", err);
     return NextResponse.json({ error: "שגיאה בטעינת היומן" }, { status: 502 });
   }
 
-  // Parse events
-  const allParsed = parseICS(icsText);
+  // Filter out cancelled events
+  const activeEvents = allEvents.filter(e => e.status !== "cancelled");
 
-  // Filter: 30 days back to 60 days ahead
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const sixtyDaysAhead = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
-  const parsed = allParsed.filter(e => e.startTime >= thirtyDaysAgo && e.startTime <= sixtyDaysAhead);
+  // Parse into our format
+  const parsed = activeEvents.map(e => {
+    const allDay = !e.start.dateTime;
+    const startTime = e.start.dateTime
+      ? new Date(e.start.dateTime)
+      : new Date(e.start.date + "T00:00:00+03:00");
+    const endTime = e.end.dateTime
+      ? new Date(e.end.dateTime)
+      : new Date(e.end.date + "T00:00:00+03:00");
+
+    return {
+      title: e.summary || "ללא כותרת",
+      description: e.description || null,
+      startTime,
+      endTime,
+      allDay,
+      target: "all" as const,
+      type: guessType(e.summary || ""),
+    };
+  }).filter(e => !isNaN(e.startTime.getTime()) && !isNaN(e.endTime.getTime()));
 
   // Delete all existing schedule events (full sync)
   await prisma.scheduleAssignee.deleteMany({});
@@ -129,17 +106,7 @@ export async function POST() {
 
   // Insert new events
   if (parsed.length > 0) {
-    await prisma.scheduleEvent.createMany({
-      data: parsed.map(e => ({
-        title: e.title,
-        description: e.description,
-        startTime: e.startTime,
-        endTime: e.endTime,
-        allDay: e.allDay,
-        target: "all",
-        type: guessType(e.title),
-      })),
-    });
+    await prisma.scheduleEvent.createMany({ data: parsed });
   }
 
   return NextResponse.json({
@@ -165,10 +132,9 @@ export async function GET() {
 
 // Guess event type from Hebrew title keywords
 function guessType(title: string): string {
-  const t = title;
-  if (/ארוחת|ארוחה|אוכל|בוקר|צהריים|ערב|כריך/.test(t)) return "meal";
-  if (/אימון|כושר|ספורט|ריצה/.test(t)) return "training";
-  if (/טקס|מסדר|דגל/.test(t)) return "ceremony";
-  if (/חופש|פנאי|זמן אישי|זמן חופשי/.test(t)) return "free";
+  if (/ארוחת|ארוחה|אוכל|בוקר|צהריים|ערב|כריך/.test(title)) return "meal";
+  if (/אימון|כושר|ספורט|ריצה/.test(title)) return "training";
+  if (/טקס|מסדר|דגל/.test(title)) return "ceremony";
+  if (/חופש|פנאי|זמן אישי|זמן חופשי/.test(title)) return "free";
   return "general";
 }
