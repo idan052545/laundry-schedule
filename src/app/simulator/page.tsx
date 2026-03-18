@@ -61,7 +61,7 @@ function buildSimulationIntroPrompt(s: Scenario, commander: string) {
 הסיפור רקע של הסימולציה הוא: ${s.servicenature}
 על משתמש הסימולציה לבצע את המטרה הבאה: ${s.objective}
 תגדיר בצורה כללית את הסיטואציה והמטרה המופשטת. בלי להגדיר יותר מידי יעדים ומטרות. תציין מה המשתמש צריך לבצע, ואל תציין איך.
-נסח הודעת הסבר למשתמש על רקע הסימולציה לפני תחילתה. תכניס את המשתמש לאווירה ולסיפור - שים לב, תפנה למשתמש לא בגוף זכר ולא בגוף נקבה, במידה ואין ברירה תפנה בגוף זכר
+נסח הודעת הסבר למשתמש על רקע הסימולציה לפני תחילתה. תכניס את המשתמש לאווירה ולסיפור - פנה למשתמש בגוף זכר (אתה, עליך, שלך)
 תגיב בפסקה אחת ורציפה שעונה על המתבקש`;
 }
 
@@ -99,6 +99,7 @@ function buildChatSystemPrompt(s: Scenario, commander: string, firstName: string
 מי אתה
 המשתמש הוא המפקד: ${commander}
 שם פרטי לפנייה: ${firstName}
+מגדר המפקד: זכר (תמיד פנה למפקד בלשון זכר: אתה, ביקשת, אמרת, עשית, רצית. לעולם אל תפנה אליו בלשון נקבה.)
 
 חוקי-על לפלט (חלים תמיד)
 - החזר אך ורק את הודעת החייל/ת. בלי כותרות, בלי הסברים, בלי מטא.
@@ -947,8 +948,8 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   onBack: () => void;
 }) {
   const [voiceStatus, setVoiceStatus] = useState<string>("disconnected");
-  const [transcriptIn, setTranscriptIn] = useState<string[]>([]); // what user said
-  const [transcriptOut, setTranscriptOut] = useState<string[]>([]); // what AI said
+  const [transcriptIn, setTranscriptIn] = useState<string[]>([]); // what user said (for UI)
+  const [transcriptOut, setTranscriptOut] = useState<string[]>([]); // what AI said (for UI)
   const [isCompleted, setIsCompleted] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [introText, setIntroText] = useState("");
@@ -956,16 +957,22 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const [errorMsg, setErrorMsg] = useState("");
   const clientRef = useRef<import("@/lib/gemini-live").GeminiLiveClient | null>(null);
   const completedRef = useRef(false);
+  // Use refs for transcripts so callbacks always see latest values
+  const transcriptInRef = useRef<string[]>([]);
+  const transcriptOutRef = useRef<string[]>([]);
+  // Accumulate all output text for end detection (transcripts come in fragments)
+  const fullOutputRef = useRef("");
 
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
   const systemPrompt = buildChatSystemPrompt(scenario, commander, firstName);
 
-  // Build voice-specific system prompt (add instruction to speak Hebrew)
+  // Voice-specific additions: tell AI the commander is male, speak Hebrew
   const voiceSystemPrompt = systemPrompt + `\n\nהנחיות נוספות לשיחה קולית:
 - דבר בעברית בלבד, בשפה יומיומית וטבעית של חייל/ת.
 - תגיב בקצרה וטבעית כמו בשיחת וואטסאפ קולית.
 - אל תשתמש בשפה גבוהה או פורמלית.
-- כשהמפקד מצליח במשימה, אמור בקול: "כל הכבוד - סיימת את הסימולציה"`;
+- חשוב מאוד: המפקד (${firstName}) הוא זכר. פנה אליו תמיד בלשון זכר (אתה, ביקשת, אמרת, עשית). אל תפנה אליו בלשון נקבה בשום מצב.
+- כשהמפקד מצליח במשימה, אמור בקול: "כל הכבוד סיימת את הסימולציה"`;
 
   // Generate intro
   useEffect(() => {
@@ -987,7 +994,7 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
     const maxDurationTimer = setTimeout(() => {
       if (!completedRef.current && clientRef.current) {
         setErrorMsg("הסימולציה הקולית הסתיימה אוטומטית אחרי 15 דקות.");
-        handleSimulationEnd();
+        triggerEnd();
       }
     }, 15 * 60 * 1000);
     return () => {
@@ -995,6 +1002,12 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       clientRef.current?.disconnect();
     };
   }, []);
+
+  const triggerEnd = () => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    handleSimulationEnd();
+  };
 
   const startVoiceSession = async () => {
     if (!apiKey) { setErrorMsg("מפתח Gemini API לא מוגדר"); return; }
@@ -1010,29 +1023,26 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
         if (status === "listening") setIsMicOn(true);
       },
       onTranscriptIn: (text) => {
-        setTranscriptIn(prev => [...prev, text]);
+        transcriptInRef.current = [...transcriptInRef.current, text];
+        setTranscriptIn([...transcriptInRef.current]);
       },
       onTranscriptOut: (text) => {
-        setTranscriptOut(prev => [...prev, text]);
-        // Check if simulation ended
-        if ((text.includes("כל הכבוד") && text.includes("סיימת את הסימולציה")) && !completedRef.current) {
-          completedRef.current = true;
-          handleSimulationEnd();
+        transcriptOutRef.current = [...transcriptOutRef.current, text];
+        setTranscriptOut([...transcriptOutRef.current]);
+        // Accumulate full output for end detection
+        fullOutputRef.current += " " + text;
+        if (fullOutputRef.current.includes("כל הכבוד") && fullOutputRef.current.includes("סיימת את הסימולציה")) {
+          triggerEnd();
         }
       },
       onError: (error) => { setErrorMsg(error); },
-      onSimulationEnd: () => {
-        if (!completedRef.current) {
-          completedRef.current = true;
-          handleSimulationEnd();
-        }
-      },
+      onSimulationEnd: () => { triggerEnd(); },
     });
 
     clientRef.current = client;
     await client.connect();
 
-    // Wait for connection, then start mic
+    // Wait for setup complete, then start mic
     setTimeout(async () => {
       await client.startMicrophone();
     }, 1500);
@@ -1052,7 +1062,8 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const sendTextInVoice = (text: string) => {
     if (!text.trim() || !clientRef.current) return;
     clientRef.current.sendText(text);
-    setTranscriptIn(prev => [...prev, text]);
+    transcriptInRef.current = [...transcriptInRef.current, text];
+    setTranscriptIn([...transcriptInRef.current]);
   };
 
   const handleSimulationEnd = async () => {
@@ -1060,19 +1071,23 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
     setGenerating(true);
     clientRef.current?.disconnect();
 
-    // Build messages from transcripts
+    // Build messages from refs (always have latest values)
+    const inArr = transcriptInRef.current;
+    const outArr = transcriptOutRef.current;
     const msgs: ChatMessage[] = [];
-    const maxLen = Math.max(transcriptIn.length, transcriptOut.length);
+    const maxLen = Math.max(inArr.length, outArr.length);
     for (let i = 0; i < maxLen; i++) {
-      if (i < transcriptIn.length && transcriptIn[i]) {
-        msgs.push({ role: "user", content: transcriptIn[i], timestamp: Date.now() - (maxLen - i) * 1000 });
+      if (i < inArr.length && inArr[i]) {
+        msgs.push({ role: "user", content: inArr[i], timestamp: Date.now() - (maxLen - i) * 1000 });
       }
-      if (i < transcriptOut.length && transcriptOut[i]) {
-        msgs.push({ role: "assistant", content: transcriptOut[i], timestamp: Date.now() - (maxLen - i) * 1000 + 500 });
+      if (i < outArr.length && outArr[i]) {
+        msgs.push({ role: "assistant", content: outArr[i], timestamp: Date.now() - (maxLen - i) * 1000 + 500 });
       }
     }
 
-    const messagesJson = msgs.map(m => `${m.role === "user" ? "אתה" : scenario.machineName}: ${m.content}`).join("\n");
+    const messagesJson = msgs.length > 0
+      ? msgs.map(m => `${m.role === "user" ? "אתה" : scenario.machineName}: ${m.content}`).join("\n")
+      : "לא הייתה שיחה";
 
     // Get score and feedback
     const [scoreRes, feedbackRes] = await Promise.all([
@@ -1090,11 +1105,12 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       body: JSON.stringify({ id: simSession.id, status: "completed", messages: JSON.stringify(msgs), score, feedback, grade }),
     });
     if (updRes.ok) { const updated = await updRes.json(); setGenerating(false); onEnd(updated); }
+    else { setGenerating(false); onEnd({ ...simSession, status: "completed", score, feedback, grade } as SimSession); }
   };
 
   const handleForceEnd = () => {
     if (!confirm("לסיים את הסימולציה?")) return;
-    handleSimulationEnd();
+    triggerEnd();
   };
 
   const [textInput, setTextInput] = useState("");
