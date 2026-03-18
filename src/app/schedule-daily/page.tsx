@@ -11,7 +11,7 @@ import {
 import { InlineLoading } from "@/components/LoadingScreen";
 import { TYPE_CONFIG } from "./constants";
 import { ScheduleEvent, UserOption, EventFormData, ScheduleNote } from "./types";
-import { formatTime, formatDateDisplay, toISO, getDurationMin, isEventNow, groupTimedEvents } from "./utils";
+import { formatTime, formatEndTime, formatDateDisplay, toISO, getDurationMin, isEventNow, groupTimedEvents } from "./utils";
 import EventForm from "./EventForm";
 import EventCard from "./EventCard";
 import EventDetailModal from "./EventDetailModal";
@@ -43,6 +43,7 @@ export default function ScheduleDailyPage() {
   const [noteForm, setNoteForm] = useState({ title: "", description: "", startTime: "", endTime: "", visibility: "personal" });
   const [noteReminding, setNoteReminding] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncDiff, setSyncDiff] = useState<{ added: string[]; removed: string[]; unchanged: boolean } | null>(null);
   const noteFormRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<EventFormData>({
@@ -168,17 +169,38 @@ export default function ScheduleDailyPage() {
   const handleSync = async () => {
     if (!confirm("לסנכרן את הלוז מיומן Google? כל האירועים הקיימים יוחלפו.")) return;
     setSyncing(true);
+    setSyncDiff(null);
     try {
       const res = await fetch("/api/schedule/sync", { method: "POST" });
       const data = await res.json();
       if (res.ok) {
-        alert(data.message);
-        fetchEvents();
+        if (data.todayDiff) setSyncDiff(data.todayDiff);
+        await fetchEvents();
       } else {
         alert(data.error || "שגיאה בסנכרון");
       }
     } catch {
       alert("שגיאה בסנכרון");
+    }
+    setSyncing(false);
+  };
+
+  const handleNotifyChanges = async () => {
+    if (!syncDiff || syncDiff.unchanged) return;
+    setSyncing(true);
+    const lines: string[] = [];
+    if (syncDiff.added.length > 0) lines.push(`נוספו: ${syncDiff.added.join(", ")}`);
+    if (syncDiff.removed.length > 0) lines.push(`הוסרו: ${syncDiff.removed.join(", ")}`);
+    const body = lines.join(" | ");
+    try {
+      await fetch("/api/schedule/sync", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changes: body }),
+      });
+      alert("נשלחה התראה לכולם");
+    } catch {
+      alert("שגיאה בשליחה");
     }
     setSyncing(false);
   };
@@ -416,6 +438,47 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
+      {/* Sync diff panel */}
+      {syncDiff && !syncDiff.unchanged && (
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-4 mb-3 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-blue-800 text-sm flex items-center gap-2">
+              <MdSync className="text-blue-500" /> שינויים בלוז היום
+            </h3>
+            <div className="flex gap-2">
+              {isAdmin && (
+                <button onClick={handleNotifyChanges} disabled={syncing}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition disabled:opacity-50">
+                  <MdNotifications className="text-xs" /> שלח התראה
+                </button>
+              )}
+              <button onClick={() => setSyncDiff(null)} className="text-gray-400 hover:text-gray-600"><MdClose /></button>
+            </div>
+          </div>
+          {syncDiff.added.length > 0 && (
+            <div className="mb-2">
+              <span className="text-[10px] font-bold text-green-700 uppercase">נוספו:</span>
+              {syncDiff.added.map((t, i) => (
+                <div key={i} className="text-xs text-green-800 bg-green-50 rounded-lg px-2 py-1 mt-1 border border-green-200">+ {t}</div>
+              ))}
+            </div>
+          )}
+          {syncDiff.removed.length > 0 && (
+            <div>
+              <span className="text-[10px] font-bold text-red-700 uppercase">הוסרו:</span>
+              {syncDiff.removed.map((t, i) => (
+                <div key={i} className="text-xs text-red-800 bg-red-50 rounded-lg px-2 py-1 mt-1 border border-red-200">- {t}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {syncDiff?.unchanged && (
+        <div className="bg-green-50 rounded-xl border border-green-200 p-3 mb-3 text-center text-sm text-green-700 font-medium">
+          הלוז של היום לא השתנה
+        </div>
+      )}
+
       {showAdd && (
         <EventForm form={form} setForm={setForm} onSubmit={handleAdd} isEdit={false}
           onClose={() => { setShowAdd(false); resetForm(); }}
@@ -561,7 +624,7 @@ export default function ScheduleDailyPage() {
                   const { group } = item;
                   const isSingle = group.events.length === 1;
                   const groupStartTime = formatTime(group.startTime);
-                  const groupEndTime = formatTime(group.endTime);
+                  const groupEndTime = formatEndTime(group.startTime, group.endTime);
                   const anyActive = group.events.some(({ event }) => isEventNow(event, isToday));
                   const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
 

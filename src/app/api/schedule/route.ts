@@ -27,8 +27,11 @@ export async function GET(request: Request) {
   const dayStart = new Date(dateStr + "T00:00:00Z");
   const dayEnd = new Date(dateStr + "T23:59:59Z");
 
+  // Overlapping range: show events that overlap with this day
+  // (starts before day ends AND ends after day starts)
   const where: Record<string, unknown> = {
-    startTime: { gte: dayStart, lte: dayEnd },
+    startTime: { lte: dayEnd },
+    endTime: { gt: dayStart },
   };
 
   if (type && type !== "all") {

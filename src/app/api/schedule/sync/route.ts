@@ -37,12 +37,32 @@ export async function POST() {
     return NextResponse.json({ error: "חסר מפתח Google API" }, { status: 500 });
   }
 
+  // Snapshot today's events BEFORE sync
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  // Get all events overlapping with today (starts before tomorrow AND ends after today start)
+  const beforeEvents = await prisma.scheduleEvent.findMany({
+    where: {
+      startTime: { lt: todayEnd },
+      endTime: { gt: todayStart },
+    },
+    select: { title: true, startTime: true, endTime: true, allDay: true },
+    orderBy: { startTime: "asc" },
+  });
+  const beforeSet = new Map<string, { title: string; startTime: Date; endTime: Date; allDay: boolean }>();
+  for (const e of beforeEvents) {
+    beforeSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
+  }
+
   // Fetch events from Google Calendar API
   const now = new Date();
   const timeMin = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const timeMax = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
 
-  const allEvents: GCalEvent[] = [];
+  const allGCalEvents: GCalEvent[] = [];
   let pageToken: string | undefined;
 
   try {
@@ -68,7 +88,7 @@ export async function POST() {
         }, { status: 502 });
       }
 
-      if (data.items) allEvents.push(...data.items);
+      if (data.items) allGCalEvents.push(...data.items);
       pageToken = data.nextPageToken;
     } while (pageToken);
   } catch (err) {
@@ -77,7 +97,7 @@ export async function POST() {
   }
 
   // Filter out cancelled events
-  const activeEvents = allEvents.filter(e => e.status !== "cancelled");
+  const activeEvents = allGCalEvents.filter(e => e.status !== "cancelled");
 
   // Parse into our format
   const parsed = activeEvents.map(e => {
@@ -109,11 +129,72 @@ export async function POST() {
     await prisma.scheduleEvent.createMany({ data: parsed });
   }
 
+  // Compute today's diff
+  const afterTodayEvents = parsed.filter(e => {
+    if (e.allDay) {
+      return e.startTime <= todayEnd && e.endTime > todayStart;
+    }
+    return e.startTime < todayEnd && e.endTime > todayStart;
+  });
+
+  const afterSet = new Map<string, typeof parsed[0]>();
+  for (const e of afterTodayEvents) {
+    afterSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
+  }
+
+  const added: string[] = [];
+  const removed: string[] = [];
+
+  for (const [key, e] of afterSet) {
+    if (!beforeSet.has(key)) {
+      added.push(e.allDay ? `${e.title} (כל היום)` : `${e.title} (${formatTime(e.startTime)}–${formatTime(e.endTime)})`);
+    }
+  }
+  for (const [key, e] of beforeSet) {
+    if (!afterSet.has(key)) {
+      removed.push(e.allDay ? `${e.title} (כל היום)` : `${e.title} (${formatTime(e.startTime)}–${formatTime(e.endTime)})`);
+    }
+  }
+
   return NextResponse.json({
     success: true,
     synced: parsed.length,
     message: `סונכרנו ${parsed.length} אירועים מיומן Google`,
+    todayDiff: {
+      added,
+      removed,
+      unchanged: added.length === 0 && removed.length === 0,
+    },
   });
+}
+
+function formatTime(d: Date): string {
+  return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+}
+
+// PUT — notify all users about changes
+export async function PUT(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
+
+  const userId = (session.user as { id: string }).id;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } });
+  if (user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
+    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  }
+
+  const { changes } = await req.json();
+  if (!changes) return NextResponse.json({ error: "חסר תוכן" }, { status: 400 });
+
+  // Dynamic import to avoid bundling issues
+  const { sendPushToAll } = await import("@/lib/push");
+  await sendPushToAll({
+    title: 'עדכון לו"ז היום',
+    body: changes,
+    url: "/schedule-daily",
+  });
+
+  return NextResponse.json({ success: true });
 }
 
 // GET — check sync status

@@ -3,6 +3,19 @@ import { ScheduleEvent, TimedGroup } from "./types";
 export const formatTime = (dt: string) =>
   new Date(dt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 
+/** Check if two ISO date strings fall on different calendar days (in Israel timezone) */
+export const isCrossDay = (startIso: string, endIso: string): boolean => {
+  const startDate = new Date(startIso).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  const endDate = new Date(endIso).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+  return startDate !== endDate;
+};
+
+/** Format end time with "+1" suffix if event crosses midnight */
+export const formatEndTime = (startIso: string, endIso: string): string => {
+  const time = formatTime(endIso);
+  return isCrossDay(startIso, endIso) ? `${time} (+1)` : time;
+};
+
 export const formatDateDisplay = (d: string) =>
   new Date(d + "T12:00:00").toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" });
 

@@ -7,7 +7,7 @@ import {
 import Avatar from "@/components/Avatar";
 import { TYPE_CONFIG, TARGET_LABELS } from "./constants";
 import { ScheduleEvent } from "./types";
-import { formatTime, getDurationMin, isEventNow } from "./utils";
+import { formatTime, formatEndTime, getDurationMin, isEventNow } from "./utils";
 
 interface EventCardProps {
   event: ScheduleEvent;
@@ -69,7 +69,7 @@ export default function EventCard({
 
           {compact && (
             <div className="text-[10px] text-gray-500 mt-0.5 font-medium" dir="ltr">
-              {formatTime(event.startTime)} – {formatTime(event.endTime)}
+              {formatTime(event.startTime)} – {formatEndTime(event.startTime, event.endTime)}
             </div>
           )}
 
