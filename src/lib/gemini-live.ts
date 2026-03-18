@@ -111,8 +111,8 @@ export class GeminiLiveClient {
               },
             },
           },
-          // Enable affective dialog - AI adapts tone based on user's voice emotion
-          enable_affective_dialog: true,
+          // Note: native audio model inherently processes tone/emotion from raw audio.
+          // Tone-awareness is handled via system instruction prompts.
         },
         systemInstruction: {
           parts: [{ text: this.config.systemInstruction }],
