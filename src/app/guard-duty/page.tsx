@@ -291,6 +291,23 @@ export default function GuardDutyPage() {
     await fetchData();
   };
 
+  const handleNotifyAll = async () => {
+    if (!table || !confirm("לשלוח התראה אישית לכל חייל עם השיבוצים שלו?")) return;
+    setSubmitting(true);
+    const res = await fetch("/api/guard-duty", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "notify-all", tableId: table.id }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`נשלחו התראות ל-${data.notified} חיילים`);
+    } else {
+      alert(data.error || "שגיאה בשליחה");
+    }
+    setSubmitting(false);
+  };
+
   if (authStatus === "loading" || loading) return <InlineLoading />;
 
   const allRoles: string[] = table ? JSON.parse(table.roles) : [];
@@ -524,6 +541,12 @@ export default function GuardDutyPage() {
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${showFairness ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
             <MdBarChart /> הוגנות
           </button>
+          {table && (
+            <button onClick={handleNotifyAll} disabled={submitting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border bg-dotan-green-dark text-white hover:bg-dotan-green transition disabled:opacity-50">
+              <MdNotifications /> {submitting ? "שולח..." : "שלח שיבוצים"}
+            </button>
+          )}
           <button onClick={() => setShowOverlaps(!showOverlaps)}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${showOverlaps ? "bg-red-50 border-red-300 text-red-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
             <MdErrorOutline /> חפיפות

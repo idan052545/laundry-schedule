@@ -281,6 +281,51 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  // ── NOTIFY ALL: send each assigned user their personal assignments ──
+  if (action === "notify-all") {
+    if (!(await isRoni(userId))) return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+
+    const { tableId } = body;
+    const table = await prisma.dutyTable.findUnique({
+      where: { id: tableId },
+      include: {
+        assignments: {
+          include: { user: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    if (!table) return NextResponse.json({ error: "טבלה לא נמצאה" }, { status: 404 });
+
+    // Group assignments by user
+    const byUser = new Map<string, { name: string; roles: string[] }>();
+    const DAY_ROLES = ['כ"כא', 'כ"כב'];
+    for (const a of table.assignments) {
+      if (!byUser.has(a.userId)) byUser.set(a.userId, { name: a.user.name, roles: [] });
+      const entry = byUser.get(a.userId)!;
+      if (DAY_ROLES.includes(a.role)) {
+        entry.roles.push(a.role);
+      } else {
+        entry.roles.push(`${a.role} (${a.note || a.timeSlot})`);
+      }
+    }
+
+    // Send personalized notification to each user
+    const promises = [];
+    for (const [uid, data] of byUser) {
+      const rolesList = data.roles.join(", ");
+      promises.push(
+        sendPushToUsers([uid], {
+          title: `שיבוץ: ${table.title} — ${table.date}`,
+          body: `${data.name}, השיבוצים שלך: ${rolesList}`,
+          url: "/guard-duty",
+        }).catch(() => {})
+      );
+    }
+    await Promise.allSettled(promises);
+
+    return NextResponse.json({ success: true, notified: byUser.size });
+  }
+
   return NextResponse.json({ error: "פעולה לא תקינה" }, { status: 400 });
 }
 
