@@ -120,10 +120,19 @@ export async function POST(req: NextRequest) {
       : new Date(e.end.date + "T00:00:00+03:00");
 
     // Find users whose name appears in the event title
+    // Uses tokenized matching: all parts of user's name must appear in the title
+    // e.g. DB name "עידן סימנטוב" matches calendar title "עידן חן סימנטוב - תורנות"
     const title = e.summary || "ללא כותרת";
-    const matchedUsers = teamUsers.filter(u =>
-      u.name && title.includes(u.name)
-    );
+    const titleNorm = title.replace(/[־\-–—]/g, " ");
+    const matchedUsers = teamUsers.filter(u => {
+      if (!u.name) return false;
+      // First try exact match
+      if (titleNorm.includes(u.name)) return true;
+      // Then try tokenized: all name parts must appear in title
+      const nameParts = u.name.split(/\s+/).filter(p => p.length > 1);
+      if (nameParts.length < 2) return false;
+      return nameParts.every(part => titleNorm.includes(part));
+    });
 
     return {
       title,

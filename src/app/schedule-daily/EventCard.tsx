@@ -39,16 +39,18 @@ export default function EventCard({
 
   // Visual priority: assigned > team > default
   const cardBg = isAssignedToMe
-    ? "bg-teal-50 border-teal-300"
+    ? "bg-gradient-to-l from-teal-50 to-emerald-50 border-teal-400"
     : isTeamEvent
       ? "bg-cyan-50/80 border-cyan-200"
       : `${config.bg} ${config.border}`;
   const cardRing = active
     ? "ring-2 ring-dotan-green shadow-md"
     : isAssignedToMe
-      ? "ring-1 ring-teal-400 shadow-sm"
+      ? "ring-2 ring-teal-400 shadow-md"
       : "shadow-sm";
-  const leftAccent = isTeamEvent ? "border-r-[3px] border-r-cyan-400" : "";
+  const leftAccent = isAssignedToMe
+    ? "border-r-[4px] border-r-teal-500"
+    : isTeamEvent ? "border-r-[3px] border-r-cyan-400" : "";
 
   return (
     <div
@@ -87,8 +89,8 @@ export default function EventCard({
               </span>
             )}
             {isAssignedToMe && (
-              <span className="px-1 py-0.5 bg-teal-500 text-white rounded text-[8px] font-bold">
-                עבורך
+              <span className="px-1.5 py-0.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-full text-[8px] font-bold shadow-sm">
+                ⭐ עבורך
               </span>
             )}
           </div>
