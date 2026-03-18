@@ -777,6 +777,7 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
   const [introText, setIntroText] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [chatError, setChatError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -788,13 +789,15 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
 
   const generateIntro = async () => {
     setGenerating(true);
+    setChatError("");
     try {
       const res = await fetch("/api/sim-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ systemPrompt: buildSimulationIntroPrompt(scenario, commander), message: "תאר את רקע הסימולציה", mode: "chat" }),
       });
       if (res.ok) { const data = await res.json(); setIntroText(data.response); }
-    } catch (e) { console.error("Failed to generate intro:", e); }
+      else { const err = await res.json(); setChatError(err.error || `שגיאה ${res.status}`); }
+    } catch (e) { console.error("Failed to generate intro:", e); setChatError("שגיאת חיבור לשרת"); }
     setGenerating(false);
   };
 
@@ -805,6 +808,7 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
     setMessages(newMessages);
     setInput("");
     setSending(true);
+    setChatError("");
 
     try {
       const historyForApi = newMessages.map(m => ({ role: m.role, content: m.content }));
@@ -821,8 +825,11 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
         if (data.response.includes("כל הכבוד") && data.response.includes("סיימת את הסימולציה")) {
           await completeSimulation(updatedMessages);
         }
+      } else {
+        const err = await res.json();
+        setChatError(err.error || `שגיאה ${res.status}`);
       }
-    } catch (e) { console.error("Failed to send message:", e); }
+    } catch (e) { console.error("Failed to send message:", e); setChatError("שגיאת חיבור לשרת"); }
     setSending(false);
   };
 
@@ -854,6 +861,13 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
         </div>
         <button onClick={() => { if (confirm("לסיים את הסימולציה?")) completeSimulation(messages); }} className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition"><MdStop className="inline" /> סיים</button>
       </div>
+
+      {chatError && (
+        <div className="bg-red-50 border-b border-red-200 p-3 text-center">
+          <p className="text-sm text-red-700 font-medium">{chatError}</p>
+          <button onClick={() => { setChatError(""); generateIntro(); }} className="text-xs text-red-500 underline mt-1">נסה שוב</button>
+        </div>
+      )}
 
       {introText && (
         <div className="bg-gray-50 border-b p-3 sm:p-4">

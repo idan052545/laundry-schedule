@@ -55,7 +55,11 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const error = await response.text();
       console.error("Gemini API error:", error);
-      return NextResponse.json({ error: "AI service error" }, { status: 502 });
+      const errorData = JSON.parse(error).error || {};
+      if (errorData.code === 429) {
+        return NextResponse.json({ error: "חריגת מכסה ב-Gemini API. יש להפעיל חיוב או להחליף מפתח.", details: "QUOTA_EXCEEDED" }, { status: 429 });
+      }
+      return NextResponse.json({ error: `שגיאת AI: ${errorData.message || "שגיאה לא ידועה"}` }, { status: 502 });
     }
 
     const data = await response.json();
