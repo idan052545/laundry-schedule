@@ -279,6 +279,9 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     {cs.status === "now" && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse shrink-0" />}
                     <span className="text-sm font-medium text-gray-800 truncate">{cs.title}</span>
+                    <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${cs.target === "all" ? "bg-emerald-50 text-emerald-600" : "bg-cyan-50 text-cyan-600"}`}>
+                      {cs.target === "all" ? "פלוגה" : "צוות"}
+                    </span>
                     <span className="text-[11px] text-gray-400 shrink-0 tabular-nums" dir="ltr">
                       {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–{new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                     </span>
@@ -427,6 +430,9 @@ export default function DashboardPage() {
                         {new Date(ev.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                       </span>
                       <span className="text-sm font-semibold text-gray-800 truncate">{ev.title}</span>
+                      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${ev.target === "all" ? "bg-emerald-100 text-emerald-700" : "bg-cyan-100 text-cyan-700"}`}>
+                        {ev.target === "all" ? "פלוגה" : "צוות"}
+                      </span>
                       {ev.assignees?.length > 0 && <span className="text-[8px] bg-teal-500 text-white px-1.5 py-0.5 rounded-full font-bold shrink-0">עבורך</span>}
                     </div>
                   );
@@ -434,7 +440,8 @@ export default function DashboardPage() {
                 {feed.allDaySchedule.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-gray-50">
                     {feed.allDaySchedule.map((e) => (
-                      <span key={e.id} className="text-[10px] bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full border border-gray-100">
+                      <span key={e.id} className={`text-[10px] px-2 py-0.5 rounded-full border ${e.target === "all" ? "bg-gray-50 text-gray-600 border-gray-100" : "bg-cyan-50 text-cyan-700 border-cyan-100"}`}>
+                        {e.target !== "all" && <span className="font-bold ml-0.5">צוות</span>}
                         {e.title}
                         {e.assignees?.length > 0 && <span className="text-teal-600 font-bold mr-0.5"> ⭐</span>}
                       </span>
@@ -732,6 +739,9 @@ function CarouselFeed({ feed, visible }: { feed: DashboardFeed; visible: Set<Sec
                 {new Date(ev.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
               </span>
               <span className="text-xs text-white truncate">{ev.title}</span>
+              <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${ev.target === "all" ? "bg-white/15 text-white/80" : "bg-cyan-300/25 text-cyan-100"}`}>
+                {ev.target === "all" ? "פלוגה" : "צוות"}
+              </span>
             </div>
           ))}
           {feed.allDaySchedule.length > 0 && (
