@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   MdCalendarMonth, MdChevronRight, MdChevronLeft, MdAdd,
   MdEdit, MdDelete, MdFilterList, MdToday, MdNotifications,
-  MdStickyNote2, MdClose, MdPeople, MdPerson,
+  MdStickyNote2, MdClose, MdPeople, MdPerson, MdSync,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { TYPE_CONFIG } from "./constants";
@@ -42,6 +42,7 @@ export default function ScheduleDailyPage() {
   const [editingNote, setEditingNote] = useState<ScheduleNote | null>(null);
   const [noteForm, setNoteForm] = useState({ title: "", description: "", startTime: "", endTime: "", visibility: "personal" });
   const [noteReminding, setNoteReminding] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const noteFormRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<EventFormData>({
@@ -162,6 +163,24 @@ export default function ScheduleDailyPage() {
     if (!confirm("למחוק אירוע זה?")) return;
     const res = await fetch(`/api/schedule?id=${id}`, { method: "DELETE" });
     if (res.ok) setEvents((prev) => prev.filter((ev) => ev.id !== id));
+  };
+
+  const handleSync = async () => {
+    if (!confirm("לסנכרן את הלוז מיומן Google? כל האירועים הקיימים יוחלפו.")) return;
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/schedule/sync", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        fetchEvents();
+      } else {
+        alert(data.error || "שגיאה בסנכרון");
+      }
+    } catch {
+      alert("שגיאה בסנכרון");
+    }
+    setSyncing(false);
   };
 
   const handleRemind = async (id: string) => {
@@ -383,12 +402,18 @@ export default function ScheduleDailyPage() {
         ))}
       </div>
 
-      {/* Admin: Add button */}
+      {/* Admin: Add + Sync buttons */}
       {isAdmin && !showAdd && !editingEvent && (
-        <button onClick={() => { setShowAdd(true); resetForm(); }}
-          className="w-full mb-3 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
-          <MdAdd /> הוסף אירוע
-        </button>
+        <div className="flex gap-2 mb-3">
+          <button onClick={() => { setShowAdd(true); resetForm(); }}
+            className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
+            <MdAdd /> הוסף אירוע
+          </button>
+          <button onClick={handleSync} disabled={syncing}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50">
+            <MdSync className={syncing ? "animate-spin" : ""} /> {syncing ? "מסנכרן..." : "סנכרון"}
+          </button>
+        </div>
       )}
 
       {showAdd && (
