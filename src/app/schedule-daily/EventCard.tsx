@@ -35,11 +35,25 @@ export default function EventCard({
   const active = isEventNow(event, isToday);
   const duration = getDurationMin(event);
   const isAssignedToMe = currentUserId ? event.assignees.some(a => a.userId === currentUserId) : false;
+  const isTeamEvent = event.target !== "all";
+
+  // Visual priority: assigned > team > default
+  const cardBg = isAssignedToMe
+    ? "bg-teal-50 border-teal-300"
+    : isTeamEvent
+      ? "bg-cyan-50/80 border-cyan-200"
+      : `${config.bg} ${config.border}`;
+  const cardRing = active
+    ? "ring-2 ring-dotan-green shadow-md"
+    : isAssignedToMe
+      ? "ring-1 ring-teal-400 shadow-sm"
+      : "shadow-sm";
+  const leftAccent = isTeamEvent ? "border-r-[3px] border-r-cyan-400" : "";
 
   return (
     <div
       onClick={() => onDetail(event)}
-      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer overflow-hidden ${isAssignedToMe ? "bg-teal-50 border-teal-300" : `${config.bg} ${config.border}`} ${active ? "ring-2 ring-dotan-green shadow-md" : isAssignedToMe ? "ring-1 ring-teal-400 shadow-sm" : "shadow-sm"}`}
+      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer overflow-hidden ${cardBg} ${cardRing} ${leftAccent}`}
     >
       <div className="flex items-start gap-1.5">
         {isAdmin && !compact && (
@@ -67,6 +81,11 @@ export default function EventCard({
                 עכשיו
               </span>
             )}
+            {isTeamEvent && (
+              <span className="px-1 py-0.5 bg-cyan-500 text-white rounded text-[8px] font-bold">
+                {TARGET_LABELS[event.target] || "צוות"}
+              </span>
+            )}
             {isAssignedToMe && (
               <span className="px-1 py-0.5 bg-teal-500 text-white rounded text-[8px] font-bold">
                 עבורך
@@ -78,12 +97,6 @@ export default function EventCard({
             <div className="text-[10px] text-gray-500 mt-0.5 font-medium" dir="ltr">
               {formatTime(event.startTime)} – {formatEndTime(event.startTime, event.endTime)}
             </div>
-          )}
-
-          {!compact && event.target !== "all" && (
-            <span className="inline-block px-1.5 py-0.5 bg-white/80 border rounded text-[9px] font-medium text-gray-500 mt-0.5">
-              {TARGET_LABELS[event.target] || event.target}
-            </span>
           )}
 
           {!compact && duration > 0 && (

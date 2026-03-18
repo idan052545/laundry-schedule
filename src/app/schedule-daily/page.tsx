@@ -248,6 +248,29 @@ export default function ScheduleDailyPage() {
     setTeamSyncing(false);
   };
 
+  const handleTeamRemind = async () => {
+    const teamEvents = events.filter(e => e.target === `team-${userTeam}`);
+    if (teamEvents.length === 0) { alert("אין אירועי צוות להיום"); return; }
+    const summary = teamEvents.map(e => {
+      if (e.allDay) return `${e.title} (כל היום)`;
+      const st = new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+      const en = new Date(e.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+      return `${e.title} (${st}–${en})`;
+    }).join(" | ");
+    setTeamSyncing(true);
+    try {
+      await fetch("/api/schedule/sync-team", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changes: summary }),
+      });
+      alert("נשלחה תזכורת לצוות");
+    } catch {
+      alert("שגיאה בשליחה");
+    }
+    setTeamSyncing(false);
+  };
+
   const handleRemind = async (id: string) => {
     setReminding(id);
     await fetch("/api/schedule", {
@@ -481,12 +504,16 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
-      {/* Team 16: Sync button */}
+      {/* Team 16: Sync + Remind buttons */}
       {userTeam === 16 && !showAdd && !editingEvent && (
         <div className="flex gap-2 mb-3">
           <button onClick={handleTeamSync} disabled={teamSyncing}
             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-sm font-medium disabled:opacity-50">
             <MdSync className={teamSyncing ? "animate-spin" : ""} /> {teamSyncing ? "מסנכרן צוות..." : "סנכרון לו\"ז צוות 16"}
+          </button>
+          <button onClick={handleTeamRemind} disabled={teamSyncing}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-white text-teal-600 hover:bg-teal-50 transition text-sm font-medium disabled:opacity-50">
+            <MdNotifications /> תזכורת לצוות
           </button>
         </div>
       )}
@@ -591,10 +618,16 @@ export default function ScheduleDailyPage() {
               const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
               const Icon = config.icon;
               const active = isEventNow(event, isToday);
+              const isTeam = event.target !== "all";
+              const isMine = myUserId ? event.assignees.some(a => a.userId === myUserId) : false;
               return (
-                <div key={event.id} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${config.bg} ${config.border} ${active ? "ring-1 ring-dotan-green" : ""}`}>
-                  <Icon className={`text-sm ${config.color}`} />
-                  <span className="text-gray-700">{event.title}</span>
+                <div key={event.id} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
+                  isMine ? "bg-teal-50 border-teal-300" : isTeam ? "bg-cyan-50 border-cyan-200" : `${config.bg} ${config.border}`
+                } ${active ? "ring-1 ring-dotan-green" : ""}`}>
+                  <Icon className={`text-sm ${isMine ? "text-teal-600" : isTeam ? "text-cyan-600" : config.color}`} />
+                  <span className={isMine ? "text-teal-800" : isTeam ? "text-cyan-700" : "text-gray-700"}>{event.title}</span>
+                  {isTeam && <span className="px-1 py-0.5 bg-cyan-500 text-white rounded text-[8px] font-bold">צוות</span>}
+                  {isMine && <span className="px-1 py-0.5 bg-teal-500 text-white rounded text-[8px] font-bold">עבורך</span>}
                   {active && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse" />}
                   {isAdmin && (
                     <div className="flex items-center gap-0.5 mr-1">
@@ -719,15 +752,17 @@ export default function ScheduleDailyPage() {
                   const groupEndTime = formatEndTime(group.startTime, group.endTime);
                   const anyActive = group.events.some(({ event }) => isEventNow(event, isToday));
                   const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
+                  const isTeamGroup = group.events.some(({ event }) => event.target !== "all");
+                  const hasMyAssignment = myUserId ? group.events.some(({ event }) => event.assignees.some(a => a.userId === myUserId)) : false;
 
                   return (
                     <div key={`g-${item.groupIdx}`} className="flex gap-2 mb-0 min-w-0">
                       <div className="w-12 shrink-0 text-left pt-3">
-                        <div className="text-xs font-bold text-gray-800">{groupStartTime}</div>
-                        <div className="text-[10px] text-gray-400">{groupEndTime}</div>
+                        <div className={`text-xs font-bold ${isTeamGroup ? "text-cyan-700" : "text-gray-800"}`}>{groupStartTime}</div>
+                        <div className={`text-[10px] ${isTeamGroup ? "text-cyan-400" : "text-gray-400"}`}>{groupEndTime}</div>
                       </div>
                       <div className="flex flex-col items-center shrink-0 w-4">
-                        <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30" : firstConfig.dot}`} />
+                        <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30" : hasMyAssignment ? "bg-teal-400 ring-2 ring-teal-300/40" : isTeamGroup ? "bg-cyan-400" : firstConfig.dot}`} />
                         {idx < totalItems - 1 && (
                           <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
                         )}

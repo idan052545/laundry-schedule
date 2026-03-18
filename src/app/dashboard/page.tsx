@@ -37,6 +37,7 @@ interface DashboardFeed {
   unreadMaterials: { id: string; title: string; createdAt: string; author: { name: string } }[];
   currentSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" } | null;
   allDaySchedule: { id: string; title: string; type: string; target: string; assignees: { id: string }[] }[];
+  myTeamAssignments: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; allDay: boolean }[];
   pendingSurveys: { id: string; title: string; createdAt: string }[];
   pendingPlatoonSurveys: { id: string; title: string; createdAt: string }[];
   platoonSurveyCommanderId: string | null;
@@ -134,7 +135,8 @@ export default function DashboardPage() {
     feed.hasVotedThisWeek === false ||
     feed.dailyQuote ||
     feed.nextDutyTables?.length > 0 ||
-    feed.todayNotes?.length > 0
+    feed.todayNotes?.length > 0 ||
+    feed.myTeamAssignments?.length > 0
   );
 
   return (
@@ -225,6 +227,33 @@ export default function DashboardPage() {
               </div>
             </Link>
           ))}
+
+          {/* My team schedule assignments */}
+          {feed.myTeamAssignments?.length > 0 && (
+            <Link href="/schedule-daily" className="block bg-gradient-to-l from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-3.5 hover:shadow-sm transition">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-100 to-cyan-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <MdCalendarMonth className="text-lg text-teal-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-bold text-teal-500 tracking-wide">לו&quot;ז צוות — עבורך</span>
+                    <span className="text-[9px] bg-teal-500 text-white px-1.5 py-0.5 rounded font-bold">עבורך</span>
+                  </div>
+                  <div className="space-y-1">
+                    {feed.myTeamAssignments.map((e) => (
+                      <div key={e.id} className="flex items-center gap-2 bg-white/70 rounded-lg px-2.5 py-1.5 border border-teal-100">
+                        <span className="text-[11px] font-bold text-teal-700 shrink-0 tabular-nums" dir="ltr">
+                          {e.allDay ? "כל היום" : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                        </span>
+                        <span className="text-sm text-teal-800 font-medium truncate">{e.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          )}
 
           {/* All-day schedule events */}
           {feed.allDaySchedule.length > 0 && (

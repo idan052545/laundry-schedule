@@ -40,6 +40,7 @@ export async function GET() {
     pendingPlatoonSurveys,
     dailyQuote,
     upcomingDutyTables,
+    myTeamAssignments,
     todayNotes,
   ] = await Promise.all([
     // Latest message
@@ -181,6 +182,20 @@ export async function GET() {
       },
     }),
 
+    // Today's team schedule events where user is personally assigned
+    prisma.scheduleEvent.findMany({
+      where: {
+        endTime: { gt: now },
+        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
+        target: { not: "all" },
+        assignees: { some: { userId } },
+      },
+      orderBy: { startTime: "asc" },
+      select: {
+        id: true, title: true, startTime: true, endTime: true, type: true, target: true, allDay: true,
+      },
+    }),
+
     // Today's schedule notes (personal + team)
     prisma.scheduleNote.findMany({
       where: {
@@ -244,6 +259,7 @@ export async function GET() {
     unreadMaterials: latestMaterial,
     currentSchedule,
     allDaySchedule: allDayEvents,
+    myTeamAssignments,
     pendingSurveys,
     pendingPlatoonSurveys,
     platoonSurveyCommanderId,
