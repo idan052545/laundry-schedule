@@ -9,7 +9,7 @@
  *   Output: 16-bit PCM, 24kHz, little-endian, mono
  */
 
-const GEMINI_MODEL = "gemini-2.0-flash-live-001";
+const GEMINI_MODEL = "gemini-2.5-flash-native-audio-preview";
 const WS_URL_BASE = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 const INPUT_SAMPLE_RATE = 16000;
 const OUTPUT_SAMPLE_RATE = 24000;

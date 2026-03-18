@@ -771,6 +771,7 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
   onEnd: (session: SimSession) => void;
   onBack: () => void;
 }) {
+  const MAX_MESSAGES_PER_SESSION = 60; // Safety: max 60 messages (30 turns)
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -778,6 +779,7 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
   const [isCompleted, setIsCompleted] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [chatError, setChatError] = useState("");
+  const completingRef = useRef(false); // Prevent double completion
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -803,6 +805,11 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || sending || isCompleted) return;
+    if (messages.length >= MAX_MESSAGES_PER_SESSION) {
+      setChatError(`הגעת למקסימום ${MAX_MESSAGES_PER_SESSION} הודעות בסימולציה. הסימולציה מסתיימת.`);
+      if (!completingRef.current) completeSimulation(messages);
+      return;
+    }
     const userMsg: ChatMessage = { role: "user", content: text.trim(), timestamp: Date.now() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
@@ -834,6 +841,8 @@ function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onB
   };
 
   const completeSimulation = async (msgs: ChatMessage[]) => {
+    if (completingRef.current) return; // Prevent double completion
+    completingRef.current = true;
     setIsCompleted(true);
     setGenerating(true);
     const messagesJson = msgs.map(m => `${m.role === "user" ? "אתה" : scenario.machineName}: ${m.content}`).join("\n");
@@ -973,9 +982,18 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
     })();
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount + auto-disconnect after 15 minutes
   useEffect(() => {
-    return () => { clientRef.current?.disconnect(); };
+    const maxDurationTimer = setTimeout(() => {
+      if (!completedRef.current && clientRef.current) {
+        setErrorMsg("הסימולציה הקולית הסתיימה אוטומטית אחרי 15 דקות.");
+        handleSimulationEnd();
+      }
+    }, 15 * 60 * 1000);
+    return () => {
+      clearTimeout(maxDurationTimer);
+      clientRef.current?.disconnect();
+    };
   }, []);
 
   const startVoiceSession = async () => {
