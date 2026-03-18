@@ -15,9 +15,33 @@ interface NotificationPayload {
 }
 
 /**
+ * Log notifications to DB for notification center
+ */
+async function logNotifications(userIds: string[], payload: NotificationPayload) {
+  try {
+    const uniqueIds = [...new Set(userIds)];
+    if (uniqueIds.length === 0) return;
+    await prisma.notification.createMany({
+      data: uniqueIds.map(userId => ({
+        userId,
+        title: payload.title,
+        body: payload.body,
+        url: payload.url || null,
+        tag: payload.tag || null,
+      })),
+    });
+  } catch {
+    // Don't let logging failures break push sending
+  }
+}
+
+/**
  * Send push notification to specific users
  */
 export async function sendPushToUsers(userIds: string[], payload: NotificationPayload) {
+  // Log to DB
+  logNotifications(userIds, payload);
+
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId: { in: userIds } },
   });
@@ -54,6 +78,10 @@ export async function sendPushToUsers(userIds: string[], payload: NotificationPa
 export async function sendPushToAll(payload: NotificationPayload, excludeUserId?: string) {
   const where = excludeUserId ? { userId: { not: excludeUserId } } : {};
   const subscriptions = await prisma.pushSubscription.findMany({ where });
+
+  // Log to all unique users who have subscriptions
+  const allUserIds = [...new Set(subscriptions.map(s => s.userId))];
+  logNotifications(allUserIds, payload);
 
   const results = await Promise.allSettled(
     subscriptions.map(async (sub) => {

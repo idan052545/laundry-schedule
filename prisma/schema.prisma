@@ -56,6 +56,7 @@ model User {
   dutySuggested     DutyAppeal[]     @relation("dutySuggested")
   simSessions       SimSession[]     @relation("simSessions")
   chopalRequests    ChopalRequest[]  @relation("chopalRequests")
+  notifications     Notification[]   @relation("userNotifications")
 }
 
 model Machine {
@@ -492,4 +493,20 @@ model SimSession {
   grade         String?  // "עובר" / "לא עובר"
   startedAt     DateTime @default(now())
   completedAt   DateTime?
+}
+
+// ─── Notification Log (היסטוריית התראות) ───
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  url       String?
+  tag       String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation("userNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

@@ -46,9 +46,9 @@ export default function ScheduleDailyPage() {
   const [noteForm, setNoteForm] = useState({ title: "", description: "", startTime: "", endTime: "", visibility: "personal" });
   const [noteReminding, setNoteReminding] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [syncDiff, setSyncDiff] = useState<{ added: string[]; removed: string[]; unchanged: boolean } | null>(null);
+  const [syncDiff, setSyncDiff] = useState<{ added: string[]; removed: string[]; updated: string[]; unchanged: boolean } | null>(null);
   const [teamSyncing, setTeamSyncing] = useState(false);
-  const [teamSyncDiff, setTeamSyncDiff] = useState<{ added: string[]; removed: string[]; unchanged: boolean } | null>(null);
+  const [teamSyncDiff, setTeamSyncDiff] = useState<{ added: string[]; removed: string[]; updated: string[]; unchanged: boolean } | null>(null);
   const noteFormRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<EventFormData>({
@@ -199,6 +199,7 @@ export default function ScheduleDailyPage() {
     if (!syncDiff || syncDiff.unchanged) return;
     setSyncing(true);
     const lines: string[] = [];
+    if (syncDiff.updated.length > 0) lines.push(`עודכנו: ${syncDiff.updated.join(", ")}`);
     if (syncDiff.added.length > 0) lines.push(`נוספו: ${syncDiff.added.join(", ")}`);
     if (syncDiff.removed.length > 0) lines.push(`הוסרו: ${syncDiff.removed.join(", ")}`);
     const body = lines.join(" | ");
@@ -238,6 +239,7 @@ export default function ScheduleDailyPage() {
     if (!teamSyncDiff || teamSyncDiff.unchanged) return;
     setTeamSyncing(true);
     const lines: string[] = [];
+    if (teamSyncDiff.updated.length > 0) lines.push(`עודכנו: ${teamSyncDiff.updated.join(", ")}`);
     if (teamSyncDiff.added.length > 0) lines.push(`נוספו: ${teamSyncDiff.added.join(", ")}`);
     if (teamSyncDiff.removed.length > 0) lines.push(`הוסרו: ${teamSyncDiff.removed.join(", ")}`);
     const body = lines.join(" | ");
@@ -572,6 +574,14 @@ export default function ScheduleDailyPage() {
               <button onClick={() => setTeamSyncDiff(null)} className="text-gray-400 hover:text-gray-600"><MdClose /></button>
             </div>
           </div>
+          {teamSyncDiff.updated?.length > 0 && (
+            <div className="mb-2">
+              <span className="text-[10px] font-bold text-amber-700 uppercase">עודכנו:</span>
+              {teamSyncDiff.updated.map((t, i) => (
+                <div key={i} className="text-xs text-amber-800 bg-amber-50 rounded-lg px-2 py-1 mt-1 border border-amber-200">✏️ {t}</div>
+              ))}
+            </div>
+          )}
           {teamSyncDiff.added.length > 0 && (
             <div className="mb-2">
               <span className="text-[10px] font-bold text-green-700 uppercase">נוספו:</span>
@@ -613,6 +623,14 @@ export default function ScheduleDailyPage() {
               <button onClick={() => setSyncDiff(null)} className="text-gray-400 hover:text-gray-600"><MdClose /></button>
             </div>
           </div>
+          {syncDiff.updated?.length > 0 && (
+            <div className="mb-2">
+              <span className="text-[10px] font-bold text-amber-700 uppercase">עודכנו:</span>
+              {syncDiff.updated.map((t, i) => (
+                <div key={i} className="text-xs text-amber-800 bg-amber-50 rounded-lg px-2 py-1 mt-1 border border-amber-200">✏️ {t}</div>
+              ))}
+            </div>
+          )}
           {syncDiff.added.length > 0 && (
             <div className="mb-2">
               <span className="text-[10px] font-bold text-green-700 uppercase">נוספו:</span>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import {
   MdAdd, MdClose, MdPoll, MdSend, MdDelete, MdDownload,
   MdNotifications, MdCheckCircle, MdLock, MdLockOpen, MdPerson,
@@ -45,9 +45,18 @@ const TYPE_CONFIG: Record<string, { label: string; icon: typeof MdPoll }> = {
   multi: { label: "בחירה מרובה", icon: MdCheckBox },
 };
 
-export default function SurveysPage() {
+export default function SurveysPageWrapper() {
+  return (
+    <Suspense fallback={<InlineLoading />}>
+      <SurveysPage />
+    </Suspense>
+  );
+}
+
+function SurveysPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
@@ -65,7 +74,9 @@ export default function SurveysPage() {
   const [formOptions, setFormOptions] = useState(["", ""]);
   const [formPlatoon, setFormPlatoon] = useState(false);
   const [sending, setSending] = useState(false);
-  const [viewScope, setViewScope] = useState<"team" | "platoon">("team");
+  const [viewScope, setViewScope] = useState<"team" | "platoon">(
+    searchParams.get("tab") === "platoon" ? "platoon" : "team"
+  );
 
   // Edit state
   const [editing, setEditing] = useState(false);

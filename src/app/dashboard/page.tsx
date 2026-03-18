@@ -12,7 +12,7 @@ import {
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
   MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity, MdAccessTime,
-  MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital,
+  MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital, MdExpandMore, MdExpandLess, MdDoneAll,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -105,6 +105,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; url: string | null; tag: string | null; read: boolean; createdAt: string }[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [visible, setVisible] = useState<Set<SectionKey>>(() => loadVisibleSections());
   const [dashStyle, setDashStyle] = useState<"new" | "classic" | "carousel">(() => {
     if (typeof window === "undefined") return "new";
@@ -125,12 +127,14 @@ export default function DashboardPage() {
   };
 
   const fetchData = useCallback(async () => {
-    const [machinesRes, feedRes] = await Promise.all([
+    const [machinesRes, feedRes, notifRes] = await Promise.all([
       fetch("/api/machines"),
       fetch("/api/dashboard"),
+      fetch("/api/notifications"),
     ]);
     if (machinesRes.ok) setMachines(await machinesRes.json());
     if (feedRes.ok) setFeed(await feedRes.json());
+    if (notifRes.ok) setNotifications(await notifRes.json());
     setLoading(false);
   }, []);
 
@@ -182,6 +186,35 @@ export default function DashboardPage() {
   ];
 
   const firstName = session?.user?.name?.split(" ")[0] || "";
+
+  // Map notification tag/url to correct href with tab support
+  const getNotificationHref = (url: string | null, tag: string | null): string => {
+    // Platoon surveys go to surveys with platoon tab
+    if (tag?.startsWith("survey-new-") && url?.startsWith("/commander")) return "/surveys?tab=platoon";
+    if (tag?.startsWith("survey-remind-") && url?.startsWith("/commander")) return "/surveys?tab=platoon";
+    // Use the notification's url if present
+    if (url) return url;
+    // Fallback based on tag prefix
+    if (tag?.startsWith("form-")) return "/forms";
+    if (tag?.startsWith("issue-")) return "/issues";
+    if (tag?.startsWith("schedule-")) return "/schedule-daily";
+    if (tag?.startsWith("note-")) return "/schedule-daily";
+    if (tag?.startsWith("survey-")) return "/surveys";
+    if (tag?.startsWith("commander-")) return "/commander";
+    if (tag?.startsWith("material-")) return "/materials";
+    if (tag?.startsWith("format-")) return "/formats";
+    if (tag?.startsWith("attendance-")) return "/attendance";
+    if (tag?.startsWith("chopal-")) return "/chopal";
+    if (tag?.startsWith("aktualia-")) return "/aktualia";
+    return "/dashboard";
+  };
+
+  const getTimeAgo = (dateStr: string): string => {
+    const diffMin = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
+    if (diffMin < 1) return "עכשיו";
+    if (diffMin < 60) return `לפני ${diffMin} דק׳`;
+    return `לפני ${Math.floor(diffMin / 60)} שע׳`;
+  };
 
   // Count urgent items
   const urgentCount = (feed?.pendingForms.length || 0)
@@ -255,6 +288,65 @@ export default function DashboardPage() {
             <Link href="/forms" className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold hover:bg-red-200 transition">
               {feed?.pendingForms.length} טפסים
             </Link>
+          )}
+        </div>
+      )}
+
+      {/* Notification center — last 1 hour */}
+      {notifications.length > 0 && (
+        <div className="mb-3">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="w-full flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 hover:shadow-sm transition"
+          >
+            <div className="relative">
+              <MdNotifications className="text-lg text-dotan-green" />
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] font-bold flex items-center justify-center">
+                  {notifications.filter(n => !n.read).length}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-bold text-gray-700 flex-1 text-right">
+              {notifications.length} התראות בשעה האחרונה
+            </span>
+            {showNotifications ? <MdExpandLess className="text-gray-400" /> : <MdExpandMore className="text-gray-400" />}
+          </button>
+          {showNotifications && (
+            <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 bg-gray-50">
+                <span className="text-[10px] text-gray-400">שעה אחרונה</span>
+                <button
+                  onClick={async () => {
+                    await fetch("/api/notifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                  }}
+                  className="flex items-center gap-1 text-[10px] text-dotan-green hover:text-dotan-green-dark font-medium"
+                >
+                  <MdDoneAll className="text-xs" /> סמן הכל כנקרא
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
+                {notifications.map(n => {
+                  const href = getNotificationHref(n.url, n.tag);
+                  const timeAgo = getTimeAgo(n.createdAt);
+                  return (
+                    <Link
+                      key={n.id}
+                      href={href}
+                      className={`flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition ${!n.read ? "bg-blue-50/50" : ""}`}
+                    >
+                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-gray-800 truncate">{n.title}</div>
+                        <div className="text-[11px] text-gray-500 truncate">{n.body}</div>
+                      </div>
+                      <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">{timeAgo}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}

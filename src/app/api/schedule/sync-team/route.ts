@@ -26,15 +26,19 @@ interface GCalResponse {
 
 // POST — sync Team 16 Google Calendar → ScheduleEvent
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
+  // Allow cron secret bypass
+  const { searchParams } = new URL(req.url);
+  const cronSecret = searchParams.get("secret");
+  const isCron = cronSecret === process.env.CRON_SECRET;
 
-  const userId = (session.user as { id: string }).id;
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true, team: true } });
-
-  // Only team 16 members, admins, or ohad can sync
-  if (user?.team !== TEAM_NUMBER && user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
-    return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+  if (!isCron) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
+    const userId = (session.user as { id: string }).id;
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true, team: true } });
+    if (user?.team !== TEAM_NUMBER && user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
+      return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+    }
   }
 
   if (!API_KEY) {
@@ -186,16 +190,49 @@ export async function POST(req: NextRequest) {
     afterSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
   }
 
-  const added: string[] = [];
-  const removed: string[] = [];
+  // Collect raw added/removed by key
+  const rawAdded: { title: string; startTime: Date; endTime: Date; allDay: boolean }[] = [];
+  const rawRemoved: { title: string; startTime: Date; endTime: Date; allDay: boolean }[] = [];
 
   for (const [key, e] of afterSet) {
-    if (!beforeSet.has(key)) {
+    if (!beforeSet.has(key)) rawAdded.push(e);
+  }
+  for (const [key, e] of beforeSet) {
+    if (!afterSet.has(key)) rawRemoved.push(e);
+  }
+
+  // Detect updates: same title in both added & removed = time changed
+  const added: string[] = [];
+  const removed: string[] = [];
+  const updated: string[] = [];
+  const matchedAddedIdx = new Set<number>();
+  const matchedRemovedIdx = new Set<number>();
+
+  for (let ri = 0; ri < rawRemoved.length; ri++) {
+    for (let ai = 0; ai < rawAdded.length; ai++) {
+      if (matchedAddedIdx.has(ai)) continue;
+      if (rawRemoved[ri].title === rawAdded[ai].title && rawRemoved[ri].allDay === rawAdded[ai].allDay) {
+        const r = rawRemoved[ri];
+        const a = rawAdded[ai];
+        const oldTime = r.allDay ? "כל היום" : `${formatTime(r.startTime)}–${formatTime(r.endTime)}`;
+        const newTime = a.allDay ? "כל היום" : `${formatTime(a.startTime)}–${formatTime(a.endTime)}`;
+        updated.push(`${a.title} (${oldTime} ← ${newTime})`);
+        matchedAddedIdx.add(ai);
+        matchedRemovedIdx.add(ri);
+        break;
+      }
+    }
+  }
+
+  for (let ai = 0; ai < rawAdded.length; ai++) {
+    if (!matchedAddedIdx.has(ai)) {
+      const e = rawAdded[ai];
       added.push(e.allDay ? `${e.title} (כל היום)` : `${e.title} (${formatTime(e.startTime)}–${formatTime(e.endTime)})`);
     }
   }
-  for (const [key, e] of beforeSet) {
-    if (!afterSet.has(key)) {
+  for (let ri = 0; ri < rawRemoved.length; ri++) {
+    if (!matchedRemovedIdx.has(ri)) {
+      const e = rawRemoved[ri];
       removed.push(e.allDay ? `${e.title} (כל היום)` : `${e.title} (${formatTime(e.startTime)}–${formatTime(e.endTime)})`);
     }
   }
@@ -208,7 +245,8 @@ export async function POST(req: NextRequest) {
     todayDiff: {
       added,
       removed,
-      unchanged: added.length === 0 && removed.length === 0,
+      updated,
+      unchanged: added.length === 0 && removed.length === 0 && updated.length === 0,
     },
   });
 }
