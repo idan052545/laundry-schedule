@@ -54,6 +54,7 @@ model User {
   dutyAssignments   DutyAssignment[] @relation("dutyAssignments")
   dutyAppeals       DutyAppeal[]     @relation("dutyAppeals")
   dutySuggested     DutyAppeal[]     @relation("dutySuggested")
+  simSessions       SimSession[]     @relation("simSessions")
 }
 
 model Machine {
@@ -436,4 +437,44 @@ model DutyAppeal {
   suggestedUser   User?    @relation("dutySuggested", fields: [suggestedUserId], references: [id])
   status          String   @default("pending") // "pending", "approved", "rejected"
   createdAt       DateTime @default(now())
+}
+
+// ─── סימולטור פיקודי (Commander Simulator) ───
+
+model SimScenario {
+  id                  String   @id @default(uuid())
+  title               String
+  description         String?
+  conflictCharacter   String   // תפקיד הדמות (e.g. "חיילת מתלוננת")
+  machineName         String   // שם הדמות (e.g. "רונה")
+  relationship        String   // הקשר בין הדמות למשתמש
+  servicenature       String   // רקע הסימולציה
+  objective           String   // מטרת הסימולציה
+  machineMotivation   String   // מוטיבציות הדמות
+  keypoints           String   // נקודות מפתח
+  difficulty          Int      @default(5) // 1-10
+  soldierGender       String   @default("female") // "male" or "female"
+  gradeRequirements   String?  // JSON: requirements for passing (e.g. '{"pass": "עובר"}')
+  skills              String?  // JSON array of skills to evaluate
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  sessions            SimSession[]
+}
+
+model SimSession {
+  id            String   @id @default(uuid())
+  scenarioId    String
+  scenario      SimScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation("simSessions", fields: [userId], references: [id])
+  mode          String   @default("chat") // "chat" or "voice"
+  status        String   @default("active") // "active", "completed", "abandoned"
+  messages      String?  // JSON array of chat messages
+  score         Int?     // 0-100
+  feedback      String?  // AI-generated feedback text
+  skillsRating  String?  // JSON: skill ratings
+  grade         String?  // "עובר" / "לא עובר"
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
 }
