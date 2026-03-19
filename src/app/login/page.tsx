@@ -28,7 +28,19 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      // Check if simulator-only user → redirect to /simulator
+      try {
+        const sessRes = await fetch("/api/auth/session");
+        const sess = await sessRes.json();
+        const role = sess?.user?.role;
+        if (role === "simulator") {
+          router.push("/simulator");
+        } else {
+          router.push("/dashboard");
+        }
+      } catch {
+        router.push("/dashboard");
+      }
     }
   };
 

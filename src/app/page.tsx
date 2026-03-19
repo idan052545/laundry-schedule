@@ -8,14 +8,14 @@ import Image from "next/image";
 import { MdLogin, MdPersonAdd } from "react-icons/md";
 
 export default function Home() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
-
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/dashboard");
+      const role = (session?.user as { role?: string } | undefined)?.role;
+      router.push(role === "simulator" ? "/simulator" : "/dashboard");
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">

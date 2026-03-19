@@ -7,6 +7,7 @@ import {
   MdCalendarMonth, MdChevronRight, MdChevronLeft, MdAdd,
   MdEdit, MdDelete, MdFilterList, MdToday, MdNotifications,
   MdStickyNote2, MdClose, MdPeople, MdPerson, MdSync,
+  MdMyLocation,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { TYPE_CONFIG } from "./constants";
@@ -50,6 +51,7 @@ export default function ScheduleDailyPage() {
   const [teamSyncing, setTeamSyncing] = useState(false);
   const [teamSyncDiff, setTeamSyncDiff] = useState<{ added: string[]; removed: string[]; updated: string[]; unchanged: boolean } | null>(null);
   const noteFormRef = useRef<HTMLDivElement>(null);
+  const nowRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<EventFormData>({
     title: "", description: "", startTime: "", endTime: "",
@@ -799,6 +801,7 @@ export default function ScheduleDailyPage() {
 
           const totalItems = items.length;
 
+          let foundNowRef = false;
           return (
             <>
               {items.map((item, idx) => {
@@ -812,8 +815,14 @@ export default function ScheduleDailyPage() {
                   const isTeamGroup = group.events.some(({ event }) => event.target !== "all");
                   const hasMyAssignment = myUserId ? group.events.some(({ event }) => event.assignees.some(a => a.userId === myUserId)) : false;
 
+                  // Mark the current (active) or first upcoming group for "scroll to now"
+                  const now = Date.now();
+                  const groupStart = new Date(group.startTime).getTime();
+                  const isNowGroup = isToday && (anyActive || (!foundNowRef && groupStart > now));
+                  if (isNowGroup) foundNowRef = true;
+
                   return (
-                    <div key={`g-${item.groupIdx}`} className="flex gap-2 mb-0 min-w-0">
+                    <div key={`g-${item.groupIdx}`} ref={isNowGroup ? nowRef : undefined} className="flex gap-2 mb-0 min-w-0">
                       <div className="w-12 shrink-0 text-left pt-3">
                         <div className={`text-xs font-bold ${isTeamGroup ? "text-cyan-700" : "text-gray-800"}`}>{groupStartTime}</div>
                         <div className={`text-[10px] ${isTeamGroup ? "text-cyan-400" : "text-gray-400"}`}>{groupEndTime}</div>
@@ -990,6 +999,17 @@ export default function ScheduleDailyPage() {
           onTeamFilterChange={setAssignTeamFilter} onSearchChange={setUserSearch}
           onSave={handleAssign} onClose={() => setShowAssign(null)}
         />
+      )}
+
+      {/* Floating scroll-to-now button */}
+      {isToday && timedEvents.length > 0 && (
+        <button
+          onClick={() => nowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+          className="fixed bottom-20 left-4 z-30 w-10 h-10 rounded-full bg-dotan-green-dark text-white shadow-lg flex items-center justify-center hover:bg-dotan-green transition active:scale-95"
+          title="גלול לעכשיו"
+        >
+          <MdMyLocation className="text-xl" />
+        </button>
       )}
     </div>
   );

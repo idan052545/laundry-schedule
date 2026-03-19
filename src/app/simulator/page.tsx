@@ -388,15 +388,19 @@ export default function SimulatorPage() {
   const userName = session?.user?.name || "";
   const firstName = userName.split(" ")[0];
 
-  // Check if user is עידן סימנטוב
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const isSimulatorRole = userRole === "simulator";
+  const isNameAllowed = ["עידן חן סימנטוב", "דולב כהן"].includes(session?.user?.name || "");
+
+  // Check access: allowed by name (admins) or by role (standalone simulator users)
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") {
-      if (!["עידן חן סימנטוב", "דולב כהן"].includes(session?.user?.name || "")) {
+      if (!isNameAllowed && !isSimulatorRole) {
         router.push("/dashboard");
         return;
       }
-      setIsAdmin(true);
+      setIsAdmin(isNameAllowed); // Only name-based users can create/edit scenarios
       fetchData();
     }
   }, [status, router, session]);
@@ -421,6 +425,7 @@ export default function SimulatorPage() {
         <ScenarioList
           scenarios={scenarios}
           sessions={sessions}
+          isAdmin={isAdmin}
           onSelect={(s) => { setSelectedScenario(s); }}
           onStart={async (s, mode) => {
             setSelectedScenario(s);
@@ -500,9 +505,10 @@ export default function SimulatorPage() {
 
 // ─── Scenario List ───
 
-function ScenarioList({ scenarios, sessions, onSelect, onStart, onCreate, onEdit, onDelete, onHistory, onViewFeedback }: {
+function ScenarioList({ scenarios, sessions, isAdmin, onSelect, onStart, onCreate, onEdit, onDelete, onHistory, onViewFeedback }: {
   scenarios: Scenario[];
   sessions: SimSession[];
+  isAdmin: boolean;
   onSelect: (s: Scenario) => void;
   onStart: (s: Scenario, mode: "chat" | "voice") => void;
   onCreate: () => void;
@@ -525,9 +531,11 @@ function ScenarioList({ scenarios, sessions, onSelect, onStart, onCreate, onEdit
           <button onClick={onHistory} className="text-sm px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 flex items-center gap-1 text-gray-600">
             <MdHistory /> היסטוריה
           </button>
-          <button onClick={onCreate} className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 text-sm">
-            <MdAdd /> תרחיש חדש
-          </button>
+          {isAdmin && (
+            <button onClick={onCreate} className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 text-sm">
+              <MdAdd /> תרחיש חדש
+            </button>
+          )}
         </div>
       </div>
 
@@ -564,10 +572,12 @@ function ScenarioList({ scenarios, sessions, onSelect, onStart, onCreate, onEdit
                 <h3 className="font-bold text-gray-800 text-base truncate">{s.title}</h3>
                 {s.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{s.description}</p>}
               </div>
-              <div className="flex gap-1 shrink-0">
-                <button onClick={() => onEdit(s)} className="text-gray-400 hover:text-gray-600 p-1"><MdEdit /></button>
-                <button onClick={() => onDelete(s.id)} className="text-red-300 hover:text-red-500 p-1"><MdDelete /></button>
-              </div>
+              {isAdmin && (
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={() => onEdit(s)} className="text-gray-400 hover:text-gray-600 p-1"><MdEdit /></button>
+                  <button onClick={() => onDelete(s.id)} className="text-red-300 hover:text-red-500 p-1"><MdDelete /></button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-1.5 mb-3 text-[10px]">
