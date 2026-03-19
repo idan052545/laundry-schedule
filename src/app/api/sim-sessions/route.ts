@@ -19,9 +19,12 @@ export async function GET(req: NextRequest) {
   const scenarioId = searchParams.get("scenarioId");
   const isAdmin = ["עידן חן סימנטוב", "דולב כהן"].includes(user.name);
 
+  // Always filter by own user - each person sees only their own sessions/scores
+  // Admins can see all only if they pass ?all=true
+  const showAll = isAdmin && searchParams.get("all") === "true";
   const sessions = await prisma.simSession.findMany({
     where: {
-      ...(isAdmin ? {} : { userId: user.id }),
+      ...(showAll ? {} : { userId: user.id }),
       ...(scenarioId ? { scenarioId } : {}),
     },
     include: {
@@ -66,7 +69,7 @@ export async function PUT(req: NextRequest) {
   // Verify ownership
   const existing = await prisma.simSession.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (existing.userId !== user.id && user.name !== "עידן חן סימנטוב") {
+  if (existing.userId !== user.id && !["עידן חן סימנטוב", "דולב כהן"].includes(user.name)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

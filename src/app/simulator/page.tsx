@@ -1017,6 +1017,8 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
 מטרה: ${scenario.objective}
 כשהמפקד מצליח - כלומר מצאת פתרון או הרגשת ערך ומשמעות - אמור/אמרי: "כל הכבוד סיימת את הסימולציה"
 
+תזכורת קריטית: ${firstName} הוא גבר. כל פנייה אליו חייבת להיות בלשון זכר בלבד. דוגמאות: "אתה לא מבין", "למה עשית ככה", "אתה יכול", "שאלת אותי". אסור: "את", "עשית" בנקבה, "שאלת" בנקבה.
+
 התחל/י בדמות עכשיו. המפקד ${firstName} שלח לך הודעה.`;
 
   // Generate intro
@@ -1032,6 +1034,19 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       } catch (e) { console.error(e); }
       setGenerating(false);
     })();
+  }, []);
+
+  // Prevent accidental page close during active voice session
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (clientRef.current && !completedRef.current) {
+        e.preventDefault();
+        e.returnValue = "סימולציה קולית פעילה. בטוח שאתה רוצה לצאת?";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   // Cleanup on unmount + auto-disconnect after 15 minutes
@@ -1122,11 +1137,10 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
 
   const toggleMic = () => {
     if (isMicOn) {
-      clientRef.current?.stopMicrophone();
+      clientRef.current?.mute(); // Just mute, don't kill the mic stream
       setIsMicOn(false);
-      setVoiceStatus("connected");
     } else {
-      clientRef.current?.startMicrophone();
+      clientRef.current?.unmute();
       setIsMicOn(true);
     }
   };
@@ -1205,7 +1219,7 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
       {/* Header */}
       <div className="bg-gradient-to-l from-purple-700 to-blue-700 text-white rounded-t-xl p-3 sm:p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => { clientRef.current?.disconnect(); if (confirm("לצאת מהסימולציה?")) onBack(); }} className="text-white/80 hover:text-white">
+          <button onClick={() => { if (confirm("סימולציה קולית פעילה. לצאת? הנתונים יאבדו.")) { clientRef.current?.disconnect(); onBack(); } }} className="text-white/80 hover:text-white">
             <MdArrowBack className="text-xl" />
           </button>
           <div>
