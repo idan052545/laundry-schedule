@@ -342,8 +342,12 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
   sendEndOfTurn() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     console.log("[GeminiLive] Sending manual end-of-turn");
+    // Send a minimal valid clientContent with an empty text turn + turnComplete
     this.ws.send(JSON.stringify({
-      clientContent: { turnComplete: true },
+      clientContent: {
+        turns: [{ role: "user", parts: [{ text: " " }] }],
+        turnComplete: true,
+      },
     }));
   }
 

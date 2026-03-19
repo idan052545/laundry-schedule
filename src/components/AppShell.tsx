@@ -12,7 +12,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const userRole = (session?.user as { role?: string } | undefined)?.role;
-  const isSimulatorUser = userRole === "simulator";
+  const isSimulatorUser = userRole === "simulator" || userRole === "simulator-admin";
 
   // Simulator-only users: redirect to /simulator if they try to access anything else
   useEffect(() => {

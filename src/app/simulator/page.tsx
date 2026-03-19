@@ -389,10 +389,11 @@ export default function SimulatorPage() {
   const firstName = userName.split(" ")[0];
 
   const userRole = (session?.user as { role?: string } | undefined)?.role;
-  const isSimulatorRole = userRole === "simulator";
+  const isSimulatorRole = userRole === "simulator" || userRole === "simulator-admin";
   const isNameAllowed = ["עידן חן סימנטוב", "דולב כהן"].includes(session?.user?.name || "");
+  const canManageScenarios = isNameAllowed || userRole === "simulator-admin";
 
-  // Check access: allowed by name (admins) or by role (standalone simulator users)
+  // Check access: allowed by name, or by simulator/simulator-admin role
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") {
@@ -400,7 +401,7 @@ export default function SimulatorPage() {
         router.push("/dashboard");
         return;
       }
-      setIsAdmin(isNameAllowed); // Only name-based users can create/edit scenarios
+      setIsAdmin(canManageScenarios);
       fetchData();
     }
   }, [status, router, session]);

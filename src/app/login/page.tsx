@@ -33,7 +33,7 @@ export default function LoginPage() {
         const sessRes = await fetch("/api/auth/session");
         const sess = await sessRes.json();
         const role = sess?.user?.role;
-        if (role === "simulator") {
+        if (role === "simulator" || role === "simulator-admin") {
           router.push("/simulator");
         } else {
           router.push("/dashboard");

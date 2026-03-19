@@ -13,7 +13,7 @@ export default function Home() {
   useEffect(() => {
     if (status === "authenticated") {
       const role = (session?.user as { role?: string } | undefined)?.role;
-      router.push(role === "simulator" ? "/simulator" : "/dashboard");
+      router.push(role === "simulator" || role === "simulator-admin" ? "/simulator" : "/dashboard");
     }
   }, [status, router, session]);
 
