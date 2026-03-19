@@ -1141,12 +1141,18 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   };
 
   const toggleMic = () => {
-    if (isMicOn) {
-      clientRef.current?.mute(); // Just mute, don't kill the mic stream
-      setIsMicOn(false);
-    } else {
-      clientRef.current?.unmute();
-      setIsMicOn(true);
+    try {
+      if (isMicOn) {
+        clientRef.current?.mute();
+        setIsMicOn(false);
+      } else {
+        clientRef.current?.unmute();
+        setIsMicOn(true);
+      }
+    } catch (e) {
+      console.error("[Voice] toggleMic error:", e);
+      // Try to recover by restarting mic
+      clientRef.current?.startMicrophone().then(() => setIsMicOn(true)).catch(() => {});
     }
   };
 
@@ -1344,8 +1350,13 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
             {/* Manual unmute after AI finished */}
             {!isMicOn && voiceStatus !== "ai-speaking" && voiceStatus !== "connecting" && voiceStatus !== "disconnected" && (
               <button onClick={() => {
-                clientRef.current?.unmute();
-                setIsMicOn(true);
+                try {
+                  clientRef.current?.unmute();
+                  setIsMicOn(true);
+                } catch (e) {
+                  console.error("[Voice] unmute error:", e);
+                  clientRef.current?.startMicrophone().then(() => setIsMicOn(true)).catch(() => {});
+                }
               }}
                 className="h-14 px-5 rounded-full bg-green-500 hover:bg-green-600 text-white font-medium text-sm flex items-center gap-2 shadow-md transition-all">
                 <MdMic className="text-xl" /> לחץ לדבר

@@ -293,8 +293,11 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
       };
 
       this.sourceNode.connect(this.workletNode);
-      // Connect to destination to keep the worklet alive
-      this.workletNode.connect(this.audioContext.destination);
+      // Connect worklet to a silent gain node (keeps processing alive without echoing mic to speakers)
+      const silentGain = this.audioContext.createGain();
+      silentGain.gain.value = 0;
+      this.workletNode.connect(silentGain);
+      silentGain.connect(this.audioContext.destination);
 
       console.log("[GeminiLive] Microphone started, streaming audio");
       this.setStatus("listening");
@@ -353,6 +356,10 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
   /** Unmute mic */
   unmute() {
     this._muted = false;
+    // Resume AudioContext if it was suspended by the browser
+    if (this.audioContext && this.audioContext.state === "suspended") {
+      this.audioContext.resume().catch(() => {});
+    }
     console.log("[GeminiLive] Unmuted");
   }
 
