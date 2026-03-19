@@ -338,17 +338,33 @@ registerProcessor('pcm-capture', PCMCaptureProcessor);
     }));
   }
 
-  /** Signal to Gemini that the user finished their turn (manual end-of-speech) */
+  /** Signal to Gemini that the user finished their turn by sending silence audio.
+   *  This triggers the VAD silence detector naturally. */
   sendEndOfTurn() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    console.log("[GeminiLive] Sending manual end-of-turn");
-    // Send a minimal valid clientContent with an empty text turn + turnComplete
-    this.ws.send(JSON.stringify({
-      clientContent: {
-        turns: [{ role: "user", parts: [{ text: " " }] }],
-        turnComplete: true,
-      },
-    }));
+    console.log("[GeminiLive] Sending silence to trigger VAD end-of-turn");
+
+    // Send ~1 second of silence (16kHz * 1s = 16000 samples of 16-bit PCM)
+    const silenceSamples = 16000;
+    const silence = new Int16Array(silenceSamples); // all zeros = silence
+    const base64 = this.arrayBufferToBase64(silence.buffer as ArrayBuffer);
+
+    // Send in a few chunks to mimic natural audio flow
+    const chunkSize = 4000;
+    for (let i = 0; i < silenceSamples; i += chunkSize) {
+      const chunk = silence.slice(i, i + chunkSize);
+      const b64 = this.arrayBufferToBase64(chunk.buffer as ArrayBuffer);
+      this.ws.send(JSON.stringify({
+        realtimeInput: {
+          audio: { data: b64, mimeType: "audio/pcm" },
+        },
+      }));
+    }
+
+    // Mute after sending silence
+    void base64; // used above in chunks
+    this._muted = true;
+    console.log("[GeminiLive] Silence sent, muted");
   }
 
   /** Mute mic (stop sending audio but keep stream alive) */
