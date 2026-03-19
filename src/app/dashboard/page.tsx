@@ -227,7 +227,7 @@ export default function DashboardPage() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header — compact, elegant */}
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-5 flex items-center gap-3">
         <div className="w-11 h-11 rounded-2xl shadow-sm overflow-hidden shrink-0 border border-dotan-mint">
           <Image src="/dotanLogo.png" alt="דותן" width={44} height={44} className="w-full h-full object-cover" />
         </div>
