@@ -79,9 +79,12 @@ export async function sendPushToAll(payload: NotificationPayload, excludeUserId?
   const where = excludeUserId ? { userId: { not: excludeUserId } } : {};
   const subscriptions = await prisma.pushSubscription.findMany({ where });
 
-  // Log to all unique users who have subscriptions
-  const allUserIds = [...new Set(subscriptions.map(s => s.userId))];
-  logNotifications(allUserIds, payload);
+  // Log to ALL users (not just those with push subscriptions)
+  const allUsers = await prisma.user.findMany({
+    where: excludeUserId ? { id: { not: excludeUserId } } : {},
+    select: { id: true },
+  });
+  logNotifications(allUsers.map(u => u.id), payload);
 
   const results = await Promise.allSettled(
     subscriptions.map(async (sub) => {

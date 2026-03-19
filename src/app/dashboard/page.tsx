@@ -206,6 +206,10 @@ export default function DashboardPage() {
     if (tag?.startsWith("attendance-")) return "/attendance";
     if (tag?.startsWith("chopal-")) return "/chopal";
     if (tag?.startsWith("aktualia-")) return "/aktualia";
+    if (tag?.startsWith("message-")) return "/messages";
+    if (tag?.startsWith("task-")) return "/tasks";
+    if (tag?.startsWith("admin-")) return "/dashboard";
+    if (tag?.startsWith("guard-") || tag?.startsWith("duty-")) return "/guard-duty";
     return "/dashboard";
   };
 
