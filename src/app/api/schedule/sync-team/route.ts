@@ -45,38 +45,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "חסר מפתח Google API" }, { status: 500 });
   }
 
-  // Snapshot today's team events BEFORE sync
+  // Run independent queries + Google Calendar fetch in parallel
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
 
-  const beforeEvents = await prisma.scheduleEvent.findMany({
-    where: {
-      target: TARGET,
-      startTime: { lt: todayEnd },
-      endTime: { gt: todayStart },
-    },
-    select: { title: true, startTime: true, endTime: true, allDay: true },
-    orderBy: { startTime: "asc" },
-  });
-  const beforeSet = new Map<string, { title: string; startTime: Date; endTime: Date; allDay: boolean }>();
-  for (const e of beforeEvents) {
-    beforeSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
-  }
-
-  // Fetch events from Google Calendar API
   const now = new Date();
-  const timeMin = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const timeMax = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
+  const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const timeMax = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  const allGCalEvents: GCalEvent[] = [];
-  let pageToken: string | undefined;
-
-  try {
+  // Fetch Google Calendar events
+  const fetchGCal = async (): Promise<GCalEvent[]> => {
+    const allEvents: GCalEvent[] = [];
+    let pageToken: string | undefined;
     do {
       const params = new URLSearchParams({
-        key: API_KEY,
+        key: API_KEY!,
         timeMin,
         timeMax,
         singleEvents: "true",
@@ -84,34 +69,55 @@ export async function POST(req: NextRequest) {
         maxResults: "2500",
       });
       if (pageToken) params.set("pageToken", pageToken);
-
       const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(TEAM16_CALENDAR_ID)}/events?${params}`;
       const res = await fetch(url, { cache: "no-store" });
       const data: GCalResponse = await res.json();
-
-      if (!res.ok) {
-        console.error("Google Calendar API error (team 16):", data.error);
-        return NextResponse.json({
-          error: `שגיאה מ-Google: ${data.error?.message || res.status}`,
-        }, { status: 502 });
-      }
-
-      if (data.items) allGCalEvents.push(...data.items);
+      if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+      if (data.items) allEvents.push(...data.items);
       pageToken = data.nextPageToken;
     } while (pageToken);
+    return allEvents;
+  };
+
+  // Run all independent operations in parallel
+  let allGCalEvents: GCalEvent[];
+  let beforeEvents: { title: string; startTime: Date; endTime: Date; allDay: boolean }[];
+  let teamUsers: { id: string; name: string }[];
+  let teamEventIds: { id: string }[];
+
+  try {
+    const [gcal, before, users, ids] = await Promise.all([
+      fetchGCal(),
+      prisma.scheduleEvent.findMany({
+        where: { target: TARGET, startTime: { lt: todayEnd }, endTime: { gt: todayStart } },
+        select: { title: true, startTime: true, endTime: true, allDay: true },
+        orderBy: { startTime: "asc" },
+      }),
+      prisma.user.findMany({
+        where: { team: TEAM_NUMBER },
+        select: { id: true, name: true },
+      }),
+      prisma.scheduleEvent.findMany({
+        where: { target: TARGET },
+        select: { id: true },
+      }),
+    ]);
+    allGCalEvents = gcal;
+    beforeEvents = before;
+    teamUsers = users;
+    teamEventIds = ids;
   } catch (err) {
     console.error("Failed to fetch team 16 calendar:", err);
-    return NextResponse.json({ error: "שגיאה בטעינת יומן הצוות" }, { status: 502 });
+    return NextResponse.json({ error: `שגיאה בטעינת יומן הצוות: ${err}` }, { status: 502 });
+  }
+
+  const beforeSet = new Map<string, { title: string; startTime: Date; endTime: Date; allDay: boolean }>();
+  for (const e of beforeEvents) {
+    beforeSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
   }
 
   // Filter out cancelled events
   const activeEvents = allGCalEvents.filter(e => e.status !== "cancelled");
-
-  // Get all team 16 users for name matching
-  const teamUsers = await prisma.user.findMany({
-    where: { team: TEAM_NUMBER },
-    select: { id: true, name: true },
-  });
 
   // Parse into our format
   const parsed = activeEvents.map(e => {
@@ -123,19 +129,20 @@ export async function POST(req: NextRequest) {
       ? new Date(e.end.dateTime)
       : new Date(e.end.date + "T00:00:00+03:00");
 
-    // Find users whose name appears in the event title
-    // Uses tokenized matching: all parts of user's name must appear in the title
-    // e.g. DB name "עידן סימנטוב" matches calendar title "עידן חן סימנטוב - תורנות"
+    // Find users whose name appears in the event title OR description
+    // Uses tokenized matching: all parts of user's name must appear
     const title = e.summary || "ללא כותרת";
     const titleNorm = title.replace(/[־\-–—]/g, " ");
+    const descNorm = (e.description || "").replace(/[־\-–—]/g, " ");
+    const searchText = `${titleNorm} ${descNorm}`;
     const matchedUsers = teamUsers.filter(u => {
       if (!u.name) return false;
-      // First try exact match
-      if (titleNorm.includes(u.name)) return true;
-      // Then try tokenized: all name parts must appear in title
+      // First try exact match in title or description
+      if (searchText.includes(u.name)) return true;
+      // Then try tokenized: all name parts must appear somewhere
       const nameParts = u.name.split(/\s+/).filter(p => p.length > 1);
       if (nameParts.length < 2) return false;
-      return nameParts.every(part => titleNorm.includes(part));
+      return nameParts.every(part => searchText.includes(part));
     });
 
     return {
@@ -150,33 +157,44 @@ export async function POST(req: NextRequest) {
     };
   }).filter(e => !isNaN(e.startTime.getTime()) && !isNaN(e.endTime.getTime()));
 
-  // Delete existing team 16 events only (not platoon events)
-  // First delete assignees for team events, then the events themselves
-  const teamEventIds = await prisma.scheduleEvent.findMany({
-    where: { target: TARGET },
-    select: { id: true },
-  });
+  // Delete existing team 16 events in one batch (assignees + events)
   if (teamEventIds.length > 0) {
-    await prisma.scheduleAssignee.deleteMany({
-      where: { eventId: { in: teamEventIds.map(e => e.id) } },
-    });
-    await prisma.scheduleEvent.deleteMany({ where: { target: TARGET } });
+    await prisma.$transaction([
+      prisma.scheduleAssignee.deleteMany({
+        where: { eventId: { in: teamEventIds.map(e => e.id) } },
+      }),
+      prisma.scheduleEvent.deleteMany({ where: { target: TARGET } }),
+    ]);
   }
 
-  // Insert new events and create assignees
-  let assignedCount = 0;
-  for (const event of parsed) {
-    const { matchedUserIds, ...eventData } = event;
-    const created = await prisma.scheduleEvent.create({ data: eventData });
+  // Batch insert: events without assignees via createMany, then handle assignees
+  const eventsWithAssignees = parsed.filter(e => e.matchedUserIds.length > 0);
+  const eventsWithout = parsed.filter(e => e.matchedUserIds.length === 0);
 
-    if (matchedUserIds.length > 0) {
-      await prisma.scheduleAssignee.createMany({
-        data: matchedUserIds.map(uid => ({
-          eventId: created.id,
-          userId: uid,
-        })),
-      });
-      assignedCount += matchedUserIds.length;
+  // Insert events without assignees in one batch
+  if (eventsWithout.length > 0) {
+    await prisma.scheduleEvent.createMany({
+      data: eventsWithout.map(({ matchedUserIds: _, ...d }) => d),
+    });
+  }
+
+  // Insert events with assignees — need IDs back, batch in transaction
+  let assignedCount = 0;
+  if (eventsWithAssignees.length > 0) {
+    const creates = eventsWithAssignees.map(({ matchedUserIds: _, ...d }) =>
+      prisma.scheduleEvent.create({ data: d })
+    );
+    const createdEvents = await prisma.$transaction(creates);
+
+    const assigneeData: { eventId: string; userId: string }[] = [];
+    for (let i = 0; i < createdEvents.length; i++) {
+      for (const uid of eventsWithAssignees[i].matchedUserIds) {
+        assigneeData.push({ eventId: createdEvents[i].id, userId: uid });
+      }
+    }
+    if (assigneeData.length > 0) {
+      await prisma.scheduleAssignee.createMany({ data: assigneeData });
+      assignedCount = assigneeData.length;
     }
   }
 

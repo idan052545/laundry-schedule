@@ -297,14 +297,14 @@ export default function DashboardPage() {
       )}
 
       {/* Notification center — last 1 hour */}
-      {notifications.length > 0 && (
+      {feed && (
         <div className="mb-3">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             className="w-full flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 hover:shadow-sm transition"
           >
             <div className="relative">
-              <MdNotifications className="text-lg text-dotan-green" />
+              <MdNotifications className={`text-lg ${notifications.filter(n => !n.read).length > 0 ? "text-blue-500" : "text-gray-400"}`} />
               {notifications.filter(n => !n.read).length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] font-bold flex items-center justify-center">
                   {notifications.filter(n => !n.read).length}
@@ -312,44 +312,54 @@ export default function DashboardPage() {
               )}
             </div>
             <span className="text-xs font-bold text-gray-700 flex-1 text-right">
-              {notifications.length} התראות בשעה האחרונה
+              {notifications.length > 0 ? `${notifications.length} התראות בשעה האחרונה` : "אין התראות חדשות"}
             </span>
             {showNotifications ? <MdExpandLess className="text-gray-400" /> : <MdExpandMore className="text-gray-400" />}
           </button>
           {showNotifications && (
             <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 bg-gray-50">
-                <span className="text-[10px] text-gray-400">שעה אחרונה</span>
-                <button
-                  onClick={async () => {
-                    await fetch("/api/notifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
-                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-                  }}
-                  className="flex items-center gap-1 text-[10px] text-dotan-green hover:text-dotan-green-dark font-medium"
-                >
-                  <MdDoneAll className="text-xs" /> סמן הכל כנקרא
-                </button>
-              </div>
-              <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
-                {notifications.map(n => {
-                  const href = getNotificationHref(n.url, n.tag);
-                  const timeAgo = getTimeAgo(n.createdAt);
-                  return (
-                    <Link
-                      key={n.id}
-                      href={href}
-                      className={`flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition ${!n.read ? "bg-blue-50/50" : ""}`}
-                    >
-                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-bold text-gray-800 truncate">{n.title}</div>
-                        <div className="text-[11px] text-gray-500 truncate">{n.body}</div>
-                      </div>
-                      <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">{timeAgo}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+              {notifications.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 bg-gray-50">
+                    <span className="text-[10px] text-gray-400">שעה אחרונה</span>
+                    {notifications.some(n => !n.read) && (
+                      <button
+                        onClick={async () => {
+                          await fetch("/api/notifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+                          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                        }}
+                        className="flex items-center gap-1 text-[10px] text-dotan-green hover:text-dotan-green-dark font-medium"
+                      >
+                        <MdDoneAll className="text-xs" /> סמן הכל כנקרא
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
+                    {notifications.map(n => {
+                      const href = getNotificationHref(n.url, n.tag);
+                      const timeAgo = getTimeAgo(n.createdAt);
+                      return (
+                        <Link
+                          key={n.id}
+                          href={href}
+                          className={`flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition ${!n.read ? "bg-blue-50/50" : ""}`}
+                        >
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-bold text-gray-800 truncate">{n.title}</div>
+                            <div className="text-[11px] text-gray-500 truncate">{n.body}</div>
+                          </div>
+                          <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">{timeAgo}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="px-3 py-4 text-center text-xs text-gray-400">
+                  אין התראות בשעה האחרונה
+                </div>
+              )}
             </div>
           )}
         </div>
