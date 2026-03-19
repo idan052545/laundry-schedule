@@ -63,7 +63,7 @@ export default function Navbar() {
   ];
 
   // Secondary links in "more" dropdown
-  const isIdan = session?.user?.name === "עידן חן סימנטוב";
+  const isSimAdmin = ["עידן חן סימנטוב", "דולב כהן"].includes(session?.user?.name || "");
   const moreLinks = [
     { href: "/commander", label: "מפקדים", icon: MdStar },
     { href: "/issues", label: "תקלות", icon: MdBuild },
@@ -79,7 +79,7 @@ export default function Navbar() {
     { href: "/amana", label: "אמנה צוותית", icon: MdFavorite },
     { href: "/schedule", label: "מכבסה", icon: MdLocalLaundryService },
     { href: "/notifications", label: "שליחת התראות", icon: MdNotifications },
-    ...(isIdan ? [{ href: "/simulator", label: "סימולטור פיקודי", icon: MdSmartToy }] : []),
+    ...(isSimAdmin ? [{ href: "/simulator", label: "סימולטור פיקודי", icon: MdSmartToy }] : []),
     { href: "/profile", label: "פרופיל", icon: MdPerson },
   ];
 

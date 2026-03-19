@@ -9,7 +9,7 @@ async function getAdminUser() {
   if (!session?.user) return null;
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user || user.name !== "עידן חן סימנטוב") return null;
+  if (!user || !["עידן חן סימנטוב", "דולב כהן"].includes(user.name)) return null;
   return user;
 }
 
@@ -20,7 +20,7 @@ export async function GET() {
 
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  const isAdmin = user?.name === "עידן חן סימנטוב";
+  const isAdmin = ["עידן חן סימנטוב", "דולב כהן"].includes(user?.name || "");
 
   const scenarios = await prisma.simScenario.findMany({
     where: isAdmin ? {} : { active: true },

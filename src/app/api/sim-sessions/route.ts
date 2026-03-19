@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const scenarioId = searchParams.get("scenarioId");
-  const isAdmin = user.name === "עידן חן סימנטוב";
+  const isAdmin = ["עידן חן סימנטוב", "דולב כהן"].includes(user.name);
 
   const sessions = await prisma.simSession.findMany({
     where: {

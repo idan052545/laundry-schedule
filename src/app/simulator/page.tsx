@@ -392,7 +392,7 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") {
-      if (session?.user?.name !== "עידן חן סימנטוב") {
+      if (!["עידן חן סימנטוב", "דולב כהן"].includes(session?.user?.name || "")) {
         router.push("/dashboard");
         return;
       }
