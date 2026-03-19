@@ -53,7 +53,7 @@ interface DashboardFeed {
     type: string;
     myAssignments: { role: string; timeSlot: string; partners: string[] }[];
   }[];
-  chopalStatus: { registered: boolean; isOpen: boolean; date: string };
+  chopalStatus: { registered: boolean; isOpen: boolean; date: string; assignment: { id: string; assignedTime: string; status: string } | null };
 }
 
 // Section keys for visibility toggle
@@ -453,9 +453,29 @@ export default function DashboardPage() {
             </Link>
           )}
           {visible.has("chopal") && feed.chopalStatus?.registered && (
-            <Link href="/chopal" className="flex items-center gap-2.5 bg-green-50/60 border border-green-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
-              <MdCheckCircle className="text-lg text-green-500 shrink-0" />
-              <span className="text-xs font-medium text-green-700 flex-1 truncate">נרשמת לחופ&quot;ל למחר ✓</span>
+            <Link href="/chopal" className={`flex items-center gap-2.5 rounded-xl px-3 py-2 hover:shadow-sm transition ${
+              feed.chopalStatus.assignment?.status === "pending"
+                ? "bg-amber-50/60 border border-amber-200"
+                : feed.chopalStatus.assignment?.status === "accepted"
+                  ? "bg-green-50/60 border border-green-200"
+                  : "bg-green-50/60 border border-green-200"
+            }`}>
+              {feed.chopalStatus.assignment ? (
+                <>
+                  <MdAccessTime className={`text-lg shrink-0 ${feed.chopalStatus.assignment.status === "pending" ? "text-amber-500" : "text-green-500"}`} />
+                  <span className={`text-xs font-medium flex-1 truncate ${feed.chopalStatus.assignment.status === "pending" ? "text-amber-700" : "text-green-700"}`}>
+                    חופ&quot;ל — {feed.chopalStatus.assignment.assignedTime}
+                    {feed.chopalStatus.assignment.status === "pending" && " (ממתין לאישור)"}
+                    {feed.chopalStatus.assignment.status === "accepted" && " ✓"}
+                    {feed.chopalStatus.assignment.status === "rejected" && " (נדחה)"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <MdCheckCircle className="text-lg text-green-500 shrink-0" />
+                  <span className="text-xs font-medium text-green-700 flex-1 truncate">נרשמת לחופ&quot;ל — ממתין/ה לתור</span>
+                </>
+              )}
             </Link>
           )}
           {visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0) && (
@@ -627,8 +647,18 @@ export default function DashboardPage() {
               actionItems.push({ key: "forms", href: "/forms", icon: MdDescription, iconColor: "text-orange-500", bg: "from-orange-50 to-amber-50", border: "border-orange-100", textColor: "text-orange-700", label: `${feed.pendingForms.length} טפסים למילוי` });
             if (visible.has("chopal") && feed.chopalStatus?.isOpen && !feed.chopalStatus?.registered)
               actionItems.push({ key: "chopal", href: "/chopal", icon: MdLocalHospital, iconColor: "text-rose-500", bg: "from-rose-50 to-pink-50", border: "border-rose-100", textColor: "text-rose-700", label: 'חופ"ל — הירשם/י' });
-            if (visible.has("chopal") && feed.chopalStatus?.registered)
-              actionItems.push({ key: "chopal-done", href: "/chopal", icon: MdCheckCircle, iconColor: "text-green-500", bg: "from-green-50 to-emerald-50", border: "border-green-100", textColor: "text-green-700", label: 'נרשמת לחופ"ל ✓' });
+            if (visible.has("chopal") && feed.chopalStatus?.registered) {
+              const ca = feed.chopalStatus.assignment;
+              const chopalLabel = ca
+                ? ca.status === "pending" ? `חופ"ל ${ca.assignedTime} — אשר/י` : ca.status === "accepted" ? `חופ"ל ${ca.assignedTime} ✓` : 'חופ"ל — נדחה'
+                : 'נרשמת לחופ"ל — ממתין לתור';
+              const chopalIcon = ca?.status === "pending" ? MdAccessTime : MdCheckCircle;
+              const chopalColor = ca?.status === "pending" ? "text-amber-500" : "text-green-500";
+              const chopalBg = ca?.status === "pending" ? "from-amber-50 to-orange-50" : "from-green-50 to-emerald-50";
+              const chopalBorder = ca?.status === "pending" ? "border-amber-100" : "border-green-100";
+              const chopalText = ca?.status === "pending" ? "text-amber-700" : "text-green-700";
+              actionItems.push({ key: "chopal-done", href: "/chopal", icon: chopalIcon, iconColor: chopalColor, bg: chopalBg, border: chopalBorder, textColor: chopalText, label: chopalLabel });
+            }
             if (visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0))
               actionItems.push({ key: "surveys", href: "/surveys", icon: MdPoll, iconColor: "text-violet-500", bg: "from-violet-50 to-purple-50", border: "border-violet-100", textColor: "text-violet-700", label: `${(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} סקרים ממתינים` });
             if (visible.has("vote") && feed.hasVotedThisWeek === false)
@@ -967,14 +997,15 @@ function CarouselFeed({ feed, visible }: { feed: DashboardFeed; visible: Set<Sec
     });
   }
   if (visible.has("chopal") && feed.chopalStatus?.registered) {
+    const ca = feed.chopalStatus.assignment;
     cards.push({
       key: "chopal-done",
       href: "/chopal",
-      gradient: "from-green-500 to-emerald-600",
+      gradient: ca?.status === "pending" ? "from-amber-500 to-orange-600" : "from-green-500 to-emerald-600",
       iconBg: "bg-white/20",
-      icon: <MdCheckCircle className="text-xl text-white" />,
-      title: "נרשמת לחופ\"ל למחר",
-      subtitle: "✓",
+      icon: ca ? <MdAccessTime className="text-xl text-white" /> : <MdCheckCircle className="text-xl text-white" />,
+      title: ca ? `חופ"ל — ${ca.assignedTime}` : "נרשמת לחופ\"ל",
+      subtitle: ca?.status === "pending" ? "ממתין לאישור" : ca?.status === "accepted" ? "אושר ✓" : ca?.status === "rejected" ? "נדחה" : "ממתין לתור",
     });
   }
 

@@ -56,6 +56,7 @@ model User {
   dutySuggested     DutyAppeal[]     @relation("dutySuggested")
   simSessions       SimSession[]     @relation("simSessions")
   chopalRequests    ChopalRequest[]  @relation("chopalRequests")
+  chopalAssignments ChopalAssignment[] @relation("chopalAssignments")
   notifications     Notification[]   @relation("userNotifications")
 }
 
@@ -451,8 +452,27 @@ model ChopalRequest {
   note        String?  // משהו נוסף שתרצה להוסיף
   createdAt   DateTime @default(now())
   user        User     @relation("chopalRequests", fields: [userId], references: [id])
+  assignment  ChopalAssignment?
 
   @@unique([userId, date])
+}
+
+model ChopalAssignment {
+  id              String   @id @default(uuid())
+  chopalRequestId String
+  userId          String
+  date            String   // YYYY-MM-DD
+  assignedTime    String   // HH:MM — the time the user should arrive
+  status          String   @default("pending") // "pending", "accepted", "rejected"
+  rejectReason    String?  // why rejected / replacement request
+  scheduleEventId String?  // linked schedule event (created on assignment)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  chopalRequest   ChopalRequest @relation(fields: [chopalRequestId], references: [id], onDelete: Cascade)
+  user            User         @relation("chopalAssignments", fields: [userId], references: [id])
+
+  @@unique([chopalRequestId])
+  @@index([userId, date])
 }
 
 // ─── סימולטור פיקודי (Commander Simulator) ───

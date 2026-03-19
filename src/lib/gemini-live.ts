@@ -137,8 +137,8 @@ export class GeminiLiveClient {
         realtimeInputConfig: {
           automaticActivityDetection: {
             disabled: false,
-            silenceDurationMs: 1500, // 1.5 seconds of silence = end of speech
-            prefixPaddingMs: 300,
+            silenceDurationMs: 800, // 0.8 seconds of silence = end of speech (faster response)
+            prefixPaddingMs: 200,
           },
         },
         // Enable transcription for both input and output

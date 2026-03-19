@@ -222,11 +222,13 @@ export async function GET() {
   const israelHour = parseInt(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem", hour: "2-digit", hour12: false }));
   const chopalRequest = await prisma.chopalRequest.findUnique({
     where: { userId_date: { userId, date: tomorrowDate } },
+    include: { assignment: { select: { id: true, assignedTime: true, status: true } } },
   });
   const chopalStatus = {
     registered: !!chopalRequest,
     isOpen: israelHour < 21,
     date: tomorrowDate,
+    assignment: chopalRequest?.assignment || null,
   };
 
   // Check if user voted this week

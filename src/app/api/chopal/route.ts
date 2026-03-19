@@ -75,6 +75,7 @@ export async function GET(request: Request) {
       where: { date: targetDate },
       include: {
         user: { select: { id: true, name: true, team: true, image: true, phone: true } },
+        assignment: { select: { id: true, assignedTime: true, status: true, rejectReason: true } },
       },
       orderBy: [{ user: { team: "asc" } }, { user: { name: "asc" } }],
     });
@@ -99,6 +100,9 @@ export async function GET(request: Request) {
   // Regular user view: check own request for tomorrow
   const myRequest = await prisma.chopalRequest.findUnique({
     where: { userId_date: { userId, date: tomorrowDate } },
+    include: {
+      assignment: { select: { id: true, assignedTime: true, status: true, rejectReason: true } },
+    },
   });
 
   return NextResponse.json({

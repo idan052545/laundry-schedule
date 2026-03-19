@@ -5,13 +5,26 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
   MdLocalHospital, MdCheckCircle, MdCancel, MdAccessTime,
-  MdWarning, MdSend, MdAdminPanelSettings,
+  MdWarning, MdSend, MdAdminPanelSettings, MdThumbUp, MdThumbDown,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 
+interface ChopalAssignment {
+  id: string;
+  assignedTime: string;
+  status: "pending" | "accepted" | "rejected";
+  rejectReason: string | null;
+}
+
 interface ChopalData {
   date: string;
-  myRequest: { id: string; needed: boolean; note: string | null; createdAt: string } | null;
+  myRequest: {
+    id: string;
+    needed: boolean;
+    note: string | null;
+    createdAt: string;
+    assignment: ChopalAssignment | null;
+  } | null;
   isOpen: boolean;
   isAdmin: boolean;
 }
@@ -24,6 +37,9 @@ export default function ChopalPage() {
   const [submitting, setSubmitting] = useState(false);
   const [note, setNote] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [responding, setResponding] = useState(false);
 
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/chopal");
@@ -70,6 +86,39 @@ export default function ChopalPage() {
     setSubmitting(false);
   };
 
+  const handleAccept = async () => {
+    if (!data?.myRequest?.assignment) return;
+    setResponding(true);
+    const res = await fetch("/api/chopal/assign", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assignmentId: data.myRequest.assignment.id, action: "accept" }),
+    });
+    if (res.ok) await fetchData();
+    else alert("שגיאה באישור");
+    setResponding(false);
+  };
+
+  const handleReject = async () => {
+    if (!data?.myRequest?.assignment) return;
+    setResponding(true);
+    const res = await fetch("/api/chopal/assign", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assignmentId: data.myRequest.assignment.id,
+        action: "reject",
+        reason: rejectReason.trim() || null,
+      }),
+    });
+    if (res.ok) {
+      setShowRejectForm(false);
+      setRejectReason("");
+      await fetchData();
+    } else alert("שגיאה בדחייה");
+    setResponding(false);
+  };
+
   if (status === "loading" || loading) return <InlineLoading />;
 
   const formatDate = (dateStr: string) => {
@@ -78,6 +127,7 @@ export default function ChopalPage() {
   };
 
   const registered = !!data?.myRequest;
+  const assignment = data?.myRequest?.assignment;
 
   return (
     <div className="max-w-lg mx-auto pb-20">
@@ -143,9 +193,98 @@ export default function ChopalPage() {
               </div>
             )}
 
-            <p className="text-xs text-center text-gray-500 mb-4">
-              חופ&quot;ל יהיה זמין 24 שעות מקביעת התור.
-            </p>
+            {/* Assignment section */}
+            {assignment ? (
+              <div className="mb-4">
+                {assignment.status === "pending" && (
+                  <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MdAccessTime className="text-xl text-amber-600" />
+                      <span className="text-sm font-bold text-amber-700">התור שלך נקבע!</span>
+                    </div>
+                    <p className="text-2xl font-black text-amber-800 text-center my-3">{assignment.assignedTime}</p>
+                    <p className="text-xs text-amber-600 text-center mb-4">האם מתאים לך?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAccept}
+                        disabled={responding}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-500 text-white font-bold text-sm shadow hover:bg-green-600 transition disabled:opacity-50"
+                      >
+                        {responding ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <MdThumbUp className="text-lg" />
+                            מאשר/ת
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowRejectForm(true)}
+                        disabled={responding}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-500 text-white font-bold text-sm shadow hover:bg-red-600 transition disabled:opacity-50"
+                      >
+                        <MdThumbDown className="text-lg" />
+                        לא מתאים
+                      </button>
+                    </div>
+
+                    {showRejectForm && (
+                      <div className="mt-3">
+                        <textarea
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          placeholder="סיבה / בקשה לשעה אחרת (לא חובה)"
+                          className="w-full rounded-xl border border-amber-200 p-3 text-sm resize-none focus:ring-2 focus:ring-red-300 transition"
+                          rows={2}
+                          maxLength={200}
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={handleReject}
+                            disabled={responding}
+                            className="flex-1 py-2 rounded-xl bg-red-500 text-white text-xs font-bold shadow hover:bg-red-600 transition disabled:opacity-50"
+                          >
+                            {responding ? "שולח..." : "שלח דחייה"}
+                          </button>
+                          <button
+                            onClick={() => { setShowRejectForm(false); setRejectReason(""); }}
+                            className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                          >
+                            ביטול
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {assignment.status === "accepted" && (
+                  <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 text-center">
+                    <MdCheckCircle className="text-3xl text-green-500 mx-auto mb-1" />
+                    <p className="text-sm font-bold text-green-700">התור אושר</p>
+                    <p className="text-2xl font-black text-green-800 my-2">{assignment.assignedTime}</p>
+                    <p className="text-xs text-green-600">התור נוסף ללו&quot;ז שלך</p>
+                  </div>
+                )}
+
+                {assignment.status === "rejected" && (
+                  <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 text-center">
+                    <MdCancel className="text-3xl text-red-400 mx-auto mb-1" />
+                    <p className="text-sm font-bold text-red-700">התור נדחה</p>
+                    <p className="text-lg font-bold text-red-600 line-through my-1">{assignment.assignedTime}</p>
+                    {assignment.rejectReason && (
+                      <p className="text-xs text-red-500 mt-1">{assignment.rejectReason}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-2">נעמה תשבץ לך תור חדש בקרוב</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-center text-gray-500 mb-4">
+                ממתין/ה לקביעת שעת תור על ידי נעמה
+              </p>
+            )}
 
             {data?.isOpen && (
               <button
@@ -211,11 +350,15 @@ export default function ChopalPage() {
           </li>
           <li className="flex items-start gap-1.5">
             <span className="text-rose-400 mt-0.5">●</span>
-            חופ&quot;ל יהיה זמין 24 שעות מקביעת התור
+            נעמה תקבע לך שעת תור — תקבל/י התראה
           </li>
           <li className="flex items-start gap-1.5">
             <span className="text-rose-400 mt-0.5">●</span>
-            לאירועים חריגים פנו לממ&quot;שים/נעמה
+            אם השעה לא מתאימה, ניתן לדחות ולבקש שעה אחרת
+          </li>
+          <li className="flex items-start gap-1.5">
+            <span className="text-rose-400 mt-0.5">●</span>
+            התור יופיע אוטומטית בלו&quot;ז האישי שלך
           </li>
         </ul>
       </div>
