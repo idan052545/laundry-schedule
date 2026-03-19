@@ -998,6 +998,8 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const fullOutputRef = useRef("");
   // Track previous status for turn boundary detection
   const voiceStatusRef = useRef("disconnected");
+  // Flag: end phrase detected, will trigger end when AI finishes speaking
+  const endPendingRef = useRef(false);
 
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
   const systemPrompt = buildChatSystemPrompt(scenario, commander, firstName);
@@ -1123,6 +1125,13 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
             setTurns([...turnsRef.current]);
           }
           currentAiFragments.current = "";
+
+          // If end phrase was detected during AI speech, now trigger the end
+          if (endPendingRef.current) {
+            console.log("[Voice] AI finished speaking end phrase, triggering end");
+            triggerEnd();
+            return; // Don't unmute, simulation is over
+          }
           setIsMicOn(true);
         }
       },
@@ -1137,8 +1146,12 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
         fullOutputRef.current += " " + text;
         const normalized = fullOutputRef.current.replace(/\s+/g, " ").trim();
         if (normalized.includes("כל הכבוד") && normalized.includes("סיימת") && normalized.includes("סימולציה")) {
-          console.log("[Voice] End detected in transcript:", normalized);
-          triggerEnd();
+          console.log("[Voice] End phrase detected, waiting for AI to finish speaking...");
+          endPendingRef.current = true;
+          // If AI is not currently speaking (e.g., end came in final transcript), trigger immediately
+          if (voiceStatusRef.current !== "ai-speaking") {
+            triggerEnd();
+          }
         }
       },
       onError: (error) => { setErrorMsg(error); },
@@ -1182,6 +1195,9 @@ function VoiceSimulation({ simSession, scenario, commander, firstName, onEnd, on
   const handleSimulationEnd = async () => {
     setIsCompleted(true);
     setGenerating(true);
+
+    // Wait a moment for any final audio to play
+    await new Promise(r => setTimeout(r, 1500));
 
     // Flush any remaining fragments before ending
     const remainingUser = currentUserFragments.current.replace(/\s+/g, " ").trim();

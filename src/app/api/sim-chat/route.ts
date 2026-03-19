@@ -88,9 +88,12 @@ export async function POST(req: NextRequest) {
           system_instruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
           contents,
           generationConfig: {
-            temperature: mode === "score" ? 0.1 : mode === "feedback" ? 0.5 : 0.8,
-            maxOutputTokens: mode === "score" ? 100 : mode === "skills" ? 2000 : mode === "feedback" ? 4000 : 1000,
-            thinkingConfig: { thinkingBudget: 0 }, // Disable thinking to save tokens and cost
+            temperature: mode === "score" ? 0.1 : mode === "feedback" ? 0.4 : 0.8,
+            maxOutputTokens: mode === "score" ? 200 : mode === "skills" ? 2000 : mode === "feedback" ? 8000 : 1000,
+            // Enable thinking for feedback/score (better analysis), disable for chat (faster response)
+            thinkingConfig: {
+              thinkingBudget: (mode === "feedback" || mode === "score") ? 4096 : 0,
+            },
           },
         }),
       }
