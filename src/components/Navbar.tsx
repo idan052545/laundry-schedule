@@ -16,9 +16,7 @@ import {
 import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
-  console.log("[DEBUG] Navbar rendering");
   const { data: session } = useSession();
-  console.log("[DEBUG] Navbar session:", JSON.stringify(session));
   const [menuOpen, setMenuOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);

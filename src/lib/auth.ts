@@ -52,6 +52,17 @@ export const authOptions: AuthOptions = {
         token.role = (user as { role?: string }).role;
         token.mustChangePassword = (user as { mustChangePassword?: boolean }).mustChangePassword;
       }
+      // Backfill old tokens missing role/mustChangePassword
+      if (token.id && !token.role) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, mustChangePassword: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.mustChangePassword = dbUser.mustChangePassword;
+        }
+      }
       return token;
     },
     async session({ session, token }) {

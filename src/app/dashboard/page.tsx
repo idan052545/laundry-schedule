@@ -119,6 +119,10 @@ export default function DashboardPage() {
     if (typeof window === "undefined") return "new";
     return (localStorage.getItem("dashboard-style") as "new" | "classic" | "carousel") || "new";
   });
+  const [sagalMode, setSagalMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sagal-mode") === "true";
+  });
 
   const today = new Date().toISOString().split("T")[0];
   const currentHour = new Date().getHours();
@@ -202,10 +206,6 @@ export default function DashboardPage() {
   const firstName = session?.user?.name?.split(" ")[0] || "";
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const isRealAdmin = myRole === "admin";
-  const [sagalMode, setSagalMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("sagal-mode") === "true";
-  });
   const isSagal = myRole === "sagal" || (isRealAdmin && sagalMode);
 
   // Map notification tag/url to correct href with tab support

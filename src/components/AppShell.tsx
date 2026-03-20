@@ -7,9 +7,8 @@ import Navbar from "./Navbar";
 import SimulatorNavbar from "./SimulatorNavbar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  console.log("[DEBUG] AppShell rendering");
   const { data: session, status } = useSession();
-  console.log("[DEBUG] AppShell session:", JSON.stringify(session), "status:", status);
+
   const pathname = usePathname();
   const router = useRouter();
 
