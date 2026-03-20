@@ -557,8 +557,8 @@ export default function ScheduleDailyPage() {
         ))}
       </div>
 
-      {/* Target filter (platoon / team) — only for team members */}
-      {userTeam && (
+      {/* Target filter (platoon / team) — non-admin only */}
+      {userTeam && !isAdmin && (
         <div className="flex items-center gap-1.5 mb-3">
           <MdPeople className="text-gray-400 shrink-0" />
           <button onClick={() => setTargetFilter("all")}
@@ -576,23 +576,19 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
-      {/* Admin: Add + Sync buttons */}
-      {isAdmin && !showAdd && !editingEvent && (
-        <div className="flex gap-2 mb-3">
-          <button onClick={() => { setShowAdd(true); resetForm(); }}
-            className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
-            <MdAdd /> הוסף אירוע
-          </button>
-          <button onClick={handleSync} disabled={syncing}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50">
-            <MdSync className={syncing ? "animate-spin" : ""} /> {syncing ? "מסנכרן..." : "סנכרון"}
-          </button>
-        </div>
-      )}
-
-      {/* Admin: team visibility toggles + per-team sync */}
+      {/* Admin: Add + Sync + Team toggles — single unified section */}
       {isAdmin && !showAdd && !editingEvent && (
         <div className="mb-3 space-y-2">
+          <div className="flex gap-2">
+            <button onClick={() => { setShowAdd(true); resetForm(); }}
+              className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
+              <MdAdd /> הוסף אירוע
+            </button>
+            <button onClick={handleSync} disabled={syncing}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50">
+              <MdSync className={syncing ? "animate-spin" : ""} /> {syncing ? "מסנכרן..." : "סנכרון"}
+            </button>
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-bold text-gray-400">הצג צוותים:</span>
             {SYNC_TEAMS.map(t => (
@@ -613,12 +609,11 @@ export default function ScheduleDailyPage() {
               }`}>
               הכל
             </button>
-          </div>
-          <div className="flex gap-2 flex-wrap">
+            <div className="w-px h-4 bg-gray-200 mx-1" />
             {SYNC_TEAMS.map(t => (
-              <button key={t} onClick={() => handleTeamSync(t)} disabled={teamSyncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-xs font-medium disabled:opacity-50">
-                <MdSync className={teamSyncing && teamSyncTarget === t ? "animate-spin" : ""} /> סנכרון צוות {t}
+              <button key={`sync-${t}`} onClick={() => handleTeamSync(t)} disabled={teamSyncing}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 transition text-[10px] font-medium disabled:opacity-50">
+                <MdSync className={`text-xs ${teamSyncing && teamSyncTarget === t ? "animate-spin" : ""}`} /> {t}
               </button>
             ))}
           </div>
