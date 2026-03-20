@@ -116,13 +116,13 @@ export default function ScheduleDailyPage() {
   // Refetch when admin toggles team visibility
   const visibleTeamsKey = Array.from(visibleTeams).sort().join(",");
   useEffect(() => {
-    if (initialLoadDone.current && isAdmin) {
+    if (initialLoadDone.current && (isAdmin || isSagal)) {
       fetchEvents();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleTeamsKey]);
 
-  const SYNC_TEAMS = [14, 16] as const;
+  const SYNC_TEAMS = [14, 15, 16, 17] as const;
 
   const toggleTeamVisibility = (team: number) => {
     setVisibleTeams(prev => {
@@ -507,6 +507,9 @@ export default function ScheduleDailyPage() {
   };
 
   const myUserId = (session?.user as { id?: string })?.id;
+  const myRole = (session?.user as { role?: string } | undefined)?.role;
+  const isSagal = myRole === "sagal";
+  const canEdit = isAdmin && !isSagal;
 
   if (status === "loading" || loading) {
     return <InlineLoading />;
@@ -576,19 +579,28 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
-      {/* Admin: Add + Sync + Team toggles — single unified section */}
-      {isAdmin && !showAdd && !editingEvent && (
+      {/* Sagal read-only banner */}
+      {isSagal && (
+        <div className="mb-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2 text-center text-sm text-indigo-700 font-medium">
+          צפייה בלבד — סגל מפקד
+        </div>
+      )}
+
+      {/* Admin / Sagal: Add + Sync + Team toggles — single unified section */}
+      {(isAdmin || isSagal) && !showAdd && !editingEvent && (
         <div className="mb-3 space-y-2">
-          <div className="flex gap-2">
-            <button onClick={() => { setShowAdd(true); resetForm(); }}
-              className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
-              <MdAdd /> הוסף אירוע
-            </button>
-            <button onClick={handleSync} disabled={syncing}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50">
-              <MdSync className={syncing ? "animate-spin" : ""} /> {syncing ? "מסנכרן..." : "סנכרון"}
-            </button>
-          </div>
+          {canEdit && (
+            <div className="flex gap-2">
+              <button onClick={() => { setShowAdd(true); resetForm(); }}
+                className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
+                <MdAdd /> הוסף אירוע
+              </button>
+              <button onClick={handleSync} disabled={syncing}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50">
+                <MdSync className={syncing ? "animate-spin" : ""} /> {syncing ? "מסנכרן..." : "סנכרון"}
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-bold text-gray-400">הצג צוותים:</span>
             {SYNC_TEAMS.map(t => (
@@ -609,13 +621,17 @@ export default function ScheduleDailyPage() {
               }`}>
               הכל
             </button>
-            <div className="w-px h-4 bg-gray-200 mx-1" />
-            {SYNC_TEAMS.map(t => (
-              <button key={`sync-${t}`} onClick={() => handleTeamSync(t)} disabled={teamSyncing}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 transition text-[10px] font-medium disabled:opacity-50">
-                <MdSync className={`text-xs ${teamSyncing && teamSyncTarget === t ? "animate-spin" : ""}`} /> {t}
-              </button>
-            ))}
+            {canEdit && (
+              <>
+                <div className="w-px h-4 bg-gray-200 mx-1" />
+                {SYNC_TEAMS.map(t => (
+                  <button key={`sync-${t}`} onClick={() => handleTeamSync(t)} disabled={teamSyncing}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 transition text-[10px] font-medium disabled:opacity-50">
+                    <MdSync className={`text-xs ${teamSyncing && teamSyncTarget === t ? "animate-spin" : ""}`} /> {t}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -689,7 +705,7 @@ export default function ScheduleDailyPage() {
               <MdSync className="text-blue-500" /> שינויים בלוז היום
             </h3>
             <div className="flex gap-2">
-              {isAdmin && (
+              {canEdit && (
                 <button onClick={handleNotifyChanges} disabled={syncing}
                   className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition disabled:opacity-50">
                   <MdNotifications className="text-xs" /> שלח התראה
@@ -761,7 +777,7 @@ export default function ScheduleDailyPage() {
                   {isTeam && <span className="px-1 py-0.5 bg-cyan-500 text-white rounded text-[8px] font-bold">צוות</span>}
                   {isMine && <span className="px-1 py-0.5 bg-teal-500 text-white rounded text-[8px] font-bold">עבורך</span>}
                   {active && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse" />}
-                  {isAdmin && (
+                  {canEdit && (
                     <div className="flex items-center gap-0.5 mr-1">
                       <button onClick={() => openEdit(event)} className="text-gray-300 hover:text-gray-500"><MdEdit className="text-xs" /></button>
                       <button onClick={() => handleDelete(event.id)} className="text-gray-300 hover:text-red-500"><MdDelete className="text-xs" /></button>
@@ -910,7 +926,7 @@ export default function ScheduleDailyPage() {
                         <div className="flex-1 mb-2 min-w-0">
                           <EventCard
                             event={group.events[0].event} idx={group.events[0].idx} compact={false}
-                            isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
+                            isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
                             reminding={reminding} currentUserId={myUserId} onDetail={setDetailEvent} onEdit={openEdit}
                             onDelete={handleDelete} onRemind={handleRemind} onRemindAssigned={handleRemindAssigned} onAssign={openAssign} onMove={moveEvent}
                           />
@@ -921,7 +937,7 @@ export default function ScheduleDailyPage() {
                             <EventCard
                               key={evItem.event.id}
                               event={evItem.event} idx={evItem.idx} compact={true}
-                              isAdmin={isAdmin} isToday={isToday} timedEventsLength={timedEvents.length}
+                              isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
                               reminding={reminding} currentUserId={myUserId} onDetail={setDetailEvent} onEdit={openEdit}
                               onDelete={handleDelete} onRemind={handleRemind} onRemindAssigned={handleRemindAssigned} onAssign={openAssign} onMove={moveEvent}
                             />
@@ -1050,13 +1066,13 @@ export default function ScheduleDailyPage() {
         <div className="text-center py-12 text-gray-500">
           <MdCalendarMonth className="text-5xl mx-auto mb-4 text-gray-300" />
           <p>אין אירועים או הערות ליום זה</p>
-          {isAdmin && <p className="text-sm mt-2">לחץ &quot;הוסף אירוע&quot; כדי להוסיף</p>}
+          {canEdit && <p className="text-sm mt-2">לחץ &quot;הוסף אירוע&quot; כדי להוסיף</p>}
         </div>
       )}
 
       {detailEvent && (
         <EventDetailModal
-          event={detailEvent} isAdmin={isAdmin}
+          event={detailEvent} isAdmin={canEdit}
           onClose={() => setDetailEvent(null)} onEdit={openEdit}
           onAssign={openAssign} onDelete={handleDelete}
         />

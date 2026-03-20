@@ -32,6 +32,8 @@ export default function AktualiaPage() {
   const [error, setError] = useState("");
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
+  const myRole = (session?.user as { role?: string } | undefined)?.role;
+  const isSagal = myRole === "sagal";
   const [userRoom, setUserRoom] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -97,6 +99,17 @@ export default function AktualiaPage() {
 
   if (status === "loading" || loading) {
     return <InlineLoading />;
+  }
+
+  if (isSagal) {
+    return (
+      <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[50vh] text-center">
+        <MdNewspaper className="text-6xl text-gray-300 mb-4" />
+        <h1 className="text-2xl font-bold text-gray-700 mb-2">אקטואליה</h1>
+        <p className="text-lg text-gray-500 font-medium">חכו למסדר מחר</p>
+        <p className="text-sm text-gray-400 mt-2">תוכן זה אינו זמין לסגל מפקד</p>
+      </div>
+    );
   }
 
   return (

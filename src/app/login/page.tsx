@@ -28,12 +28,15 @@ export default function LoginPage() {
       setError(result.error);
       setLoading(false);
     } else {
-      // Check if simulator-only user → redirect to /simulator
+      // Check role → redirect accordingly
       try {
         const sessRes = await fetch("/api/auth/session");
         const sess = await sessRes.json();
         const role = sess?.user?.role;
-        if (role === "simulator" || role === "simulator-admin") {
+        const mustChange = sess?.user?.mustChangePassword;
+        if (mustChange) {
+          router.push("/change-password");
+        } else if (role === "simulator" || role === "simulator-admin") {
           router.push("/simulator");
         } else {
           router.push("/dashboard");

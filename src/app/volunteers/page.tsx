@@ -41,6 +41,7 @@ export default function VolunteersPage() {
   const myUserId = (session?.user as { id: string } | undefined)?.id;
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const isCommander = myRole === "admin" || myRole === "commander";
+  const isSagal = myRole === "sagal";
 
   // Helper: get HH:MM string for Israel timezone
   const nowTimeStr = () => {
@@ -339,13 +340,21 @@ export default function VolunteersPage() {
           <MdVolunteerActivism className="text-green-600" />
           תורנויות
         </h1>
-        <button
-          onClick={() => { setForm(f => ({ ...f, startTime: nowTimeStr(), endTime: plus15() })); setShowCreate(true); }}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-bold shadow hover:bg-green-700 transition"
-        >
-          <MdAdd /> {isCommander ? "יצירת תורנות" : "בקשת עזרה"}
-        </button>
+        {!isSagal && (
+          <button
+            onClick={() => { setForm(f => ({ ...f, startTime: nowTimeStr(), endTime: plus15() })); setShowCreate(true); }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-bold shadow hover:bg-green-700 transition"
+          >
+            <MdAdd /> {isCommander ? "יצירת תורנות" : "בקשת עזרה"}
+          </button>
+        )}
       </div>
+
+      {isSagal && (
+        <div className="mb-4 px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-medium text-center">
+          צפייה בלבד — סגל מפקד
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
@@ -460,25 +469,25 @@ export default function VolunteersPage() {
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                    {req.status === "open" && !isMine && slotsLeft > 0 && (
+                    {!isSagal && req.status === "open" && !isMine && slotsLeft > 0 && (
                       <button onClick={() => handleAssign(req.id)} disabled={submitting}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition disabled:opacity-50">
                         <MdThumbUp className="text-sm" /> אני מתנדב/ת
                       </button>
                     )}
-                    {(req.status === "open" || req.status === "filled") && (isCommander || req.createdById === myUserId) && (
+                    {!isSagal && (req.status === "open" || req.status === "filled") && (isCommander || req.createdById === myUserId) && (
                       <button onClick={() => { setSelectedRequest(req); fetchCandidates(req); }}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition">
                         <MdPeople className="text-sm" /> שיבוץ
                       </button>
                     )}
-                    {isMine && req.status !== "completed" && req.status !== "cancelled" && (
+                    {!isSagal && isMine && req.status !== "completed" && req.status !== "cancelled" && (
                       <button onClick={() => setShowReplace(req.assignments.find(a => a.userId === myUserId && a.status !== "cancelled")?.id || null)}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition">
                         <MdSwapHoriz className="text-sm" /> צריך מחליף
                       </button>
                     )}
-                    {req.replacements.filter(r => r.status === "seeking").map(r => (
+                    {!isSagal && req.replacements.filter(r => r.status === "seeking").map(r => (
                       r.originalUserId !== myUserId && (
                         <button key={r.id} onClick={() => handleAcceptReplace(r.id)} disabled={submitting}
                           className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-xs font-bold transition disabled:opacity-50 ${
@@ -488,25 +497,25 @@ export default function VolunteersPage() {
                         </button>
                       )
                     ))}
-                    {req.status === "open" && (req.createdById === myUserId || isCommander) && (
+                    {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
                       <button onClick={() => startEditingRequest(req)}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-[10px] font-medium hover:bg-blue-50 transition">
                         <MdEdit className="text-xs" /> עריכה
                       </button>
                     )}
-                    {req.status === "open" && (req.createdById === myUserId || isCommander) && (
+                    {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
                       <button onClick={() => handleNotify(req)} disabled={submitting}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-green-200 text-green-600 text-[10px] font-medium hover:bg-green-50 transition disabled:opacity-50">
                         <MdNotifications className="text-xs" /> התראה
                       </button>
                     )}
-                    {req.status === "open" && (req.createdById === myUserId || isCommander) && (
+                    {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
                       <button onClick={() => handleStatusChange(req.id, "cancelled")}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-[10px] font-medium hover:bg-gray-50 transition">
                         <MdDelete className="text-xs" /> ביטול
                       </button>
                     )}
-                    {(req.status === "filled" || req.status === "in-progress") && (req.createdById === myUserId || isCommander) && (
+                    {!isSagal && (req.status === "filled" || req.status === "in-progress") && (req.createdById === myUserId || isCommander) && (
                       <button onClick={() => handleStatusChange(req.id, "completed")}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-700 text-white text-xs font-bold hover:bg-gray-800 transition">
                         <MdCheck className="text-sm" /> סיום

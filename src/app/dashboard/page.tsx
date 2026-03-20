@@ -200,6 +200,13 @@ export default function DashboardPage() {
   ];
 
   const firstName = session?.user?.name?.split(" ")[0] || "";
+  const myRole = (session?.user as { role?: string } | undefined)?.role;
+  const isRealAdmin = myRole === "admin";
+  const [sagalMode, setSagalMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sagal-mode") === "true";
+  });
+  const isSagal = myRole === "sagal" || (isRealAdmin && sagalMode);
 
   // Map notification tag/url to correct href with tab support
   const getNotificationHref = (url: string | null, tag: string | null): string => {
@@ -323,8 +330,113 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+          {/* Admin: sagal QA mode toggle */}
+          {isRealAdmin && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <button onClick={() => { const next = !sagalMode; setSagalMode(next); localStorage.setItem("sagal-mode", String(next)); }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition w-full ${
+                  sagalMode ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}>
+                <MdVisibility className="text-sm" />
+                {sagalMode ? "מצב סגל פעיל — לחץ לכבות" : "מצב סגל (QA)"}
+              </button>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Sagal commander stats overview */}
+      {isSagal && feed && (() => {
+        const reqs = feed.activeVolunteerRequests || [];
+        const nowMs = Date.now();
+        const totalActive = reqs.length;
+        const urgentReqs = reqs.filter(r => r.priority === "urgent").length;
+        const happeningNow = reqs.filter(r => {
+          const s = new Date(r.startTime).getTime();
+          const e = new Date(r.endTime).getTime();
+          return nowMs >= s && nowMs <= e;
+        }).length;
+        const filledSlots = reqs.reduce((sum, r) => sum + r._count.assignments, 0);
+        const totalRequired = reqs.reduce((sum, r) => sum + r.requiredCount, 0);
+        const fillPct = totalRequired > 0 ? Math.round((filledSlots / totalRequired) * 100) : 0;
+        const catConfig: { key: string; label: string; icon: React.ComponentType<{ className?: string }>; color: string; dotColor: string }[] = [
+          { key: "kitchen", label: "מטבח", icon: MdRestaurant, color: "text-orange-500", dotColor: "bg-orange-400" },
+          { key: "cleaning", label: "ניקיון", icon: MdCleaningServices, color: "text-blue-500", dotColor: "bg-blue-400" },
+          { key: "guard", label: "שמירה", icon: MdSecurity, color: "text-red-500", dotColor: "bg-red-400" },
+          { key: "logistics", label: "לוגיסטיקה", icon: MdLocalShipping, color: "text-purple-500", dotColor: "bg-purple-400" },
+          { key: "general", label: "כללי", icon: MdVolunteerActivism, color: "text-green-500", dotColor: "bg-green-400" },
+          { key: "other", label: "אחר", icon: MdMoreHoriz, color: "text-gray-500", dotColor: "bg-gray-400" },
+        ];
+        const catCounts = catConfig.map(c => ({ ...c, count: reqs.filter(r => r.category === c.key).length }));
+
+        return (
+          <div className="mb-4 space-y-3">
+            {/* Banner */}
+            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2">
+              <MdVisibility className="text-indigo-500 shrink-0" />
+              <span className="text-xs font-bold text-indigo-700">סגל מפקד — צפייה בלבד</span>
+            </div>
+
+            {/* Stats card */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                <MdVolunteerActivism className="text-base text-indigo-500" /> סטטיסטיקת התנדבויות
+              </h3>
+
+              {/* Key metrics */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-indigo-50 rounded-xl px-3 py-2 text-center">
+                  <div className="text-lg font-bold text-indigo-700">{totalActive}</div>
+                  <div className="text-[10px] text-indigo-500 font-medium flex items-center justify-center gap-0.5"><MdPeople className="text-xs" /> בקשות פעילות</div>
+                </div>
+                <div className="bg-red-50 rounded-xl px-3 py-2 text-center">
+                  <div className="text-lg font-bold text-red-600">{urgentReqs}</div>
+                  <div className="text-[10px] text-red-500 font-medium flex items-center justify-center gap-0.5"><MdWarning className="text-xs" /> דחופות</div>
+                </div>
+                <div className="bg-green-50 rounded-xl px-3 py-2 text-center">
+                  <div className="text-lg font-bold text-green-700">{happeningNow}</div>
+                  <div className="text-[10px] text-green-500 font-medium flex items-center justify-center gap-0.5"><MdAccessTime className="text-xs" /> מתבצעות עכשיו</div>
+                </div>
+                <div className="bg-amber-50 rounded-xl px-3 py-2 text-center">
+                  <div className="text-lg font-bold text-amber-700">{filledSlots}/{totalRequired}</div>
+                  <div className="text-[10px] text-amber-500 font-medium flex items-center justify-center gap-0.5"><MdSchedule className="text-xs" /> משבצות מאוישות</div>
+                </div>
+              </div>
+
+              {/* Fill bar */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-gray-500 font-medium">אחוז איוש כולל</span>
+                  <span className="text-[10px] font-bold text-gray-600">{fillPct}%</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${fillPct >= 80 ? "bg-green-500" : fillPct >= 50 ? "bg-amber-400" : "bg-red-400"}`}
+                    style={{ width: `${fillPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Category breakdown */}
+              <div>
+                <span className="text-[10px] text-gray-400 font-medium block mb-1.5">פילוח לפי קטגוריה</span>
+                <div className="flex flex-wrap gap-2">
+                  {catCounts.map(c => {
+                    const CatIcon = c.icon;
+                    return (
+                      <div key={c.key} className="flex items-center gap-1 bg-gray-50 rounded-lg px-2 py-1">
+                        <CatIcon className={`text-sm ${c.color}`} />
+                        <span className="text-[10px] font-medium text-gray-600">{c.label}</span>
+                        <span className={`text-[10px] font-bold ${c.count > 0 ? "text-gray-800" : "text-gray-300"}`}>{c.count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Urgent banner — forms + overdue tasks */}
       {urgentCount > 0 && (
@@ -1155,7 +1267,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Machine Status — compact */}
-      {visible.has("machines") && machines.length > 0 && (
+      {!isSagal && visible.has("machines") && machines.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-bold text-gray-500 mb-2 flex items-center gap-1.5">
             <MdLocalLaundryService className="text-base" /> מכונות

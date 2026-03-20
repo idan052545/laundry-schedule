@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { MdNotifications, MdNotificationsActive, MdNotificationsOff } from "react-icons/md";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -15,6 +16,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export default function NotificationBell() {
+  const { data: session } = useSession();
+  const myRole = (session?.user as { role?: string } | undefined)?.role;
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -107,6 +110,9 @@ export default function NotificationBell() {
     }
     setLoading(false);
   };
+
+  // Sagal users should not see or create push subscriptions
+  if (myRole === "sagal") return null;
 
   if (permission === "unsupported") return null;
 

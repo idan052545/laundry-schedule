@@ -29,6 +29,14 @@ export default function Navbar() {
     setMoreOpen(false);
   }, [pathname]);
 
+  // Force password change redirect
+  const mustChangePassword = (session?.user as { mustChangePassword?: boolean } | undefined)?.mustChangePassword;
+  useEffect(() => {
+    if (mustChangePassword && pathname !== "/change-password") {
+      router.push("/change-password");
+    }
+  }, [mustChangePassword, pathname, router]);
+
   // Listen for service worker notification click messages
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;

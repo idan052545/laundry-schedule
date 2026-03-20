@@ -36,6 +36,7 @@ export const authOptions: AuthOptions = {
           email: user.email,
           image: user.image,
           role: user.role,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -49,13 +50,15 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
+        token.mustChangePassword = (user as { mustChangePassword?: boolean }).mustChangePassword;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; role?: string }).id = token.id as string;
-        (session.user as { id?: string; role?: string }).role = token.role as string;
+        (session.user as { id?: string; role?: string; mustChangePassword?: boolean }).id = token.id as string;
+        (session.user as { id?: string; role?: string; mustChangePassword?: boolean }).role = token.role as string;
+        (session.user as { id?: string; role?: string; mustChangePassword?: boolean }).mustChangePassword = token.mustChangePassword as boolean;
       }
       return session;
     },

@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   });
 
   // Filter events: show if target matches user's team, or target is "all", or user is assigned
-  const isAdmin = user?.email === "ohad@dotan.com" || user?.role === "admin" || user?.role === "commander";
+  const isAdmin = user?.email === "ohad@dotan.com" || user?.role === "admin" || user?.role === "commander" || user?.role === "sagal";
   const userTeam = user?.team ? `team-${user.team}` : null;
 
   // Admin can request specific teams via ?teams=14,16 or ?teams=all
@@ -64,12 +64,16 @@ export async function GET(request: Request) {
   }
 
   const filtered = events.filter((e) => {
+    // Platoon-wide events always visible
     if (e.target === "all") return true;
+    // Admin with explicit team filter — only show selected teams
+    if (visibleTeams) {
+      if (visibleTeams.has("all")) return true;
+      return visibleTeams.has(e.target);
+    }
+    // Default: show own team + assigned events
     if (userTeam && e.target === userTeam) return true;
     if (e.assignees.some((a) => a.userId === userId)) return true;
-    // Admin with explicit team filter
-    if (visibleTeams?.has("all")) return true;
-    if (visibleTeams?.has(e.target)) return true;
     return false;
   });
 
