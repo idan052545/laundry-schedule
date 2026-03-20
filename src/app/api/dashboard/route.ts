@@ -200,10 +200,11 @@ export async function GET() {
       },
     }),
 
-    // Active volunteer requests (open or in-progress, relevant to user)
+    // Active volunteer requests (open or in-progress, relevant to user, not ended)
     prisma.volunteerRequest.findMany({
       where: {
         status: { in: ["open", "in-progress"] },
+        endTime: { gt: new Date() },
         OR: [
           { target: "all" },
           ...(userTeam ? [{ target: userTeam }] : []),
@@ -211,11 +212,12 @@ export async function GET() {
         ],
       },
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-      take: 5,
+      take: 10,
       select: {
         id: true, title: true, category: true, priority: true, status: true,
         target: true, requiredCount: true, startTime: true, endTime: true,
-        isCommanderRequest: true, createdBy: { select: { name: true } },
+        isCommanderRequest: true,
+        createdBy: { select: { name: true, phone: true } },
         _count: { select: { assignments: true } },
       },
     }),
@@ -234,11 +236,12 @@ export async function GET() {
       },
     }),
 
-    // User's created volunteer requests (open/in-progress/filled)
+    // User's created volunteer requests (open/in-progress/filled, not ended)
     prisma.volunteerRequest.findMany({
       where: {
         createdById: userId,
         status: { in: ["open", "in-progress", "filled"] },
+        endTime: { gt: new Date() },
       },
       orderBy: { createdAt: "desc" },
       take: 10,

@@ -41,7 +41,7 @@ export interface DashboardFeed {
     myAssignments: { role: string; timeSlot: string; partners: string[] }[];
   }[];
   chopalStatus: { registered: boolean; isOpen: boolean; date: string; assignment: { id: string; assignedTime: string; status: string } | null };
-  activeVolunteerRequests: { id: string; title: string; category: string; priority: string; status: string; target: string; requiredCount: number; startTime: string; endTime: string; isCommanderRequest: boolean; createdBy: { name: string }; _count: { assignments: number } }[];
+  activeVolunteerRequests: { id: string; title: string; category: string; priority: string; status: string; target: string; requiredCount: number; startTime: string; endTime: string; isCommanderRequest: boolean; createdBy: { name: string; phone: string | null }; _count: { assignments: number } }[];
   myVolunteerAssignments: { id: string; status: string; request: { id: string; title: string; startTime: string; endTime: string; category: string } }[];
   myCreatedRequests: { id: string; title: string; category: string; status: string; startTime: string; endTime: string; requiredCount: number; _count: { assignments: number } }[];
   urgentReplacement: { id: string; isUrgent: boolean; request: { id: string; title: string } } | null;
