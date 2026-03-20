@@ -803,14 +803,14 @@ export default function ScheduleDailyPage() {
               onChange={(e) => setNoteForm({ ...noteForm, description: e.target.value })}
               className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 resize-none placeholder:text-amber-300"
               rows={2} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="min-w-0">
                 <label className="text-[10px] text-amber-600 font-medium block mb-1">שעת התחלה</label>
                 <input type="time" value={noteForm.startTime}
                   onChange={(e) => setNoteForm({ ...noteForm, startTime: e.target.value })}
                   className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2.5 text-sm" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="text-[10px] text-amber-600 font-medium block mb-1">שעת סיום</label>
                 <input type="time" value={noteForm.endTime}
                   onChange={(e) => setNoteForm({ ...noteForm, endTime: e.target.value })}

@@ -797,12 +797,12 @@ export default function VolunteersPage() {
 
               {/* Times (same day — time only) */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה *</label>
                   <input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-gray-600 mb-1 block">סיום *</label>
                   <input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
@@ -983,12 +983,12 @@ export default function VolunteersPage() {
                   rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה</label>
                   <input type="time" value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-center" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-xs font-medium text-gray-600 mb-1 block">סיום</label>
                   <input type="time" value={editForm.endTime} onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-center" />

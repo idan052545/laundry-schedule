@@ -375,14 +375,14 @@ export default function TasksPage() {
             </div>
 
             {!form.allDay && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="min-w-0">
                   <label className="text-[10px] text-gray-500 font-medium block mb-1">שעת התחלה</label>
                   <input type="time" value={form.startTime}
                     onChange={e => setForm({...form, startTime: e.target.value})}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="text-[10px] text-gray-500 font-medium block mb-1">שעת סיום</label>
                   <input type="time" value={form.endTime}
                     onChange={e => setForm({...form, endTime: e.target.value})}
