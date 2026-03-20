@@ -115,17 +115,28 @@ export default function VolunteersPage() {
     setLoadingCandidates(false);
   };
 
+  // Get Israel timezone offset string like "+03:00" or "+02:00"
+  const getIsraelOffset = (date: Date) => {
+    const utcStr = date.toLocaleString("en-US", { timeZone: "UTC", hour12: false });
+    const ilStr = date.toLocaleString("en-US", { timeZone: "Asia/Jerusalem", hour12: false });
+    const diffMs = new Date(ilStr).getTime() - new Date(utcStr).getTime();
+    const h = String(Math.floor(Math.abs(diffMs) / 3600000)).padStart(2, "0");
+    const m = String(Math.floor((Math.abs(diffMs) % 3600000) / 60000)).padStart(2, "0");
+    return `${diffMs >= 0 ? "+" : "-"}${h}:${m}`;
+  };
+
   const handleCreate = async () => {
     if (!form.title || !form.startTime || !form.endTime) return;
     setSubmitting(true);
     const todayDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }); // YYYY-MM-DD
+    const offset = getIsraelOffset(new Date());
     const res = await fetch("/api/volunteers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
-        startTime: `${todayDate}T${form.startTime}:00`,
-        endTime: `${todayDate}T${form.endTime}:00`,
+        startTime: `${todayDate}T${form.startTime}:00${offset}`,
+        endTime: `${todayDate}T${form.endTime}:00${offset}`,
         targetDetails: form.target === "mixed" ? form.targetDetails : undefined,
       }),
     });
@@ -247,8 +258,10 @@ export default function VolunteersPage() {
   const handleEdit = async () => {
     if (!editingRequest) return;
     setSubmitting(true);
-    // Build full datetime from the request's date + edited time
-    const dateStr = new Date(editingRequest.startTime).toISOString().split("T")[0];
+    // Build full datetime from the request's date (in Israel tz) + edited time
+    const reqDate = new Date(editingRequest.startTime);
+    const dateStr = reqDate.toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }); // YYYY-MM-DD in Israel
+    const offset = getIsraelOffset(reqDate);
     const res = await fetch("/api/volunteers", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -256,8 +269,8 @@ export default function VolunteersPage() {
         id: editingRequest.id,
         title: editForm.title,
         description: editForm.description || null,
-        startTime: `${dateStr}T${editForm.startTime}:00`,
-        endTime: `${dateStr}T${editForm.endTime}:00`,
+        startTime: `${dateStr}T${editForm.startTime}:00${offset}`,
+        endTime: `${dateStr}T${editForm.endTime}:00${offset}`,
         requiredCount: editForm.requiredCount,
       }),
     });
