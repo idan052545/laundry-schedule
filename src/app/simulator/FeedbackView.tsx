@@ -82,7 +82,7 @@ export function FeedbackView({ session: sess, onBack }: {
   session: SimSession;
   onBack: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
   const messages: ChatMessage[] = sess.messages ? JSON.parse(sess.messages) : [];
   const [showTranscript, setShowTranscript] = useState(false);
   const score = sess.score ?? 0;
@@ -139,7 +139,7 @@ export function FeedbackView({ session: sess, onBack }: {
                 {sess.mode === "voice" ? t.simulator.voice : t.simulator.chat}
               </span>
               <span>{t.simulator.difficulty} {sess.scenario.difficulty}/10</span>
-              {sess.completedAt && <span>{new Date(sess.completedAt).toLocaleDateString("he-IL", { day: "numeric", month: "long" })}</span>}
+              {sess.completedAt && <span>{new Date(sess.completedAt).toLocaleDateString(dateLocale, { day: "numeric", month: "long" })}</span>}
             </div>
             {sess.grade && (
               <div className="mt-3">
@@ -243,7 +243,7 @@ export function FeedbackView({ session: sess, onBack }: {
                         {msg.role === "user" ? t.simulator.you : sess.scenario.machineName}
                       </span>
                       <span className="text-[10px] text-gray-300 mr-auto" dir="ltr">
-                        {new Date(msg.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(msg.timestamp).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
                     <p className="leading-relaxed">{msg.content}</p>

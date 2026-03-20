@@ -17,7 +17,7 @@ interface ClassicFeedProps {
 }
 
 export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
 
   return (
     <div className="space-y-2 mb-5">
@@ -43,7 +43,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                   {cs.target === "all" ? t.schedule.platoon : t.common.team}
                 </span>
                 <span className="text-[11px] text-gray-400 shrink-0 tabular-nums" dir="ltr">
-                  {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–{new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                  {new Date(cs.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–{new Date(cs.endTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                 </span>
               </div>
             );
@@ -86,7 +86,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
               {feed.myTeamAssignments.map((e) => (
                 <span key={e.id} className="text-[11px] text-teal-800">
                   <span className="font-bold tabular-nums" dir="ltr">
-                    {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                    {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                   </span>{" "}{e.title}
                 </span>
               ))}
@@ -149,7 +149,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
               const CatIcon = CAT_ICONS[r.category] || MdMoreHoriz;
               const filled = r._count.assignments;
               const start = new Date(r.startTime);
-              const timeStr = start.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+              const timeStr = start.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
               return (
                 <Link key={r.id} href="/volunteers" className={`flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 transition ${r.priority === "urgent" ? "bg-red-50 border border-red-100" : ""}`}>
                   <CatIcon className={`text-sm shrink-0 ${CAT_COLORS[r.category] || "text-gray-400"}`} />
@@ -181,7 +181,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
               const CatIcon = CAT_ICONS[a.request.category] || MdMoreHoriz;
               const start = new Date(a.request.startTime);
               const end = new Date(a.request.endTime);
-              const timeStr = `${start.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–${end.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}`;
+              const timeStr = `${start.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–${end.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}`;
               const isNow = new Date() >= start && new Date() <= end;
               return (
                 <Link key={a.id} href="/volunteers?tab=my" className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition ${isNow ? "bg-emerald-50 border border-emerald-100" : "hover:bg-gray-50"}`}>

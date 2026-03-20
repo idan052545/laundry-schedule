@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import type { VolRequest, Candidate, TitleSuggestion, StatsData } from "./types";
+import { useLanguage } from "@/i18n";
 
 export type Tab = "active" | "my" | "stats";
 
 export function useVolunteers() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { dateLocale } = useLanguage();
   const [tab, setTab] = useState<Tab>("active");
   const [requests, setRequests] = useState<VolRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,11 +36,11 @@ export function useVolunteers() {
 
   const nowTimeStr = () => {
     const d = new Date();
-    return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+    return d.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
   };
   const plus15 = () => {
     const d = new Date(Date.now() + 15 * 60000);
-    return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+    return d.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
   };
 
   // Create form
@@ -238,7 +240,7 @@ export function useVolunteers() {
   const startEditingRequest = (req: VolRequest) => {
     const toTimeStr = (iso: string) => {
       const d = new Date(iso);
-      return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+      return d.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
     };
     setEditForm({
       title: req.title,
@@ -307,8 +309,8 @@ export function useVolunteers() {
     XLSX.writeFile(wb, `תורנויות_${stats.period}.xlsx`);
   };
 
-  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("he-IL", { day: "numeric", month: "short", timeZone: "Asia/Jerusalem" });
+  const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: "numeric", month: "short", timeZone: "Asia/Jerusalem" });
 
   const myRequests = requests.filter(r => r.assignments.some(a => a.userId === myUserId && a.status !== "cancelled"));
 

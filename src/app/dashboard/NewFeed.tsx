@@ -17,7 +17,7 @@ interface NewFeedProps {
 }
 
 export default function NewFeed({ feed, visible }: NewFeedProps) {
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
 
   return (
     <div className="space-y-3 mb-5">
@@ -49,9 +49,9 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                 <div key={ev.id} className={`flex items-center gap-2.5 ${!isNow ? "opacity-60" : ""}`}>
                   <div className={`w-2 h-2 rounded-full shrink-0 ${isNow ? "bg-green-500 animate-pulse ring-4 ring-green-100" : "bg-gray-300"}`} />
                   <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0 w-[90px]" dir="ltr">
-                    {new Date(ev.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                    {new Date(ev.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                     {" – "}
-                    {new Date(ev.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                    {new Date(ev.endTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                   </span>
                   <span className="text-sm font-semibold text-gray-800 truncate">{ev.title}</span>
                   <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${ev.target === "all" ? "bg-emerald-100 text-emerald-700" : "bg-cyan-100 text-cyan-700"}`}>
@@ -89,7 +89,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                   <MdSecurity className="text-sm text-white/90" />
                   <span className="text-[11px] font-bold text-white/90">{dt.title}</span>
                   <span className="text-[10px] text-white/60 mr-auto">
-                    {new Date(dt.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" })}
+                    {new Date(dt.date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })}
                   </span>
                 </div>
                 <div className="px-3.5 py-2 bg-white">
@@ -126,7 +126,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
             {feed.myTeamAssignments.map((e) => (
               <div key={e.id} className="flex items-center gap-2.5 bg-white rounded-lg px-2.5 py-1.5 border border-teal-100 shadow-sm">
                 <span className="text-[11px] font-bold text-teal-600 tabular-nums shrink-0 w-12 text-center" dir="ltr">
-                  {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                  {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                 </span>
                 <div className="w-px h-4 bg-teal-200" />
                 <span className="text-xs font-medium text-gray-800 truncate">{e.title}</span>
@@ -250,7 +250,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                 <span className="text-xs font-semibold text-gray-800 truncate block">{post.title}</span>
                 <span className="text-[10px] text-yellow-600">
                   {post.author.name}
-                  {post.dueDate && <> · {new Date(post.dueDate + "T12:00:00").toLocaleDateString("he-IL", { day: "numeric", month: "short" })}</>}
+                  {post.dueDate && <> · {new Date(post.dueDate + "T12:00:00").toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}</>}
                 </span>
               </div>
             </Link>

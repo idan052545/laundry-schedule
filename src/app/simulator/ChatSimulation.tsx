@@ -17,7 +17,7 @@ export function ChatSimulation({ simSession, scenario, commander, firstName, onE
   onEnd: (session: SimSession) => void;
   onBack: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
   const MAX_MESSAGES_PER_SESSION = 60; // Safety: max 60 messages (30 turns)
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -143,7 +143,7 @@ export function ChatSimulation({ simSession, scenario, commander, firstName, onE
                 {msg.role === "user" ? <><MdPerson className="text-xs" /> {t.simulator.you}:</> : <><MdSmartToy className="text-xs" /> {scenario.machineName}:</>}
               </div>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-              <div className="text-[10px] mt-1 opacity-40 text-end" dir="ltr">{new Date(msg.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</div>
+              <div className="text-[10px] mt-1 opacity-40 text-end" dir="ltr">{new Date(msg.timestamp).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}</div>
             </div>
           </div>
         ))}

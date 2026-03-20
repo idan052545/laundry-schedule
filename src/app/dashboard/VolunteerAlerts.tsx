@@ -13,7 +13,7 @@ interface VolunteerAlertsProps {
 }
 
 export default function VolunteerAlerts({ feed }: VolunteerAlertsProps) {
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
   const nowMs = Date.now();
   const hourFromNow = nowMs + 60 * 60 * 1000;
   const reqs = feed.activeVolunteerRequests || [];
@@ -56,7 +56,7 @@ export default function VolunteerAlerts({ feed }: VolunteerAlertsProps) {
   if (!hasVolAlerts && !hasMyCreatedAlerts) return null;
 
   const formatTimeIL = (dt: string) =>
-    new Date(dt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+    new Date(dt).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 
   return (
     <div className="mb-3 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">

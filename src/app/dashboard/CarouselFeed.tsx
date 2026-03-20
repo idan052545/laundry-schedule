@@ -29,7 +29,7 @@ interface CarouselFeedProps {
 }
 
 export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -68,7 +68,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
             <div key={ev.id} className={`flex items-center gap-2 ${ev.status !== "now" ? "opacity-60" : ""}`}>
               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${ev.status === "now" ? "bg-white animate-pulse" : "bg-white/40"}`} />
               <span className="text-[10px] text-white/70 tabular-nums shrink-0" dir="ltr">
-                {new Date(ev.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                {new Date(ev.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
               </span>
               <span className="text-xs text-white truncate">{ev.title}</span>
               <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${ev.target === "all" ? "bg-white/15 text-white/80" : "bg-cyan-300/25 text-cyan-100"}`}>
@@ -99,7 +99,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
         iconBg: "bg-white/20",
         icon: <MdSecurity className="text-xl text-white" />,
         title: dt.title,
-        subtitle: new Date(dt.date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" }),
+        subtitle: new Date(dt.date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" }),
         content: dt.myAssignments.length > 0 ? (
           <div className="flex flex-wrap gap-1 mt-2">
             {dt.myAssignments.map((a, i) => (
@@ -128,7 +128,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
           {feed.myTeamAssignments.slice(0, 3).map(e => (
             <div key={e.id} className="flex items-center gap-2 bg-white/10 rounded-lg px-2 py-1">
               <span className="text-[11px] font-bold text-white/80 tabular-nums w-12 text-center" dir="ltr">
-                {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
               </span>
               <span className="text-xs text-white truncate">{e.title}</span>
             </div>

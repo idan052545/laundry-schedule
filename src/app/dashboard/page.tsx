@@ -28,7 +28,7 @@ import { useLanguage } from "@/i18n";
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, dateLocale } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [feed, setFeed] = useState<DashboardFeed | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             {getGreeting(t)}, {firstName}
           </h1>
           <p className="text-xs text-gray-400">
-            {new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
+            {new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
         <div className="flex gap-1 shrink-0">
