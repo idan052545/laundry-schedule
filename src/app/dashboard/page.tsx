@@ -696,34 +696,38 @@ export default function DashboardPage() {
                               if (trimmed.startsWith("➖")) return <div key={i} className="text-[11px] text-red-800 bg-red-50 rounded-lg px-2 py-1 border border-red-100">{trimmed}</div>;
                               // Legacy format
                               const parts = trimmed.split(" | ");
-                              return parts.map((part, pi) => {
-                                const p = part.trim();
-                                if (p.startsWith("עודכנו:")) return (
-                                  <div key={`${i}-${pi}`}>
-                                    <div className="text-[10px] font-bold text-amber-600 mt-1">עודכנו</div>
-                                    {p.replace("עודכנו:", "").split(",").map((item, ii) => item.trim() && (
-                                      <div key={ii} className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1 border border-amber-100 mt-0.5">✏️ {item.trim()}</div>
-                                    ))}
-                                  </div>
-                                );
-                                if (p.startsWith("נוספו:")) return (
-                                  <div key={`${i}-${pi}`}>
-                                    <div className="text-[10px] font-bold text-green-600 mt-1">נוספו</div>
-                                    {p.replace("נוספו:", "").split(",").map((item, ii) => item.trim() && (
-                                      <div key={ii} className="text-[11px] text-green-800 bg-green-50 rounded-lg px-2 py-1 border border-green-100 mt-0.5">➕ {item.trim()}</div>
-                                    ))}
-                                  </div>
-                                );
-                                if (p.startsWith("הוסרו:")) return (
-                                  <div key={`${i}-${pi}`}>
-                                    <div className="text-[10px] font-bold text-red-600 mt-1">הוסרו</div>
-                                    {p.replace("הוסרו:", "").split(",").map((item, ii) => item.trim() && (
-                                      <div key={ii} className="text-[11px] text-red-800 bg-red-50 rounded-lg px-2 py-1 border border-red-100 mt-0.5">➖ {item.trim()}</div>
-                                    ))}
-                                  </div>
-                                );
-                                return <p key={`${i}-${pi}`} className="text-[11px] text-gray-600">{p}</p>;
-                              });
+                              return (
+                                <div key={i}>
+                                  {parts.map((part, pi) => {
+                                    const p = part.trim();
+                                    if (p.startsWith("עודכנו:")) return (
+                                      <div key={`${i}-${pi}`}>
+                                        <div className="text-[10px] font-bold text-amber-600 mt-1">עודכנו</div>
+                                        {p.replace("עודכנו:", "").split(",").map((item, ii) => item.trim() && (
+                                          <div key={ii} className="text-[11px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1 border border-amber-100 mt-0.5">✏️ {item.trim()}</div>
+                                        ))}
+                                      </div>
+                                    );
+                                    if (p.startsWith("נוספו:")) return (
+                                      <div key={`${i}-${pi}`}>
+                                        <div className="text-[10px] font-bold text-green-600 mt-1">נוספו</div>
+                                        {p.replace("נוספו:", "").split(",").map((item, ii) => item.trim() && (
+                                          <div key={ii} className="text-[11px] text-green-800 bg-green-50 rounded-lg px-2 py-1 border border-green-100 mt-0.5">➕ {item.trim()}</div>
+                                        ))}
+                                      </div>
+                                    );
+                                    if (p.startsWith("הוסרו:")) return (
+                                      <div key={`${i}-${pi}`}>
+                                        <div className="text-[10px] font-bold text-red-600 mt-1">הוסרו</div>
+                                        {p.replace("הוסרו:", "").split(",").map((item, ii) => item.trim() && (
+                                          <div key={ii} className="text-[11px] text-red-800 bg-red-50 rounded-lg px-2 py-1 border border-red-100 mt-0.5">➖ {item.trim()}</div>
+                                        ))}
+                                      </div>
+                                    );
+                                    return <p key={`${i}-${pi}`} className="text-[11px] text-gray-600">{p}</p>;
+                                  })}
+                                </div>
+                              );
                             })}
                           </div>
                         ) : (
