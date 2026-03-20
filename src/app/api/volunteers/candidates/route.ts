@@ -21,15 +21,22 @@ export async function GET(request: Request) {
   const start = new Date(startTime);
   const end = new Date(endTime);
 
-  // Get target users
+  // Check if current user is admin/commander — they see all candidates
+  const userId = (session.user as { id: string }).id;
+  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const isPrivileged = currentUser?.role === "admin" || currentUser?.role === "commander";
+
+  // Get target users (admin/commander see everyone)
   let teamFilter: Record<string, unknown> = {};
-  if (target.startsWith("team-")) {
-    teamFilter = { team: parseInt(target.replace("team-", "")) };
-  } else if (target === "mixed") {
-    const targetDetails = searchParams.get("targetDetails");
-    if (targetDetails) {
-      const teams = JSON.parse(targetDetails).map((d: { team: number }) => d.team);
-      teamFilter = { team: { in: teams } };
+  if (!isPrivileged) {
+    if (target.startsWith("team-")) {
+      teamFilter = { team: parseInt(target.replace("team-", "")) };
+    } else if (target === "mixed") {
+      const targetDetails = searchParams.get("targetDetails");
+      if (targetDetails) {
+        const teams = JSON.parse(targetDetails).map((d: { team: number }) => d.team);
+        teamFilter = { team: { in: teams } };
+      }
     }
   }
 

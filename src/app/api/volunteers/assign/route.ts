@@ -42,14 +42,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // Team-member assignment permission check
+  // Team-member assignment permission check (admins/commanders can assign anyone)
   if (type === "team-member" && targetUserId !== currentUserId) {
-    const [currentUser, targetUser] = await Promise.all([
-      prisma.user.findUnique({ where: { id: currentUserId }, select: { team: true } }),
-      prisma.user.findUnique({ where: { id: targetUserId }, select: { team: true } }),
-    ]);
-    if (!currentUser?.team || currentUser.team !== targetUser?.team) {
-      return NextResponse.json({ error: "ניתן לשבץ רק חברי צוות שלך" }, { status: 403 });
+    const currentUser = await prisma.user.findUnique({ where: { id: currentUserId }, select: { team: true, role: true } });
+    if (currentUser?.role !== "admin" && currentUser?.role !== "commander") {
+      const targetUser = await prisma.user.findUnique({ where: { id: targetUserId }, select: { team: true } });
+      if (!currentUser?.team || currentUser.team !== targetUser?.team) {
+        return NextResponse.json({ error: "ניתן לשבץ רק חברי צוות שלך" }, { status: 403 });
+      }
     }
   }
 
