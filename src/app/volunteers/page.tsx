@@ -699,16 +699,16 @@ export default function VolunteersPage() {
               </div>
 
               {/* Times */}
-              <div className="flex gap-3">
-                <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה *</label>
                   <input type="datetime-local" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-300 transition" />
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-green-300 transition" />
                 </div>
-                <div className="flex-1">
+                <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">סיום *</label>
                   <input type="datetime-local" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-300 transition" />
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-green-300 transition" />
                 </div>
               </div>
 
