@@ -1,6 +1,6 @@
 import {
   MdRestaurant, MdCleaningServices, MdSecurity, MdLocalShipping,
-  MdMoreHoriz, MdVolunteerActivism,
+  MdMoreHoriz, MdVolunteerActivism, MdLightbulb, MdThumbUp, MdChat,
 } from "react-icons/md";
 
 export const CATEGORY_CONFIG: Record<string, { label: string; icon: typeof MdRestaurant; color: string; bg: string; border: string }> = {
@@ -29,7 +29,7 @@ export const TEAM_COLORS: Record<number, string> = {
 };
 
 export const FEEDBACK_TYPES = [
-  { value: "improvement", label: "שיפור", emoji: "💡" },
-  { value: "preserve", label: "שימור", emoji: "👍" },
-  { value: "vent", label: "לפרוק", emoji: "💬" },
+  { value: "improvement", label: "שיפור", icon: MdLightbulb },
+  { value: "preserve", label: "שימור", icon: MdThumbUp },
+  { value: "vent", label: "לפרוק", icon: MdChat },
 ];

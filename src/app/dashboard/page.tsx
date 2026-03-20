@@ -13,7 +13,7 @@ import {
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
   MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity, MdAccessTime,
   MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital, MdExpandMore, MdExpandLess, MdDoneAll, MdChevronLeft, MdClose,
-  MdVolunteerActivism,
+  MdVolunteerActivism, MdRestaurant, MdCleaningServices, MdLocalShipping, MdMoreHoriz,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -584,14 +584,42 @@ export default function DashboardPage() {
           {visible.has("volunteers") && feed.urgentReplacement && (
             <Link href={`/volunteers?highlight=${feed.urgentReplacement.request.id}`} className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2 hover:shadow-sm transition animate-pulse">
               <MdVolunteerActivism className="text-lg text-red-500 shrink-0" />
-              <span className="text-xs font-bold text-red-700 flex-1 truncate">🚨 דרוש/ה מחליף/ה דחוף — {feed.urgentReplacement.request.title}</span>
+              <span className="text-xs font-bold text-red-700 flex-1 truncate flex items-center gap-1"><MdWarning className="text-sm shrink-0" /> דרוש/ה מחליף/ה דחוף — {feed.urgentReplacement.request.title}</span>
             </Link>
           )}
           {visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0 && (
-            <Link href="/volunteers" className="flex items-center gap-2.5 bg-green-50/60 border border-green-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
-              <MdVolunteerActivism className="text-lg text-green-500 shrink-0" />
-              <span className="text-xs font-medium text-green-700 flex-1 truncate">{feed.activeVolunteerRequests.length} בקשות התנדבות פעילות</span>
-            </Link>
+            <div className="bg-white border border-green-200 rounded-xl px-3.5 py-2.5">
+              <Link href="/volunteers" className="flex items-center gap-2 mb-1.5">
+                <MdVolunteerActivism className="text-sm text-green-500" />
+                <span className="text-[10px] font-bold text-gray-400">בקשות התנדבות ({feed.activeVolunteerRequests.length})</span>
+              </Link>
+              <div className="space-y-1.5">
+                {feed.activeVolunteerRequests.slice(0, 3).map((r) => {
+                  const catIcons: Record<string, typeof MdRestaurant> = { kitchen: MdRestaurant, cleaning: MdCleaningServices, guard: MdSecurity, logistics: MdLocalShipping, general: MdVolunteerActivism, other: MdMoreHoriz };
+                  const catColors: Record<string, string> = { kitchen: "text-orange-500", cleaning: "text-blue-500", guard: "text-red-500", logistics: "text-purple-500", general: "text-green-500", other: "text-gray-400" };
+                  const CatIcon = catIcons[r.category] || MdMoreHoriz;
+                  const filled = r._count.assignments;
+                  const start = new Date(r.startTime);
+                  const timeStr = start.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+                  return (
+                    <Link key={r.id} href="/volunteers" className={`flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-50 transition ${r.priority === "urgent" ? "bg-red-50 border border-red-100" : ""}`}>
+                      <CatIcon className={`text-sm shrink-0 ${catColors[r.category] || "text-gray-400"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-gray-700 truncate">{r.title}</p>
+                          {r.isCommanderRequest && <MdStar className="text-[10px] text-amber-500 shrink-0" />}
+                          {r.priority === "urgent" && <MdWarning className="text-[10px] text-red-500 shrink-0" />}
+                        </div>
+                        <p className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                          <span className="flex items-center gap-0.5"><MdAccessTime className="text-[10px]" />{timeStr}</span>
+                          <span className={`font-bold ${filled >= r.requiredCount ? "text-green-500" : "text-amber-500"}`}>{filled}/{r.requiredCount}</span>
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           )}
           {visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0 && (
             <div className="bg-white border border-emerald-200 rounded-xl px-3.5 py-2.5">
@@ -601,19 +629,21 @@ export default function DashboardPage() {
               </Link>
               <div className="space-y-1.5">
                 {feed.myVolunteerAssignments.slice(0, 3).map((a) => {
-                  const catEmoji: Record<string, string> = { kitchen: "🍳", cleaning: "🧹", guard: "🛡️", logistics: "📦", general: "🤝", other: "📌" };
+                  const catIcons: Record<string, typeof MdRestaurant> = { kitchen: MdRestaurant, cleaning: MdCleaningServices, guard: MdSecurity, logistics: MdLocalShipping, general: MdVolunteerActivism, other: MdMoreHoriz };
+                  const catColors: Record<string, string> = { kitchen: "text-orange-500", cleaning: "text-blue-500", guard: "text-red-500", logistics: "text-purple-500", general: "text-green-500", other: "text-gray-400" };
+                  const CatIcon = catIcons[a.request.category] || MdMoreHoriz;
                   const start = new Date(a.request.startTime);
                   const end = new Date(a.request.endTime);
                   const timeStr = `${start.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–${end.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}`;
                   const isNow = new Date() >= start && new Date() <= end;
                   return (
                     <Link key={a.id} href="/volunteers?tab=my" className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition ${isNow ? "bg-emerald-50 border border-emerald-100" : "hover:bg-gray-50"}`}>
-                      <span className="text-sm">{catEmoji[a.request.category] || "📌"}</span>
+                      <CatIcon className={`text-sm shrink-0 ${catColors[a.request.category] || "text-gray-400"}`} />
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-medium truncate ${isNow ? "text-emerald-700" : "text-gray-700"}`}>{a.request.title}</p>
                         <p className="text-[10px] text-gray-400 flex items-center gap-1">
                           <MdAccessTime className="text-[10px]" /> {timeStr}
-                          {isNow && <span className="text-emerald-500 font-bold mr-1">● עכשיו</span>}
+                          {isNow && <span className="text-emerald-500 font-bold mr-1 flex items-center gap-0.5"><MdSchedule className="text-[10px]" />עכשיו</span>}
                         </p>
                       </div>
                     </Link>
@@ -829,12 +859,12 @@ export default function DashboardPage() {
               actionItems.push({ key: "chopal-done", href: "/chopal", icon: chopalIcon, iconColor: chopalColor, bg: chopalBg, border: chopalBorder, textColor: chopalText, label: chopalLabel });
             }
             if (visible.has("volunteers") && feed.urgentReplacement)
-              actionItems.push({ key: "vol-urgent", href: `/volunteers?highlight=${feed.urgentReplacement.request.id}`, icon: MdVolunteerActivism, iconColor: "text-red-500", bg: "from-red-50 to-rose-50", border: "border-red-200", textColor: "text-red-700", label: `🚨 דרוש/ה מחליף/ה — ${feed.urgentReplacement.request.title}` });
+              actionItems.push({ key: "vol-urgent", href: `/volunteers?highlight=${feed.urgentReplacement.request.id}`, icon: MdVolunteerActivism, iconColor: "text-red-500", bg: "from-red-50 to-rose-50", border: "border-red-200", textColor: "text-red-700", label: `דרוש/ה מחליף/ה — ${feed.urgentReplacement.request.title}` });
             if (visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0)
               actionItems.push({ key: "vol-active", href: "/volunteers", icon: MdVolunteerActivism, iconColor: "text-green-500", bg: "from-green-50 to-emerald-50", border: "border-green-100", textColor: "text-green-700", label: `${feed.activeVolunteerRequests.length} בקשות התנדבות` });
             if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0) {
               const nowVol = feed.myVolunteerAssignments.find(a => { const s = new Date(a.request.startTime); const e = new Date(a.request.endTime); const n = new Date(); return n >= s && n <= e; });
-              const volLabel = nowVol ? `● ${nowVol.request.title} — עכשיו` : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`;
+              const volLabel = nowVol ? `${nowVol.request.title} — עכשיו` : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`;
               actionItems.push({ key: "vol-my", href: "/volunteers?tab=my", icon: MdCheckCircle, iconColor: nowVol ? "text-emerald-600" : "text-emerald-500", bg: nowVol ? "from-emerald-100 to-green-100" : "from-emerald-50 to-green-50", border: nowVol ? "border-emerald-300" : "border-emerald-100", textColor: nowVol ? "text-emerald-800" : "text-emerald-700", label: volLabel });
             }
             if (visible.has("volunteers") && feed.myCreatedRequests?.length > 0) {
@@ -1223,7 +1253,7 @@ function CarouselFeed({ feed, visible }: { feed: DashboardFeed; visible: Set<Sec
       gradient: nowV ? "from-emerald-600 to-green-700" : "from-emerald-500 to-teal-600",
       iconBg: "bg-white/20",
       icon: <MdCheckCircle className="text-xl text-white" />,
-      title: nowV ? `● ${nowV.request.title}` : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`,
+      title: nowV ? nowV.request.title : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`,
       subtitle: nowV ? "בהתנדבות עכשיו" : feed.myVolunteerAssignments[0]?.request.title,
     });
   }
