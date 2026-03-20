@@ -341,46 +341,38 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* === VOLUNTEER ALERTS BANNER — wide, unmissable === */}
+      {/* === VOLUNTEER ALERTS — compact, clear === */}
       {visible.has("volunteers") && (hasVolAlerts || hasMyCreatedAlerts) && (
-        <div className="mb-3 space-y-2">
-          {/* Urgent replacement */}
+        <div className="mb-3 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          {/* Urgent replacement — red strip */}
           {feed?.urgentReplacement && (
             <Link href={`/volunteers?highlight=${feed.urgentReplacement.request.id}`}
-              className="block w-full rounded-2xl bg-gradient-to-l from-red-600 to-rose-500 text-white p-4 shadow-lg animate-pulse">
-              <div className="flex items-center gap-3">
-                <MdWarning className="text-2xl shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black">דרוש/ה מחליף/ה דחוף</p>
-                  <p className="text-xs opacity-90">{feed.urgentReplacement.request.title}</p>
-                </div>
-                <MdChevronLeft className="text-2xl shrink-0 opacity-70" />
-              </div>
+              className="flex items-center gap-2.5 px-3.5 py-2.5 bg-red-50 border-b border-red-100 hover:bg-red-100/60 transition">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+              <MdWarning className="text-red-500 text-base shrink-0" />
+              <p className="text-xs font-bold text-red-700 flex-1 truncate">דרוש/ה מחליף/ה — {feed.urgentReplacement.request.title}</p>
+              <MdChevronLeft className="text-red-400 shrink-0" />
             </Link>
           )}
 
-          {/* Urgent volunteer requests */}
+          {/* Urgent requests */}
           {volAlerts.urgent.map(r => {
             const filled = r._count.assignments;
             const slotsLeft = r.requiredCount - filled;
             const timeStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
             return (
               <Link key={r.id} href="/volunteers"
-                className="block w-full rounded-2xl bg-gradient-to-l from-red-500 to-orange-500 text-white p-4 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <MdVolunteerActivism className="text-2xl shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-black truncate">{r.title}</p>
-                      <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded font-bold shrink-0">דחוף</span>
-                    </div>
-                    <p className="text-xs opacity-90 flex items-center gap-2 mt-0.5">
-                      <span><MdAccessTime className="inline text-xs" /> {timeStr}</span>
-                      <span>דרושים עוד {slotsLeft} מתנדבים</span>
-                    </p>
-                  </div>
-                  <MdChevronLeft className="text-2xl shrink-0 opacity-70" />
+                className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-red-100 bg-red-50/50 hover:bg-red-50 transition">
+                <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                <MdVolunteerActivism className="text-red-500 text-base shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-800 truncate">{r.title} <span className="text-red-500 font-black">דחוף</span></p>
+                  <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
+                    <MdAccessTime className="text-[10px]" />{timeStr}
+                    <span className="text-red-600 font-bold">חסרים {slotsLeft}</span>
+                  </p>
                 </div>
+                <MdChevronLeft className="text-gray-300 shrink-0" />
               </Link>
             );
           })}
@@ -392,95 +384,87 @@ export default function DashboardPage() {
             const endStr = new Date(r.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
             return (
               <Link key={r.id} href="/volunteers"
-                className="block w-full rounded-2xl bg-gradient-to-l from-emerald-600 to-green-500 text-white p-4 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="relative shrink-0">
-                    <MdVolunteerActivism className="text-2xl" />
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping" />
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full" />
+                className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-green-100 bg-green-50/50 hover:bg-green-50 transition">
+                <span className="relative shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-green-500 block" />
+                  <span className="absolute inset-0 w-2 h-2 rounded-full bg-green-500 animate-ping" />
+                </span>
+                <MdVolunteerActivism className="text-green-600 text-base shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-gray-800 truncate">{r.title}</p>
+                    <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold shrink-0">עכשיו</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-black truncate">{r.title}</p>
-                      <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded font-bold shrink-0">עכשיו</span>
-                    </div>
-                    <p className="text-xs opacity-90 flex items-center gap-2 mt-0.5">
-                      <span>עד {endStr}</span>
-                      {slotsLeft > 0 && <span>דרושים עוד {slotsLeft}</span>}
-                      <span>{filled}/{r.requiredCount} משובצים</span>
-                    </p>
-                  </div>
-                  <MdChevronLeft className="text-2xl shrink-0 opacity-70" />
+                  <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
+                    <span>עד {endStr}</span>
+                    <span className="font-semibold text-gray-600">{filled}/{r.requiredCount}</span>
+                    {slotsLeft > 0 && <span className="text-amber-600 font-bold">חסרים {slotsLeft}</span>}
+                  </p>
                 </div>
+                <MdChevronLeft className="text-gray-300 shrink-0" />
               </Link>
             );
           })}
 
-          {/* Starting soon (within the hour) */}
-          {volAlerts.soon.length > 0 && (
-            <div className="w-full rounded-2xl bg-gradient-to-l from-amber-500 to-yellow-400 text-white p-4 shadow-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <MdSchedule className="text-xl shrink-0" />
-                <p className="text-sm font-black">מתחיל בקרוב</p>
-              </div>
-              <div className="space-y-2">
-                {volAlerts.soon.map(r => {
-                  const filled = r._count.assignments;
-                  const slotsLeft = Math.max(0, r.requiredCount - filled);
-                  const startStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-                  const minsUntil = Math.round((new Date(r.startTime).getTime() - Date.now()) / 60000);
-                  return (
-                    <Link key={r.id} href="/volunteers" className="flex items-center gap-3 bg-white/15 rounded-xl px-3 py-2 hover:bg-white/25 transition">
-                      <MdVolunteerActivism className="text-lg shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold truncate">{r.title}</p>
-                        <p className="text-[10px] opacity-90 flex items-center gap-2">
-                          <span>{startStr} (עוד {minsUntil} דק׳)</span>
-                          {slotsLeft > 0 && <span className="font-bold">דרושים {slotsLeft}</span>}
-                        </p>
-                      </div>
-                      <MdChevronLeft className="text-lg shrink-0 opacity-70" />
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* Starting soon */}
+          {volAlerts.soon.map(r => {
+            const filled = r._count.assignments;
+            const slotsLeft = Math.max(0, r.requiredCount - filled);
+            const startStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+            const minsUntil = Math.round((new Date(r.startTime).getTime() - Date.now()) / 60000);
+            return (
+              <Link key={r.id} href="/volunteers"
+                className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-amber-100 bg-amber-50/40 hover:bg-amber-50 transition">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                <MdSchedule className="text-amber-500 text-base shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gray-800 truncate">{r.title}</p>
+                  <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
+                    <span>{startStr}</span>
+                    <span className="text-amber-600 font-bold">עוד {minsUntil} דק׳</span>
+                    {slotsLeft > 0 && <span className="text-amber-700 font-bold">חסרים {slotsLeft}</span>}
+                  </p>
+                </div>
+                <MdChevronLeft className="text-gray-300 shrink-0" />
+              </Link>
+            );
+          })}
 
-          {/* Creator's requests status */}
-          {hasMyCreatedAlerts && (
-            <div className="w-full rounded-2xl bg-gradient-to-l from-teal-600 to-cyan-500 text-white p-4 shadow-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <MdPeople className="text-xl shrink-0" />
-                <p className="text-sm font-black">תורנויות שיצרתי</p>
-              </div>
-              <div className="space-y-2">
-                {volAlerts.myCreatedAlerts.filter(r => r.needsMore || r.isNow || r.isSoon).map(r => {
-                  const startStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-                  const endStr = new Date(r.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-                  const pct = Math.min(100, Math.round((r.filled / r.requiredCount) * 100));
-                  const statusLabel = r.isNow ? "פעיל עכשיו" : r.isSoon ? "מתחיל בקרוב" : r.needsMore ? "חסרים מתנדבים" : "";
-                  const statusColor = r.isNow ? "bg-white/30" : r.needsMore && !r.isSoon ? "bg-red-400/40" : "bg-white/20";
-                  return (
-                    <Link key={r.id} href="/volunteers" className="block bg-white/15 rounded-xl px-3 py-2.5 hover:bg-white/25 transition">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-bold truncate flex-1">{r.title}</p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 mr-2 ${statusColor}`}>{statusLabel}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-[10px] opacity-90 mb-1.5">
-                        <span><MdAccessTime className="inline text-xs" /> {startStr}–{endStr}</span>
-                        <span className="font-bold">{r.filled}/{r.requiredCount} משובצים</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-green-300" : pct >= 50 ? "bg-yellow-300" : "bg-red-300"}`}
-                          style={{ width: `${pct}%` }} />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* Creator's requests */}
+          {volAlerts.myCreatedAlerts.filter(r => r.needsMore || r.isNow || r.isSoon).map(r => {
+            const startStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+            const endStr = new Date(r.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+            const pct = Math.min(100, Math.round((r.filled / r.requiredCount) * 100));
+            const statusLabel = r.isNow ? "פעיל" : r.isSoon ? "בקרוב" : "חסרים";
+            const dotColor = r.isNow ? "bg-green-500" : r.isSoon ? "bg-amber-400" : "bg-red-400";
+            const badgeBg = r.isNow ? "bg-green-100 text-green-700" : r.isSoon ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600";
+            const barColor = pct >= 100 ? "bg-green-400" : pct >= 50 ? "bg-amber-400" : "bg-red-400";
+            return (
+              <Link key={`my-${r.id}`} href="/volunteers"
+                className="block px-3.5 py-2.5 border-b border-gray-100 hover:bg-gray-50 transition">
+                <div className="flex items-center gap-2.5">
+                  <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+                  <MdPeople className="text-teal-500 text-base shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-gray-800 truncate">{r.title}</p>
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${badgeBg}`}>{statusLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                        <MdAccessTime className="text-[10px]" />{startStr}–{endStr}
+                      </p>
+                      <span className={`text-[10px] font-bold ${pct >= 100 ? "text-green-600" : "text-gray-600"}`}>{r.filled}/{r.requiredCount}</span>
+                    </div>
+                  </div>
+                  <MdChevronLeft className="text-gray-300 shrink-0" />
+                </div>
+                <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-2 mr-7">
+                  <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
 
