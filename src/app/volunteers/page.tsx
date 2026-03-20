@@ -343,7 +343,7 @@ export default function VolunteersPage() {
           onClick={() => { setForm(f => ({ ...f, startTime: nowTimeStr(), endTime: plus15() })); setShowCreate(true); }}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-bold shadow hover:bg-green-700 transition"
         >
-          <MdAdd /> יצירת תורנות
+          <MdAdd /> {isCommander ? "יצירת תורנות" : "בקשת עזרה"}
         </button>
       </div>
 
@@ -402,6 +402,7 @@ export default function VolunteersPage() {
                   hasUrgentReplace ? "border-red-300 bg-red-50/30 animate-pulse" :
                   req.isCommanderRequest ? "border-amber-300 bg-amber-50/20" :
                   req.priority === "urgent" ? "border-red-200 bg-red-50/20" :
+                  !req.isCommanderRequest ? "border-green-200 bg-green-50/10" :
                   "border-gray-200 bg-white"
                 }`}
               >
@@ -415,6 +416,7 @@ export default function VolunteersPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-bold text-gray-800">{req.title}</h3>
                         {req.isCommanderRequest && <span className="px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded text-[9px] font-bold">מפקד</span>}
+                        {!req.isCommanderRequest && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">בקשת עזרה</span>}
                         {req.priority === "urgent" && <span className="px-1.5 py-0.5 bg-red-200 text-red-800 rounded text-[9px] font-bold">דחוף</span>}
                         {hasUrgentReplace && <span className="px-1.5 py-0.5 bg-red-500 text-white rounded text-[9px] font-bold animate-bounce">צריך מחליף!</span>}
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${STATUS_CONFIG[req.status]?.bg} ${STATUS_CONFIG[req.status]?.color}`}>
@@ -682,14 +684,20 @@ export default function VolunteersPage() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setShowCreate(false)}>
           <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2"><MdAdd className="text-green-600" /> יצירת תורנות</h2>
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2"><MdAdd className="text-green-600" /> {isCommander ? "יצירת תורנות" : "בקשת עזרה"}</h2>
               <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600"><MdClose className="text-xl" /></button>
             </div>
+
+            {!isCommander && (
+              <p className="text-xs text-gray-400 mb-3 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                בקשת עזרה היא פניה ידידותית לחברי הפלוגה — לא חובה, אבל כל עזרה מתקבלת בברכה
+              </p>
+            )}
 
             <div className="space-y-4">
               {/* Title with suggestions */}
               <div className="relative">
-                <label className="text-xs font-medium text-gray-600 mb-1 block">שם התורנות *</label>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">{isCommander ? "שם התורנות *" : "במה צריך עזרה? *"}</label>
                 <input value={form.title} onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setShowTitleSuggestions(true); }}
                   onFocus={() => setShowTitleSuggestions(true)}
                   placeholder="לדוגמה: ניקיון חדר אוכל" className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-300 transition" />
@@ -818,7 +826,7 @@ export default function VolunteersPage() {
 
               <button onClick={handleCreate} disabled={submitting || !form.title || !form.startTime || !form.endTime}
                 className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm shadow-lg hover:bg-green-700 transition disabled:opacity-50">
-                {submitting ? "יוצר..." : "פרסם תורנות"}
+                {submitting ? "שולח..." : isCommander ? "פרסם תורנות" : "שלח בקשת עזרה"}
               </button>
             </div>
           </div>

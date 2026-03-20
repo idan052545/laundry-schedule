@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
   if (target === "all") {
     await sendPushToAll({
-      title: isCommander ? "תורנות חדשה (מפקד)" : "תורנות חדשה",
+      title: isCommander ? "תורנות חדשה (מפקד)" : "בקשת עזרה חדשה",
       body: notifBody,
       url: "/volunteers",
       tag: `volunteer-new-${req.id}`,
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       const ids = teamUsers.map(u => u.id).filter(id => id !== userId);
       if (ids.length > 0) {
         await sendPushToUsers(ids, {
-          title: isCommander ? "תורנות חדשה (מפקד)" : "תורנות חדשה",
+          title: isCommander ? "תורנות חדשה (מפקד)" : "בקשת עזרה חדשה",
           body: notifBody,
           url: "/volunteers",
           tag: `volunteer-new-${req.id}`,
