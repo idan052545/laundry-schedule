@@ -12,7 +12,7 @@ import {
   MdStar, MdDescription, MdMenuBook, MdFolder, MdWarning, MdSchedule,
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
   MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity, MdAccessTime,
-  MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital, MdExpandMore, MdExpandLess, MdDoneAll,
+  MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital, MdExpandMore, MdExpandLess, MdDoneAll, MdChevronLeft,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -334,23 +334,33 @@ export default function DashboardPage() {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
                     {notifications.map(n => {
                       const href = getNotificationHref(n.url, n.tag);
                       const timeAgo = getTimeAgo(n.createdAt);
                       return (
-                        <Link
+                        <div
                           key={n.id}
-                          href={href}
-                          className={`flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition ${!n.read ? "bg-blue-50/50" : ""}`}
+                          className={`px-3 py-2.5 ${!n.read ? "bg-blue-50/50" : ""}`}
                         >
-                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-bold text-gray-800 truncate">{n.title}</div>
-                            <div className="text-[11px] text-gray-500 truncate">{n.body}</div>
+                          <div className="flex items-start gap-2.5">
+                            <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-gray-800">{n.title}</span>
+                                <span className="text-[10px] text-gray-400 shrink-0">{timeAgo}</span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed whitespace-pre-wrap">{n.body}</p>
+                              <Link
+                                href={href}
+                                className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-dotan-green hover:text-dotan-green-dark transition"
+                              >
+                                <MdChevronLeft className="text-xs" />
+                                עבור לדף
+                              </Link>
+                            </div>
                           </div>
-                          <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">{timeAgo}</span>
-                        </Link>
+                        </div>
                       );
                     })}
                   </div>
