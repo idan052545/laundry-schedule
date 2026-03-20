@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, name: true, team: true } });
 
   const body = await request.json();
-  const { title, description, target, targetDetails, requiredCount, startTime, endTime, category, priority } = body;
+  const { title, description, target, targetDetails, requiredCount, startTime, endTime, category, priority, allowPartial } = body;
 
   if (!title || !startTime || !endTime) {
     return NextResponse.json({ error: "חסר שם, שעת התחלה או סיום" }, { status: 400 });
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       category: category || "other",
       priority: priority || "normal",
       isCommanderRequest: isCommander,
+      allowPartial: !!allowPartial,
     },
     include: {
       createdBy: { select: { id: true, name: true, image: true, team: true, role: true } },
@@ -224,6 +225,12 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 
-  await prisma.volunteerRequest.update({ where: { id }, data: { status: "cancelled" } });
+  await prisma.$transaction([
+    prisma.volunteerRequest.update({ where: { id }, data: { status: "cancelled" } }),
+    prisma.volunteerAssignment.updateMany({
+      where: { requestId: id, status: { in: ["assigned", "active"] } },
+      data: { status: "cancelled" },
+    }),
+  ]);
   return NextResponse.json({ success: true });
 }

@@ -25,6 +25,7 @@ export async function GET(request: Request) {
   const where: Record<string, unknown> = {
     status: { in: ["completed", "active", "assigned"] },
     createdAt: { gte: since },
+    request: { status: { not: "cancelled" } },
   };
   if (team) {
     where.user = { team: parseInt(team) };

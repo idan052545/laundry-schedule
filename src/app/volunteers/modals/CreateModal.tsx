@@ -8,6 +8,7 @@ interface VolunteerForm {
   title: string; description: string; target: string; requiredCount: number;
   startTime: string; endTime: string; category: string; priority: string;
   targetDetails: { team: number; count: number }[];
+  allowPartial: boolean;
 }
 
 interface CreateModalProps {
@@ -165,6 +166,13 @@ export default function CreateModal({
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
             </div>
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={!!form.allowPartial}
+              onChange={e => setForm((f: FormType) => ({ ...f, allowPartial: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+            <span className="text-xs text-gray-600">אפשר שיבוץ חלקי (למי שיש לוז חופף רק בחלק מהזמן)</span>
+          </label>
 
           <button onClick={onCreate} disabled={submitting || !form.title || !form.startTime || !form.endTime}
             className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm shadow-lg hover:bg-green-700 transition disabled:opacity-50">

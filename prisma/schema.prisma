@@ -557,6 +557,7 @@ model VolunteerRequest {
   priority        String   @default("normal") // "normal", "urgent"
   status          String   @default("open") // "open","filled","in-progress","completed","cancelled"
   isCommanderRequest Boolean @default(false)
+  allowPartial    Boolean  @default(false) // allow users with partial schedule overlap to sign up
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   assignments     VolunteerAssignment[]

@@ -61,6 +61,7 @@ export default function RequestCard({
               {req.isCommanderRequest && <span className="px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded text-[9px] font-bold">מפקד</span>}
               {!req.isCommanderRequest && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">בקשת עזרה</span>}
               {req.priority === "urgent" && <span className="px-1.5 py-0.5 bg-red-200 text-red-800 rounded text-[9px] font-bold">דחוף</span>}
+              {req.allowPartial && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-[9px] font-bold">חלקי OK</span>}
               {hasUrgentReplace && <span className="px-1.5 py-0.5 bg-red-500 text-white rounded text-[9px] font-bold animate-bounce">צריך מחליף!</span>}
               <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${STATUS_CONFIG[req.status]?.bg} ${STATUS_CONFIG[req.status]?.color}`}>
                 {STATUS_CONFIG[req.status]?.label}

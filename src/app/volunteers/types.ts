@@ -40,6 +40,7 @@ export interface VolRequest {
   priority: string;
   status: string;
   isCommanderRequest: boolean;
+  allowPartial: boolean;
   createdAt: string;
   assignments: VolAssignment[];
   replacements: VolReplacement[];

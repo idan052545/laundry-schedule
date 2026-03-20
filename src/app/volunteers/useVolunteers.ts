@@ -46,6 +46,7 @@ export function useVolunteers() {
     title: "", description: "", target: "all", requiredCount: 1,
     startTime: "", endTime: "", category: "other", priority: "normal",
     targetDetails: [] as { team: number; count: number }[],
+    allowPartial: false,
   });
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
 
@@ -136,7 +137,7 @@ export function useVolunteers() {
     });
     if (res.ok) {
       setShowCreate(false);
-      setForm({ title: "", description: "", target: "all", requiredCount: 1, startTime: "", endTime: "", category: "other", priority: "normal", targetDetails: [] });
+      setForm({ title: "", description: "", target: "all", requiredCount: 1, startTime: "", endTime: "", category: "other", priority: "normal", targetDetails: [], allowPartial: false });
       await fetchRequests();
     } else {
       const err = await res.json();
