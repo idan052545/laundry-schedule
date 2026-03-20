@@ -11,6 +11,7 @@ import {
 import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
 import * as XLSX from "xlsx";
+import { useLanguage } from "@/i18n";
 
 interface ChopalUser {
   id: string;
@@ -54,23 +55,25 @@ const TEAM_COLORS: Record<number, string> = {
   0: "bg-gray-50 border-gray-200 text-gray-700",
 };
 
-const TEAM_NAMES: Record<number, string> = {
-  14: "צוות 14",
-  15: "צוות 15",
-  16: "צוות 16",
-  17: "צוות 17",
-  0: "ללא צוות",
-};
-
-const STATUS_LABELS: Record<string, { text: string; color: string }> = {
-  pending: { text: "ממתין לאישור", color: "text-amber-600 bg-amber-50 border-amber-200" },
-  accepted: { text: "אושר", color: "text-green-600 bg-green-50 border-green-200" },
-  rejected: { text: "נדחה", color: "text-red-600 bg-red-50 border-red-200" },
-};
-
 export default function ChopalAdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
+
+  const TEAM_NAMES: Record<number, string> = {
+    14: t.teams.team14,
+    15: t.teams.team15,
+    16: t.teams.team16,
+    17: t.teams.team17,
+    0: t.chopal.noTeam,
+  };
+
+  const STATUS_LABELS: Record<string, { text: string; color: string }> = {
+    pending: { text: t.chopal.pendingApproval, color: "text-amber-600 bg-amber-50 border-amber-200" },
+    accepted: { text: t.chopal.statusApproved, color: "text-green-600 bg-green-50 border-green-200" },
+    rejected: { text: t.chopal.statusRejected, color: "text-red-600 bg-red-50 border-red-200" },
+  };
+
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(() => {
@@ -81,7 +84,6 @@ export default function ChopalAdminPage() {
   });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [notifying, setNotifying] = useState(false);
-  // Time assignment state: track per-request time inputs
   const [timeInputs, setTimeInputs] = useState<Record<string, string>>({});
   const [assigning, setAssigning] = useState<string | null>(null);
 
@@ -90,7 +92,6 @@ export default function ChopalAdminPage() {
     if (res.ok) {
       const d = await res.json();
       setData(d);
-      // Pre-fill time inputs from existing assignments
       const inputs: Record<string, string> = {};
       for (const req of d.requests) {
         if (req.assignment?.assignedTime) {
@@ -116,7 +117,7 @@ export default function ChopalAdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("למחוק בקשה זו?")) return;
+    if (!confirm(t.chopal.deleteRequestConfirm)) return;
     setDeleting(id);
     const res = await fetch(`/api/chopal?id=${id}`, { method: "DELETE" });
     if (res.ok) await fetchData();
@@ -126,7 +127,7 @@ export default function ChopalAdminPage() {
   const handleAssignTime = async (chopalRequestId: string) => {
     const time = timeInputs[chopalRequestId];
     if (!time || !/^\d{2}:\d{2}$/.test(time)) {
-      alert("יש להזין שעה בפורמט HH:MM");
+      alert(t.chopal.enterTimeFormat);
       return;
     }
     setAssigning(chopalRequestId);
@@ -140,24 +141,24 @@ export default function ChopalAdminPage() {
         await fetchData();
       } else {
         const err = await res.json();
-        alert(err.error || "שגיאה בשיבוץ");
+        alert(err.error || t.chopal.errorAssign);
       }
-    } catch { alert("שגיאה בשיבוץ"); }
+    } catch { alert(t.chopal.errorAssign); }
     setAssigning(null);
   };
 
   const handleRemoveAssignment = async (assignmentId: string) => {
-    if (!confirm("להסיר שיבוץ שעה?")) return;
+    if (!confirm(t.chopal.removeAssignConfirm)) return;
     setAssigning(assignmentId);
     try {
       const res = await fetch(`/api/chopal/assign?id=${assignmentId}`, { method: "DELETE" });
       if (res.ok) await fetchData();
-    } catch { alert("שגיאה"); }
+    } catch { alert(t.chopal.errorGeneric); }
     setAssigning(null);
   };
 
   const handleNotifyAll = async () => {
-    if (!confirm('לשלוח תזכורת לכולם להירשם לחופ"ל?')) return;
+    if (!confirm(t.chopal.notifyAllConfirm)) return;
     setNotifying(true);
     try {
       await fetch("/api/chopal", {
@@ -165,13 +166,13 @@ export default function ChopalAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "notify", date }),
       });
-      alert("התזכורת נשלחה לכולם!");
-    } catch { alert("שגיאה בשליחה"); }
+      alert(t.chopal.reminderSentAll);
+    } catch { alert(t.chopal.errorSending); }
     setNotifying(false);
   };
 
   const handleNotifyMissing = async () => {
-    if (!confirm("לשלוח תזכורת רק למי שלא נרשם?")) return;
+    if (!confirm(t.chopal.notifyMissingConfirm)) return;
     setNotifying(true);
     try {
       const res = await fetch("/api/chopal", {
@@ -180,8 +181,8 @@ export default function ChopalAdminPage() {
         body: JSON.stringify({ action: "notify-missing", date }),
       });
       const data = await res.json();
-      alert(`נשלחה תזכורת ל-${data.notified} חיילים שלא נרשמו`);
-    } catch { alert("שגיאה בשליחה"); }
+      alert(t.chopal.reminderSentN.replace("{n}", String(data.notified)));
+    } catch { alert(t.chopal.errorSending); }
     setNotifying(false);
   };
 
@@ -191,7 +192,7 @@ export default function ChopalAdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date }),
     });
-    if (!res.ok) { alert("שגיאה בייצוא"); return; }
+    if (!res.ok) { alert(t.chopal.errorExport); return; }
     const exportData = await res.json();
 
     const wb = XLSX.utils.book_new();
@@ -200,33 +201,33 @@ export default function ChopalAdminPage() {
     ws["!cols"] = [
       { wch: 20 }, { wch: 8 }, { wch: 14 }, { wch: 8 }, { wch: 30 }, { wch: 20 },
     ];
-    XLSX.utils.book_append_sheet(wb, ws, "כל הבקשות");
+    XLSX.utils.book_append_sheet(wb, ws, t.chopal.allRequests);
 
     if (data?.byTeam) {
       for (const teamNum of [14, 15, 16, 17]) {
         const teamReqs = data.byTeam[teamNum] || [];
         if (teamReqs.length === 0) continue;
         const teamRows = teamReqs.map((r) => ({
-          שם: r.user.name,
-          טלפון: r.user.phone || "-",
-          הערה: r.note || "-",
-          "שעת תור": r.assignment?.assignedTime || "-",
-          סטטוס: r.assignment ? STATUS_LABELS[r.assignment.status]?.text || "-" : "טרם שובץ",
-          "זמן הרשמה": new Date(r.createdAt).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
+          [t.chopal.exportName]: r.user.name,
+          [t.chopal.exportPhone]: r.user.phone || "-",
+          [t.chopal.exportNote]: r.note || "-",
+          [t.chopal.exportAppointmentTime]: r.assignment?.assignedTime || "-",
+          [t.chopal.exportStatus]: r.assignment ? STATUS_LABELS[r.assignment.status]?.text || "-" : t.chopal.exportNotAssigned,
+          [t.chopal.exportRegistrationTime]: new Date(r.createdAt).toLocaleString(dateLocale, { timeZone: "Asia/Jerusalem" }),
         }));
         const teamWs = XLSX.utils.json_to_sheet(teamRows);
         teamWs["!cols"] = [{ wch: 20 }, { wch: 14 }, { wch: 30 }, { wch: 10 }, { wch: 14 }, { wch: 20 }];
-        XLSX.utils.book_append_sheet(wb, teamWs, `צוות ${teamNum}`);
+        XLSX.utils.book_append_sheet(wb, teamWs, TEAM_NAMES[teamNum] || `${t.surveys.teamN} ${teamNum}`);
       }
     }
 
     const formatted = formatDate(date);
-    XLSX.writeFile(wb, `מסדר_חופל_${formatted}.xlsx`);
+    XLSX.writeFile(wb, `${t.chopal.exportFilename}_${formatted}.xlsx`);
   };
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + "T12:00:00");
-    return d.toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "short" });
+    return d.toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" });
   };
 
   if (status === "loading" || loading) return <InlineLoading />;
@@ -246,8 +247,8 @@ export default function ChopalAdminPage() {
             <MdLocalHospital className="text-xl text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-800">ניהול מסדר חופ&quot;ל</h1>
-            <p className="text-xs text-gray-500">{data.total} נרשמו | {assignedCount} שובצו</p>
+            <h1 className="text-lg font-bold text-gray-800">{t.chopal.adminTitle}</h1>
+            <p className="text-xs text-gray-500">{data.total} {t.chopal.registered} | {assignedCount} {t.chopal.assigned}</p>
           </div>
         </div>
         <button
@@ -256,7 +257,7 @@ export default function ChopalAdminPage() {
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500 text-white text-xs font-bold shadow hover:bg-green-600 transition disabled:opacity-50"
         >
           <MdFileDownload className="text-base" />
-          ייצוא Excel
+          {t.chopal.exportExcel}
         </button>
       </div>
 
@@ -281,7 +282,7 @@ export default function ChopalAdminPage() {
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold shadow hover:bg-blue-600 transition disabled:opacity-50"
         >
           <MdNotifications className="text-sm" />
-          {notifying ? "שולח..." : "תזכורת לכולם"}
+          {notifying ? t.common.sending : t.chopal.notifyAll}
         </button>
         <button
           onClick={handleNotifyMissing}
@@ -289,7 +290,7 @@ export default function ChopalAdminPage() {
           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-orange-500 text-white text-xs font-bold shadow hover:bg-orange-600 transition disabled:opacity-50"
         >
           <MdPersonOff className="text-sm" />
-          {notifying ? "שולח..." : "תזכורת למי שלא נרשם"}
+          {notifying ? t.common.sending : t.chopal.notifyMissing}
         </button>
       </div>
 
@@ -297,21 +298,21 @@ export default function ChopalAdminPage() {
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-sm font-bold text-rose-700 shrink-0">
           <MdPeople className="text-base" />
-          {data.total} סה&quot;כ
+          {data.total} {t.chopal.total}
         </div>
         {acceptedCount > 0 && (
           <div className="px-2.5 py-1.5 rounded-full border text-xs font-bold shrink-0 bg-green-50 border-green-200 text-green-700">
-            {acceptedCount} אישרו
+            {acceptedCount} {t.chopal.approved}
           </div>
         )}
         {rejectedCount > 0 && (
           <div className="px-2.5 py-1.5 rounded-full border text-xs font-bold shrink-0 bg-red-50 border-red-200 text-red-700">
-            {rejectedCount} דחו
+            {rejectedCount} {t.chopal.rejected}
           </div>
         )}
         {teamNums.map((team) => (
           <div key={team} className={`px-2.5 py-1.5 rounded-full border text-xs font-bold shrink-0 ${TEAM_COLORS[team] || TEAM_COLORS[0]}`}>
-            {TEAM_NAMES[team] || `צוות ${team}`}: {data.byTeam[team]?.length || 0}
+            {TEAM_NAMES[team] || `${t.surveys.teamN} ${team}`}: {data.byTeam[team]?.length || 0}
           </div>
         ))}
       </div>
@@ -320,7 +321,7 @@ export default function ChopalAdminPage() {
       {data.total === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
           <MdLocalHospital className="text-4xl text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-400 font-medium">אין נרשמים עדיין</p>
+          <p className="text-sm text-gray-400 font-medium">{t.chopal.noRegistrations}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -333,8 +334,8 @@ export default function ChopalAdminPage() {
               <div key={team} className={`rounded-2xl border-2 overflow-hidden ${colors.split(" ").slice(1).join(" ")}`}>
                 {/* Team header */}
                 <div className={`px-4 py-2.5 ${colors.split(" ")[0]} flex items-center justify-between`}>
-                  <h3 className="font-bold text-sm">{TEAM_NAMES[team] || `צוות ${team}`}</h3>
-                  <span className="text-xs font-medium">{reqs.length} נרשמים</span>
+                  <h3 className="font-bold text-sm">{TEAM_NAMES[team] || `${t.surveys.teamN} ${team}`}</h3>
+                  <span className="text-xs font-medium">{reqs.length} {t.chopal.registrants}</span>
                 </div>
 
                 {/* Members list */}
@@ -353,7 +354,7 @@ export default function ChopalAdminPage() {
                               </a>
                             )}
                             <span className="text-[10px] text-gray-400">
-                              {new Date(req.createdAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                              {new Date(req.createdAt).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                             </span>
                           </div>
                           {req.note && (
@@ -387,7 +388,7 @@ export default function ChopalAdminPage() {
                             onClick={() => handleRemoveAssignment(req.assignment!.id)}
                             disabled={assigning === req.assignment.id}
                             className="p-1 text-gray-400 hover:text-red-500 transition"
-                            title="הסר שיבוץ"
+                            title={t.chopal.removeAssign}
                           >
                             <MdClose className="text-sm" />
                           </button>
@@ -413,7 +414,7 @@ export default function ChopalAdminPage() {
                           ) : (
                             <>
                               <MdSend className="text-sm" />
-                              {req.assignment ? "עדכן" : "שבץ"}
+                              {req.assignment ? t.chopal.updateAssign : t.chopal.assignBtn}
                             </>
                           )}
                         </button>

@@ -2,7 +2,8 @@
 
 import { MdClose, MdAccessTime, MdPeople, MdEdit, MdPersonAdd, MdDelete } from "react-icons/md";
 import Avatar from "@/components/Avatar";
-import { TYPE_CONFIG, TARGET_LABELS } from "./constants";
+import { useLanguage } from "@/i18n";
+import { TYPE_CONFIG, getTypeLabels, getTargetLabels } from "./constants";
 import { ScheduleEvent } from "./types";
 import { formatTime, getDurationMin } from "./utils";
 
@@ -16,7 +17,10 @@ interface EventDetailModalProps {
 }
 
 export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAssign, onDelete }: EventDetailModalProps) {
+  const { t, dateLocale } = useLanguage();
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
+  const typeLabels = getTypeLabels(t);
+  const targetLabels = getTargetLabels(t);
   const Icon = config.icon;
   const duration = getDurationMin(event);
 
@@ -38,11 +42,11 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <MdAccessTime className="text-gray-400" />
             {event.allDay ? (
-              <span>כל היום</span>
+              <span>{t.common.allDay}</span>
             ) : (
-              <span dir="ltr">{formatTime(event.startTime)} – {formatTime(event.endTime)}
-                {duration > 0 && <span className="text-gray-400 ml-1">
-                  ({duration >= 60 ? `${Math.floor(duration / 60)} שע׳` : ""}{duration % 60 > 0 ? ` ${duration % 60} דק׳` : ""})
+              <span dir="ltr">{formatTime(event.startTime, dateLocale)} – {formatTime(event.endTime, dateLocale)}
+                {duration > 0 && <span className="text-gray-400 ms-1">
+                  ({duration >= 60 ? `${Math.floor(duration / 60)} ${t.common.hours}` : ""}{duration % 60 > 0 ? ` ${duration % 60} ${t.common.minutes}` : ""})
                 </span>}
               </span>
             )}
@@ -50,12 +54,12 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
 
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <MdPeople className="text-gray-400" />
-            <span>{TARGET_LABELS[event.target] || event.target}</span>
+            <span>{targetLabels[event.target] || event.target}</span>
           </div>
 
           <div className="flex items-center gap-2 text-sm">
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.border} border ${config.color}`}>
-              {config.label}
+              {typeLabels[event.type] || typeLabels.general}
             </span>
           </div>
 
@@ -67,13 +71,13 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
 
           {event.assignees.length > 0 && (
             <div>
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">משויכים</div>
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t.schedule.assigned}</div>
               <div className="space-y-1.5">
                 {event.assignees.map((a) => (
                   <div key={a.id} className="flex items-center gap-2">
                     <Avatar name={a.user.name} image={a.user.image} size="sm" />
                     <span className="text-sm text-gray-700">{a.user.name}</span>
-                    {a.user.team && <span className="text-xs text-gray-400">צוות {a.user.team}</span>}
+                    {a.user.team && <span className="text-xs text-gray-400">{t.common.team} {a.user.team}</span>}
                   </div>
                 ))}
               </div>
@@ -84,11 +88,11 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
             <div className="flex gap-2 pt-2 border-t">
               <button onClick={() => { onEdit(event); onClose(); }}
                 className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center justify-center gap-1">
-                <MdEdit className="text-sm" /> עריכה
+                <MdEdit className="text-sm" /> {t.common.edit}
               </button>
               <button onClick={() => { onAssign(event); onClose(); }}
                 className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center justify-center gap-1">
-                <MdPersonAdd className="text-sm" /> שיוך
+                <MdPersonAdd className="text-sm" /> {t.schedule.assignSoldiers}
               </button>
               <button onClick={() => { onDelete(event.id); onClose(); }}
                 className="bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition text-sm font-medium flex items-center justify-center gap-1">

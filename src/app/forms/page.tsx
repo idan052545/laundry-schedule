@@ -10,6 +10,7 @@ import {
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface UserBasic {
   id: string;
@@ -37,14 +38,6 @@ interface FormLink {
   submissions: Submission[];
 }
 
-const CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
-  general: { label: "כללי", color: "text-gray-600", bg: "bg-gray-100 border-gray-300" },
-  personnel: { label: "כוח אדם", color: "text-blue-600", bg: "bg-blue-50 border-blue-300" },
-  operations: { label: "מבצעים", color: "text-red-600", bg: "bg-red-50 border-red-300" },
-  training: { label: "אימונים", color: "text-green-600", bg: "bg-green-50 border-green-300" },
-  logistics: { label: "לוגיסטיקה", color: "text-amber-600", bg: "bg-amber-50 border-amber-300" },
-};
-
 function isOverdue(deadline: string | null): boolean {
   if (!deadline) return false;
   const today = new Date().toISOString().split("T")[0];
@@ -59,14 +52,10 @@ function isDueSoon(deadline: string | null): boolean {
   return diff > 0 && diff < 2 * 24 * 60 * 60 * 1000; // within 2 days
 }
 
-function formatDeadline(deadline: string): string {
-  const d = new Date(deadline + "T12:00:00");
-  return d.toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default function FormsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const [forms, setForms] = useState<FormLink[]>([]);
   const [allUsers, setAllUsers] = useState<UserBasic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +70,14 @@ export default function FormsPage() {
   const [expandedForm, setExpandedForm] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [reminding, setReminding] = useState<string | null>(null);
+
+  const CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
+    general: { label: t.forms.general, color: "text-gray-600", bg: "bg-gray-100 border-gray-300" },
+    personnel: { label: t.forms.hr, color: "text-blue-600", bg: "bg-blue-50 border-blue-300" },
+    operations: { label: t.forms.operations, color: "text-red-600", bg: "bg-red-50 border-red-300" },
+    training: { label: t.forms.training, color: "text-green-600", bg: "bg-green-50 border-green-300" },
+    logistics: { label: t.forms.logistics, color: "text-amber-600", bg: "bg-amber-50 border-amber-300" },
+  };
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
@@ -113,7 +110,7 @@ export default function FormsPage() {
       setTitle(""); setDescription(""); setUrl(""); setCategory("general"); setDeadline(""); setShowForm(false);
     } else {
       const err = await res.json();
-      alert(err.error || "שגיאה");
+      alert(err.error || t.common.error);
     }
     setSending(false);
   };
@@ -146,7 +143,7 @@ export default function FormsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("למחוק טופס זה?")) return;
+    if (!confirm(t.forms.deleteForm)) return;
     const res = await fetch(`/api/forms?id=${id}`, { method: "DELETE" });
     if (res.ok) setForms((prev) => prev.filter((f) => f.id !== id));
   };
@@ -161,19 +158,24 @@ export default function FormsPage() {
     if (res.ok) {
       const data = await res.json();
       if (data.sent === 0) {
-        alert("כולם כבר הגישו!");
+        alert(t.forms.allSubmitted);
       } else {
-        alert(`תזכורת נשלחה ל-${data.sent} חיילים`);
+        alert(t.forms.reminderSent.replace("{n}", String(data.sent)));
       }
     } else {
       const err = await res.json();
-      alert(err.error || "שגיאה");
+      alert(err.error || t.common.error);
     }
     setReminding(null);
   };
 
+  function formatDeadline(dl: string): string {
+    const d = new Date(dl + "T12:00:00");
+    return d.toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
+  }
+
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
+    new Date(dateStr).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
 
   const filtered = filter === "all" ? forms : forms.filter((f) => f.category === filter);
 
@@ -186,11 +188,11 @@ export default function FormsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark flex items-center gap-3">
           <MdDescription className="text-dotan-green" />
-          טפסים
+          {t.forms.title}
         </h1>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 text-sm">
-          {showForm ? <><MdClose /> סגור</> : <><MdAdd /> הוסף טופס</>}
+          {showForm ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.forms.addForm}</>}
         </button>
       </div>
 
@@ -198,13 +200,13 @@ export default function FormsPage() {
         <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-dotan-mint mb-6 space-y-4">
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
-            placeholder="שם הטופס" required />
+            placeholder={t.forms.formName} required />
           <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
-            placeholder="קישור לטופס (URL)" required dir="ltr" />
+            placeholder={t.forms.formUrl} required dir="ltr" />
           <textarea value={description} onChange={(e) => setDescription(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none min-h-[80px] text-sm"
-            placeholder="תיאור (אופציונלי)" />
+            placeholder={t.forms.descriptionOptional} />
           <div className="flex flex-wrap gap-3">
             <select value={category} onChange={(e) => setCategory(e.target.value)}
               className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm">
@@ -213,14 +215,14 @@ export default function FormsPage() {
               ))}
             </select>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">דדליין:</label>
+              <label className="text-sm text-gray-600">{t.forms.deadline}</label>
               <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
                 className="px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm" />
             </div>
           </div>
           <button type="submit" disabled={sending}
             className="bg-dotan-green-dark text-white px-6 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
-            <MdAdd /> {sending ? "מוסיף..." : "הוסף טופס"}
+            <MdAdd /> {sending ? t.common.saving : t.forms.addFormBtn}
           </button>
         </form>
       )}
@@ -230,7 +232,7 @@ export default function FormsPage() {
         <MdFilterList className="text-gray-500" />
         <button onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === "all" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-          הכל
+          {t.common.all}
         </button>
         {Object.entries(CATEGORIES).map(([key, { label }]) => (
           <button key={key} onClick={() => setFilter(key)}
@@ -271,12 +273,12 @@ export default function FormsPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${cat.bg} ${cat.color}`}>{cat.label}</span>
                       {form.recurring && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 border border-violet-300 font-medium flex items-center gap-0.5">
-                          <MdRepeat className="text-[10px]" /> יומי
+                          <MdRepeat className="text-[10px]" /> {t.tasks.typeDaily}
                         </span>
                       )}
                       {iSubmitted && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-300 font-medium">
-                          {form.recurring ? "הוגש היום" : "הוגש"}
+                          {form.recurring ? t.forms.iSubmittedToday : t.forms.iSubmitted}
                         </span>
                       )}
                     </div>
@@ -289,7 +291,7 @@ export default function FormsPage() {
                     <div className="flex flex-wrap items-center gap-3 text-xs">
                       {form.recurring && (
                         <span className="flex items-center gap-1 font-medium text-violet-600">
-                          <MdRepeat /> מתאפס כל יום
+                          <MdRepeat /> {t.tasks.typeDaily}
                         </span>
                       )}
                       {form.deadline && (
@@ -297,13 +299,13 @@ export default function FormsPage() {
                           overdue ? "text-red-600" : dueSoon ? "text-amber-600" : "text-gray-500"
                         }`}>
                           {overdue ? <MdWarning /> : <MdSchedule />}
-                          דדליין: {formatDeadline(form.deadline)}
-                          {overdue && " (עבר)"}
-                          {dueSoon && !overdue && " (בקרוב!)"}
+                          {t.forms.deadlineDate.replace("{date}", formatDeadline(form.deadline))}
+                          {overdue && ` ${t.forms.deadlinePassed}`}
+                          {dueSoon && !overdue && ` ${t.forms.deadlineSoon}`}
                         </span>
                       )}
                       <span className="text-gray-400">
-                        {submittedCount}/{allUsers.length} {form.recurring ? "הגישו היום" : "הגישו"}
+                        {t.forms.submittedCount.replace("{n}", String(submittedCount)).replace("{total}", String(allUsers.length))}
                       </span>
                       <span className="text-gray-400">
                         <Avatar name={form.author.name} image={form.author.image} size="xs" /> {form.author.name}
@@ -323,7 +325,7 @@ export default function FormsPage() {
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <a href={form.url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-1.5 rounded-lg">
-                      <MdOpenInNew /> פתח
+                      <MdOpenInNew /> {t.common.start}
                     </a>
                     <button onClick={() => handleToggleSubmission(form.id)} disabled={isSubmitting}
                       className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg transition disabled:opacity-50 ${
@@ -332,8 +334,8 @@ export default function FormsPage() {
                           : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
                       }`}>
                       {iSubmitted
-                        ? <><MdCheckCircle /> {form.recurring ? "הוגש היום" : "הוגש"}</>
-                        : <><MdDescription /> {form.recurring ? "נרשמתי היום" : "סמן הגשתי"}</>}
+                        ? <><MdCheckCircle /> {form.recurring ? t.forms.iSubmittedToday : t.forms.iSubmitted}</>
+                        : <><MdDescription /> {form.recurring ? t.forms.iRegisteredToday : t.forms.markSubmitted}</>}
                     </button>
                   </div>
                 </div>
@@ -342,7 +344,7 @@ export default function FormsPage() {
                 <button onClick={() => setExpandedForm(isExpanded ? null : form.id)}
                   className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mt-2 transition">
                   {isExpanded ? <MdExpandLess /> : <MdExpandMore />}
-                  {isExpanded ? "הסתר" : "הצג"} מי {form.recurring ? "נרשם היום" : "הגיש"} ({submittedCount}/{allUsers.length})
+                  {isExpanded ? t.forms.hide : t.forms.show} {form.recurring ? t.forms.whoSubmittedToday : t.forms.whoSubmitted} ({submittedCount}/{allUsers.length})
                 </button>
               </div>
 
@@ -353,17 +355,17 @@ export default function FormsPage() {
                     {/* Submitted */}
                     <div>
                       <h4 className="text-xs font-bold text-green-700 mb-2 flex items-center gap-1">
-                        <MdCheckCircle /> הגישו ({submittedCount})
+                        <MdCheckCircle /> {t.forms.didSubmit} ({submittedCount})
                       </h4>
                       <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
                         {form.submissions.length === 0 && (
-                          <p className="text-xs text-gray-400">אף אחד עדיין</p>
+                          <p className="text-xs text-gray-400">{t.forms.noOneYet}</p>
                         )}
                         {form.submissions.map((s) => (
                           <div key={s.id} className="flex items-center gap-2 text-xs bg-green-50 px-2 py-1.5 rounded-lg">
                             <Avatar name={s.user.name} image={s.user.image} size="xs" />
                             <span className="text-gray-700">{s.user.name}</span>
-                            {s.user.team && <span className="text-gray-400">צוות {s.user.team}</span>}
+                            {s.user.team && <span className="text-gray-400">{t.common.team} {s.user.team}</span>}
                           </div>
                         ))}
                       </div>
@@ -372,11 +374,11 @@ export default function FormsPage() {
                     {/* Not submitted */}
                     <div>
                       <h4 className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
-                        <MdCancel /> לא הגישו ({allUsers.length - submittedCount})
+                        <MdCancel /> {t.forms.didNotSubmit} ({allUsers.length - submittedCount})
                       </h4>
                       <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
                         {allUsers.length - submittedCount === 0 && (
-                          <p className="text-xs text-green-600 font-medium">כולם הגישו!</p>
+                          <p className="text-xs text-green-600 font-medium">{t.forms.allDone}</p>
                         )}
                         {allUsers
                           .filter((u) => !form.submissions.some((s) => s.userId === u.id))
@@ -384,7 +386,7 @@ export default function FormsPage() {
                             <div key={u.id} className="flex items-center gap-2 text-xs bg-red-50 px-2 py-1.5 rounded-lg">
                               <Avatar name={u.name} image={u.image} size="xs" />
                               <span className="text-gray-700">{u.name}</span>
-                              {u.team && <span className="text-gray-400">צוות {u.team}</span>}
+                              {u.team && <span className="text-gray-400">{t.common.team} {u.team}</span>}
                             </div>
                           ))}
                       </div>
@@ -396,11 +398,11 @@ export default function FormsPage() {
                     <div className="mt-3 flex items-center gap-3">
                       <button onClick={() => handleRemind(form.id)} disabled={reminding === form.id || submittedCount === allUsers.length}
                         className="flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition disabled:opacity-50">
-                        <MdNotifications /> {reminding === form.id ? "שולח..." : `שלח תזכורת (${allUsers.length - submittedCount})`}
+                        <MdNotifications /> {reminding === form.id ? t.common.sending : `${t.forms.sendReminder} (${allUsers.length - submittedCount})`}
                       </button>
                       <button onClick={() => handleDelete(form.id)}
                         className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition">
-                        <MdDelete /> מחק טופס
+                        <MdDelete /> {t.forms.deleteFormBtn}
                       </button>
                     </div>
                   )}
@@ -414,8 +416,8 @@ export default function FormsPage() {
       {filtered.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <MdDescription className="text-5xl mx-auto mb-4 text-gray-300" />
-          <p>אין טפסים {filter !== "all" ? "בקטגוריה זו" : "עדיין"}</p>
-          <p className="text-sm mt-2">לחץ &quot;הוסף טופס&quot; כדי להתחיל</p>
+          <p>{t.forms.noForms} {filter !== "all" ? t.forms.inCategory : t.forms.yet}</p>
+          <p className="text-sm mt-2">{t.forms.addFormHint}</p>
         </div>
       )}
     </div>

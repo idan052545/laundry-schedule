@@ -1,6 +1,7 @@
 "use client";
 
 import { MdEdit, MdClose, MdSend } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 import { ROLE_COLORS, ROLE_NOTES, UserMin } from "./constants";
 
 interface CreateFormProps {
@@ -21,19 +22,20 @@ export default function CreateForm({
   table, createTitle, setCreateTitle, createRoles, createSlots,
   createAssignments, setAssignment, allUsers, submitting, onClose, onSubmit,
 }: CreateFormProps) {
+  const { t } = useLanguage();
   return (
     <div className="bg-white rounded-2xl border-2 border-dotan-mint p-4 mb-6 space-y-4 shadow-md">
       <h2 className="font-bold text-dotan-green-dark flex items-center gap-2">
-        <MdEdit /> {table ? "ערוך טבלה" : "טבלה חדשה"}
+        <MdEdit /> {table ? t.guardDuty.editTable : t.guardDuty.newTable}
       </h2>
       <input type="text" value={createTitle} onChange={e => setCreateTitle(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium" placeholder="כותרת" />
+        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium" placeholder={t.guardDuty.titleLabel} />
 
       <div className="overflow-x-auto -mx-4 px-4">
         <table className="min-w-full text-xs border-collapse">
           <thead>
             <tr>
-              <th className="border border-gray-200 bg-gray-50 px-2 py-2 text-gray-500 sticky right-0 z-10">משמרת</th>
+              <th className="border border-gray-200 bg-gray-50 px-2 py-2 text-gray-500 sticky right-0 z-10">{t.guardDuty.shift}</th>
               {createRoles.map(r => (
                 <th key={r} className={`border border-gray-200 px-2 py-1.5 text-white text-center ${ROLE_COLORS[r] || "bg-gray-700"}`}>
                   <div className="text-[10px] leading-tight">{r}</div>
@@ -66,10 +68,10 @@ export default function CreateForm({
       </div>
 
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">ביטול</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">{t.common.cancel}</button>
         <button onClick={onSubmit} disabled={submitting}
           className="px-5 py-2 bg-dotan-green-dark text-white rounded-lg text-sm font-medium hover:bg-dotan-green transition disabled:opacity-50 flex items-center gap-1">
-          <MdSend /> {submitting ? "שומר..." : "שמור ושלח התראות"}
+          <MdSend /> {submitting ? t.common.saving : t.guardDuty.saveAndNotify}
         </button>
       </div>
     </div>

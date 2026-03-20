@@ -5,9 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Navbar from "./Navbar";
 import SimulatorNavbar from "./SimulatorNavbar";
+import { useLanguage } from "@/i18n";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+  const { t } = useLanguage();
 
   const pathname = usePathname();
   const router = useRouter();
@@ -44,7 +46,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="text-center py-5 mt-8 border-t border-dotan-mint">
         <p className="text-sm text-gray-500">
-          נבנה ע&quot;י <span className="font-bold text-dotan-green-dark">עידן חן סימנטוב</span> <span className="text-xs bg-dotan-mint-light text-dotan-green-dark px-2 py-0.5 rounded-full font-medium mr-1">צוות 16</span>
+          {t.footer.builtBy} <span className="font-bold text-dotan-green-dark">{t.footer.builderName}</span> <span className="text-xs bg-dotan-mint-light text-dotan-green-dark px-2 py-0.5 rounded-full font-medium me-1">{t.teams.team16}</span>
         </p>
       </footer>
     </>

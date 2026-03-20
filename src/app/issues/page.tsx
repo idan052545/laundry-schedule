@@ -7,7 +7,8 @@ import {
   MdAdd, MdClose, MdFilterList, MdBuild, MdDownload,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
-import { Issue, Summary, User, STATUS_CONFIG } from "./types";
+import { useLanguage } from "@/i18n";
+import { Issue, Summary, User, getStatusConfig } from "./types";
 import IssueDetail from "./IssueDetail";
 import IssueForm from "./IssueForm";
 import IssueCard from "./IssueCard";
@@ -15,6 +16,7 @@ import IssueCard from "./IssueCard";
 export default function IssuesPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
 
   const [issues, setIssues] = useState<Issue[]>([]);
   const [summary, setSummary] = useState<Summary>({ total: 0, new: 0, open: 0, urgent: 0, closed: 0 });
@@ -45,6 +47,8 @@ export default function IssuesPage() {
   const [assignSelected, setAssignSelected] = useState<string[]>([]);
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
+
+  const statusConfig = getStatusConfig(t);
 
   const fetchIssues = async () => {
     setLoading(true);
@@ -155,7 +159,7 @@ export default function IssuesPage() {
   };
 
   const handleDelete = async (issueId: string) => {
-    if (!confirm("למחוק תקלה זו?")) return;
+    if (!confirm(t.issues.deleteConfirm)) return;
     await fetch(`/api/issues?id=${issueId}`, { method: "DELETE" });
     setSelectedIssue(null);
     await fetchIssues();
@@ -163,15 +167,15 @@ export default function IssuesPage() {
 
   const handleExport = () => {
     const rows = issues.map((i) => ({
-      כותרת: i.title,
-      סטטוס: STATUS_CONFIG[i.status]?.label || i.status,
-      מיקום: i.location || "",
-      תיאור: i.description || "",
-      מלווה: i.companion || "",
-      "טלפון מלווה": i.companionPhone || "",
-      יוצר: i.createdBy.name,
-      תאריך: new Date(i.createdAt).toLocaleDateString("he-IL"),
-      "מספר תגובות": i.comments.length,
+      [t.issues.exportTitle]: i.title,
+      [t.issues.exportStatus]: statusConfig[i.status]?.label || i.status,
+      [t.issues.exportLocation]: i.location || "",
+      [t.issues.exportDescription]: i.description || "",
+      [t.issues.exportCompanion]: i.companion || "",
+      [t.issues.exportCompanionPhone]: i.companionPhone || "",
+      [t.issues.exportCreator]: i.createdBy.name,
+      [t.issues.exportDate]: new Date(i.createdAt).toLocaleDateString(dateLocale),
+      [t.issues.exportComments]: i.comments.length,
     }));
 
     const headers = Object.keys(rows[0] || {});
@@ -185,7 +189,7 @@ export default function IssuesPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `תקלות_${new Date().toLocaleDateString("he-IL")}.csv`;
+    a.download = `${t.issues.exportFilename}_${new Date().toLocaleDateString(dateLocale)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -222,18 +226,18 @@ export default function IssuesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-dotan-green-dark flex items-center gap-2">
-          <MdBuild className="text-amber-500" /> תקלות
+          <MdBuild className="text-amber-500" /> {t.issues.title}
         </h1>
         <div className="flex gap-2">
           {issues.length > 0 && (
             <button onClick={handleExport}
-              className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition" title="ייצוא">
+              className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition" title={t.common.export}>
               <MdDownload className="text-xl" />
             </button>
           )}
           <button onClick={() => setShowForm(!showForm)}
             className="bg-dotan-green-dark text-white px-3 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 text-sm">
-            {showForm ? <><MdClose /> סגור</> : <><MdAdd /> תקלה חדשה</>}
+            {showForm ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.issues.newIssue}</>}
           </button>
         </div>
       </div>
@@ -241,7 +245,7 @@ export default function IssuesPage() {
       {/* Summary Dashboard */}
       <div className="grid grid-cols-4 gap-2 mb-4">
         {(["new", "open", "urgent", "closed"] as const).map((key) => {
-          const cfg = STATUS_CONFIG[key];
+          const cfg = statusConfig[key];
           const Icon = cfg.icon;
           return (
             <button key={key} onClick={() => setFilter(filter === key ? "all" : key)}
@@ -277,9 +281,9 @@ export default function IssuesPage() {
             className={`px-3 py-1 rounded-full text-xs font-medium transition ${
               filter === "all" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}>
-            הכל ({summary.total})
+            {t.common.all} ({summary.total})
           </button>
-          {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+          {Object.entries(statusConfig).map(([key, cfg]) => (
             <button key={key} onClick={() => setFilter(filter === key ? "all" : key)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                 filter === key ? `${cfg.bg} ${cfg.color} ${cfg.border} border` : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -305,8 +309,8 @@ export default function IssuesPage() {
         {issues.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <MdBuild className="text-5xl mx-auto mb-3 text-gray-300" />
-            <p className="font-medium">אין תקלות {filter !== "all" ? `בסטטוס "${STATUS_CONFIG[filter]?.label}"` : ""}</p>
-            <p className="text-sm mt-1">לחצו על &quot;תקלה חדשה&quot; כדי לפתוח תקלה</p>
+            <p className="font-medium">{t.issues.noIssues} {filter !== "all" ? `${t.issues.inStatus} "${statusConfig[filter]?.label}"` : ""}</p>
+            <p className="text-sm mt-1">{t.issues.addHint}</p>
           </div>
         )}
       </div>

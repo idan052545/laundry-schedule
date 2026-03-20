@@ -7,7 +7,8 @@ import {
   MdPoll,
   MdCheckCircle,
 } from "react-icons/md";
-import { Survey, SurveyUser, SURVEY_TYPE_CONFIG } from "./types";
+import { Survey, SurveyUser, getSurveyTypeConfig } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface SurveyListViewProps {
   surveys: Survey[];
@@ -36,16 +37,18 @@ export default function SurveyListView({
   formType, setFormType, formOptions, setFormOptions, sending,
   onSelectSurvey, onCreateSubmit, formatDate,
 }: SurveyListViewProps) {
+  const { t } = useLanguage();
+  const SURVEY_TYPE_CONFIG = getSurveyTypeConfig(t);
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-purple-700 flex items-center gap-2">
-          <MdPoll /> סקרים
+          <MdPoll /> {t.commander.surveysTitle}
         </h2>
         {isCommander && (
           <button onClick={() => setShowForm(!showForm)}
             className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition font-medium flex items-center gap-1 text-sm">
-            {showForm ? <><MdClose /> סגור</> : <><MdAdd /> סקר חדש</>}
+            {showForm ? <><MdClose /> {t.commander.closeSurveyForm}</> : <><MdAdd /> {t.commander.newSurvey}</>}
           </button>
         )}
       </div>
@@ -54,12 +57,12 @@ export default function SurveyListView({
       {showForm && (
         <form onSubmit={onCreateSubmit} className="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-3">
           <div className="text-xs text-purple-600 font-medium flex items-center gap-1 bg-purple-100 px-2.5 py-1.5 rounded-lg">
-            <MdPoll /> סקר לכל הפלוגה — כל החיילים יראו ויקבלו התראה
+            <MdPoll /> {t.commander.surveyForPlatoon}
           </div>
           <input type="text" value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
-            className="w-full px-3 py-2.5 border border-purple-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white" placeholder="שאלה / כותרת *" required />
+            className="w-full px-3 py-2.5 border border-purple-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white" placeholder={t.commander.questionTitle} required />
           <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)}
-            className="w-full px-3 py-2.5 border border-purple-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none min-h-[60px] bg-white" placeholder="תיאור (אופציונלי)" />
+            className="w-full px-3 py-2.5 border border-purple-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none min-h-[60px] bg-white" placeholder={t.commander.surveyDescOptional} />
           <div className="flex gap-2">
             {Object.entries(SURVEY_TYPE_CONFIG).map(([key, { label, icon: Icon }]) => (
               <button key={key} type="button" onClick={() => setFormType(key)}
@@ -72,21 +75,21 @@ export default function SurveyListView({
           </div>
           {formType !== "yes_no" && (
             <div className="space-y-2">
-              <label className="text-xs text-gray-500 font-medium">אפשרויות:</label>
+              <label className="text-xs text-gray-500 font-medium">{t.commander.optionsLabel}</label>
               {formOptions.map((opt, i) => (
                 <div key={i} className="flex gap-2">
                   <input type="text" value={opt} onChange={(e) => { const o = [...formOptions]; o[i] = e.target.value; setFormOptions(o); }}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white" placeholder={`אפשרות ${i + 1}`} />
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none bg-white" placeholder={`${t.commander.optionN} ${i + 1}`} />
                   {formOptions.length > 2 && <button type="button" onClick={() => setFormOptions(formOptions.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 px-2"><MdClose /></button>}
                 </div>
               ))}
-              <button type="button" onClick={() => setFormOptions([...formOptions, ""])} className="text-xs text-purple-600 hover:underline flex items-center gap-1"><MdAdd /> הוסף אפשרות</button>
+              <button type="button" onClick={() => setFormOptions([...formOptions, ""])} className="text-xs text-purple-600 hover:underline flex items-center gap-1"><MdAdd /> {t.commander.addOption}</button>
             </div>
           )}
           <div className="flex justify-end">
             <button type="submit" disabled={sending}
               className="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
-              <MdSend /> {sending ? "יוצר..." : "צור סקר"}
+              <MdSend /> {sending ? t.commander.creating : t.commander.createSurvey}
             </button>
           </div>
         </form>
@@ -99,7 +102,7 @@ export default function SurveyListView({
           const cfg = SURVEY_TYPE_CONFIG[survey.type] || SURVEY_TYPE_CONFIG.yes_no;
           return (
             <button key={survey.id} onClick={() => onSelectSurvey(survey)}
-              className="w-full text-right bg-white p-3 rounded-xl shadow-sm border-2 border-gray-100 hover:border-purple-200 hover:shadow-md transition">
+              className="w-full text-start bg-white p-3 rounded-xl shadow-sm border-2 border-gray-100 hover:border-purple-200 hover:shadow-md transition">
               <div className="flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                   survey.status === "active" ? "bg-purple-50 text-purple-500" : "bg-gray-100 text-gray-400"
@@ -109,19 +112,19 @@ export default function SurveyListView({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <h3 className="font-bold text-gray-800 text-sm truncate">{survey.title}</h3>
-                    {survey.status === "closed" && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 shrink-0">סגור</span>}
+                    {survey.status === "closed" && <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 shrink-0">{t.commander.closed}</span>}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <span>{survey.createdBy.name}</span>
                     <span>•</span>
                     <span>{formatDate(survey.createdAt)}</span>
                     <span>•</span>
-                    <span>{survey.responses.length}/{teamMembers.length} ענו</span>
+                    <span>{survey.responses.length}/{teamMembers.length} {t.commander.responded}</span>
                   </div>
                 </div>
                 <div className="shrink-0">
                   {myResponse ? <MdCheckCircle className="text-green-500 text-lg" /> :
-                    survey.status === "active" ? <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-medium">ממתין</span> : null}
+                    survey.status === "active" ? <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-medium">{t.commander.pending}</span> : null}
                 </div>
               </div>
               <div className="mt-1.5 bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -133,7 +136,7 @@ export default function SurveyListView({
         {surveys.length === 0 && (
           <div className="text-center py-8 text-gray-400">
             <MdPoll className="text-4xl mx-auto mb-2 text-gray-300" />
-            <p className="text-sm">אין סקרים עדיין</p>
+            <p className="text-sm">{t.commander.noSurveys}</p>
           </div>
         )}
       </div>

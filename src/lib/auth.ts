@@ -37,6 +37,7 @@ export const authOptions: AuthOptions = {
           image: user.image,
           role: user.role,
           mustChangePassword: user.mustChangePassword,
+          language: user.language,
         };
       },
     }),
@@ -51,25 +52,29 @@ export const authOptions: AuthOptions = {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
         token.mustChangePassword = (user as { mustChangePassword?: boolean }).mustChangePassword;
+        token.language = (user as { language?: string }).language;
       }
-      // Backfill old tokens missing role/mustChangePassword
+      // Backfill old tokens missing role/mustChangePassword/language
       if (token.id && !token.role) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, mustChangePassword: true },
+          select: { role: true, mustChangePassword: true, language: true },
         });
         if (dbUser) {
           token.role = dbUser.role;
           token.mustChangePassword = dbUser.mustChangePassword;
+          token.language = dbUser.language;
         }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; role?: string; mustChangePassword?: boolean }).id = token.id as string;
-        (session.user as { id?: string; role?: string; mustChangePassword?: boolean }).role = token.role as string;
-        (session.user as { id?: string; role?: string; mustChangePassword?: boolean }).mustChangePassword = token.mustChangePassword as boolean;
+        const u = session.user as { id?: string; role?: string; mustChangePassword?: boolean; language?: string };
+        u.id = token.id as string;
+        u.role = token.role as string;
+        u.mustChangePassword = token.mustChangePassword as boolean;
+        u.language = (token.language as string) || "he";
       }
       return session;
     },

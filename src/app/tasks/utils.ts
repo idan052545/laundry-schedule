@@ -10,20 +10,21 @@ export function isToday(ds: string) { return toLocalKey(new Date(ds)) === TODAY_
 
 export function isPast(ds: string) { return new Date(ds) < new Date(); }
 
-export function formatTime(ds: string) {
-  return new Date(ds).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jerusalem"});
+export function formatTime(ds: string, locale = "he-IL") {
+  return new Date(ds).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jerusalem"});
 }
 
-export function formatDate(ds: string) {
+export function formatDate(ds: string, months?: string[]) {
   const d = new Date(ds);
-  return `${d.getDate()} ${MONTHS_HE[d.getMonth()]}`;
+  const m = months || MONTHS_HE;
+  return `${d.getDate()} ${m[d.getMonth()]}`;
 }
 
-export function formatRelative(ds: string) {
+export function formatRelative(ds: string, todayLabel = "היום", tomorrowLabel = "מחר", months?: string[]) {
   const tom = new Date(); tom.setDate(tom.getDate()+1);
-  if (isToday(ds)) return "היום";
-  if (toLocalKey(tom) === toLocalKey(new Date(ds))) return "מחר";
-  return formatDate(ds);
+  if (isToday(ds)) return todayLabel;
+  if (toLocalKey(tom) === toLocalKey(new Date(ds))) return tomorrowLabel;
+  return formatDate(ds, months);
 }
 
 export function daysUntil(ds: string) {

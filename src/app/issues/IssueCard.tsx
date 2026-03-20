@@ -2,7 +2,8 @@
 
 import { MdLocationOn, MdComment, MdImage } from "react-icons/md";
 import Avatar from "@/components/Avatar";
-import { Issue, STATUS_CONFIG, formatDate } from "./types";
+import { useLanguage } from "@/i18n";
+import { Issue, STATUS_CONFIG, getStatusConfig, formatDate } from "./types";
 
 interface IssueCardProps {
   issue: Issue;
@@ -12,11 +13,13 @@ interface IssueCardProps {
 }
 
 export default function IssueCard({ issue, isAdmin, onSelect, onStatusChange }: IssueCardProps) {
-  const sc = STATUS_CONFIG[issue.status] || STATUS_CONFIG.new;
+  const { t, dateLocale } = useLanguage();
+  const statusConfig = getStatusConfig(t);
+  const sc = statusConfig[issue.status] || statusConfig.new;
 
   return (
     <button onClick={onSelect}
-      className="w-full text-right bg-white p-4 rounded-xl shadow-sm border-2 border-gray-100 hover:border-dotan-mint hover:shadow-md transition">
+      className="w-full text-start bg-white p-4 rounded-xl shadow-sm border-2 border-gray-100 hover:border-dotan-mint hover:shadow-md transition">
       <div className="flex items-start gap-3">
         <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
           issue.status === "urgent" ? "bg-red-500 animate-pulse" :
@@ -37,7 +40,7 @@ export default function IssueCard({ issue, isAdmin, onSelect, onStatusChange }: 
               <span className="flex items-center gap-0.5"><MdLocationOn className="text-red-300" /> {issue.location}</span>
             )}
             <span>{issue.createdBy.name}</span>
-            <span>{formatDate(issue.createdAt)}</span>
+            <span>{formatDate(issue.createdAt, dateLocale)}</span>
             {issue.comments.length > 0 && (
               <span className="flex items-center gap-0.5"><MdComment /> {issue.comments.length}</span>
             )}
@@ -65,12 +68,12 @@ export default function IssueCard({ issue, isAdmin, onSelect, onStatusChange }: 
             {issue.status !== "urgent" && (
               <button onClick={() => onStatusChange(issue.id, "urgent")}
                 className="text-[10px] px-2 py-1 rounded bg-red-50 text-red-500 border border-red-200 hover:bg-red-100 transition">
-                דחוף
+                {t.issues.urgentBadge}
               </button>
             )}
             <button onClick={() => onStatusChange(issue.id, "closed")}
               className="text-[10px] px-2 py-1 rounded bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition">
-              סגור
+              {t.issues.closeBtn}
             </button>
           </div>
         )}

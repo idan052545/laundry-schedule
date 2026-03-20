@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { MdCalendarMonth, MdStickyNote2, MdMyLocation } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 import { ScheduleEvent, EventFormData } from "./types";
 import EventForm from "./EventForm";
 import EventDetailModal from "./EventDetailModal";
@@ -22,6 +23,7 @@ import { useScheduleNotes } from "./useScheduleNotes";
 export default function ScheduleDailyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [typeFilter, setTypeFilter] = useState("all");
   const [targetFilter, setTargetFilter] = useState("all");
@@ -111,8 +113,8 @@ export default function ScheduleDailyPage() {
       {/* Header */}
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-2 flex items-center gap-3">
         <MdCalendarMonth className={`text-dotan-green ${ev.refreshing ? "animate-spin" : ""}`} />
-        לו&quot;ז יומי
-        {ev.refreshing && <span className="text-xs font-normal text-gray-400">מעדכן...</span>}
+        {t.schedule.title}
+        {ev.refreshing && <span className="text-xs font-normal text-gray-400">{t.schedule.updating}</span>}
       </h1>
 
       <DateNavigation
@@ -130,7 +132,7 @@ export default function ScheduleDailyPage() {
       {/* Sagal read-only banner */}
       {isSagal && (
         <div className="mb-3 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2 text-center text-sm text-indigo-700 font-medium">
-          צפייה בלבד — סגל מפקד
+          {t.schedule.sagalViewOnly}
         </div>
       )}
 
@@ -151,18 +153,18 @@ export default function ScheduleDailyPage() {
       <SyncDiffPanel
         diff={ev.teamSyncDiff} onClose={() => ev.setTeamSyncDiff(null)}
         onNotify={ev.handleTeamNotifyChanges} notifyDisabled={ev.teamSyncing}
-        label={`שינויים בלוז צוות ${ev.teamSyncTarget || ev.userTeam} היום`}
-        notifyLabel="שלח התראה לצוות"
-        unchangedLabel="לוז הצוות של היום לא השתנה"
+        label={t.schedule.teamChangesTitle.replace("{n}", String(ev.teamSyncTarget || ev.userTeam))}
+        notifyLabel={t.schedule.sendTeamNotif}
+        unchangedLabel={t.schedule.noTeamChanges}
         variant="team"
       />
 
       <SyncDiffPanel
         diff={ev.syncDiff} onClose={() => ev.setSyncDiff(null)}
         onNotify={canEdit ? ev.handleNotifyChanges : undefined} notifyDisabled={ev.syncing}
-        label="שינויים בלוז היום"
-        notifyLabel="שלח התראה"
-        unchangedLabel="הלוז של היום לא השתנה"
+        label={t.schedule.changesTitle}
+        notifyLabel={t.schedule.sendNotif}
+        unchangedLabel={t.schedule.noChanges}
         variant="platoon"
       />
 
@@ -191,7 +193,7 @@ export default function ScheduleDailyPage() {
       {!nt.showNoteForm && !nt.editingNote && (
         <button onClick={() => { nt.setShowNoteForm(true); nt.resetNoteForm(); }}
           className="w-full mb-3 bg-gradient-to-l from-amber-500 to-amber-400 text-white py-2 rounded-xl hover:from-amber-600 hover:to-amber-500 transition font-medium flex items-center justify-center gap-2 text-sm shadow-sm">
-          <MdStickyNote2 className="text-base" /> הוסף הערה אישית
+          <MdStickyNote2 className="text-base" /> {t.schedule.addNote}
         </button>
       )}
 
@@ -225,8 +227,8 @@ export default function ScheduleDailyPage() {
       {ev.events.length === 0 && nt.notes.length === 0 && !nt.showNoteForm && (
         <div className="text-center py-12 text-gray-500">
           <MdCalendarMonth className="text-5xl mx-auto mb-4 text-gray-300" />
-          <p>אין אירועים או הערות ליום זה</p>
-          {canEdit && <p className="text-sm mt-2">לחץ &quot;הוסף אירוע&quot; כדי להוסיף</p>}
+          <p>{t.schedule.noEvents}</p>
+          {canEdit && <p className="text-sm mt-2">{t.schedule.addEventHint}</p>}
         </div>
       )}
 
@@ -255,7 +257,7 @@ export default function ScheduleDailyPage() {
         <button
           onClick={() => nowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
           className="fixed bottom-20 left-4 z-30 w-10 h-10 rounded-full bg-dotan-green-dark text-white shadow-lg flex items-center justify-center hover:bg-dotan-green transition active:scale-95"
-          title="גלול לעכשיו"
+          title={t.schedule.scrollToNow}
         >
           <MdMyLocation className="text-xl" />
         </button>

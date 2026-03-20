@@ -1,6 +1,7 @@
 import {
   MdFiberNew, MdBuild, MdWarning, MdCheckCircle,
 } from "react-icons/md";
+import type { Dictionary } from "@/i18n";
 
 export interface User {
   id: string;
@@ -54,5 +55,14 @@ export const STATUS_CONFIG: Record<string, { label: string; icon: typeof MdFiber
   closed: { label: "סגורה", icon: MdCheckCircle, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
 };
 
-export const formatDate = (d: string) =>
-  new Date(d).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export function getStatusConfig(t: Dictionary) {
+  return {
+    new: { ...STATUS_CONFIG.new, label: t.issues.statusNew },
+    open: { ...STATUS_CONFIG.open, label: t.issues.statusOpen },
+    urgent: { ...STATUS_CONFIG.urgent, label: t.issues.statusUrgent },
+    closed: { ...STATUS_CONFIG.closed, label: t.issues.statusClosed },
+  } as typeof STATUS_CONFIG;
+}
+
+export const formatDate = (d: string, dateLocale = "he-IL") =>
+  new Date(d).toLocaleDateString(dateLocale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { MdClose, MdSave, MdPersonAdd, MdSearch } from "react-icons/md";
 import Avatar from "@/components/Avatar";
-import { TYPE_CONFIG, TARGET_LABELS } from "./constants";
+import { useLanguage } from "@/i18n";
+import { TYPE_CONFIG, getTypeLabels, getTargetLabels } from "./constants";
 import { EventFormData, UserOption } from "./types";
 
 interface EventFormProps {
@@ -21,9 +22,13 @@ export default function EventForm({
   form, setForm, onSubmit, onClose, isEdit,
   allUsers, selectedUserIds, onSelectedUserIdsChange,
 }: EventFormProps) {
+  const { t } = useLanguage();
   const [showMembers, setShowMembers] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberTeamFilter, setMemberTeamFilter] = useState("all");
+
+  const typeLabels = getTypeLabels(t);
+  const targetLabels = getTargetLabels(t);
 
   const filteredUsers = allUsers.filter((u) => {
     if (memberTeamFilter !== "all" && u.team !== parseInt(memberTeamFilter)) return false;
@@ -42,15 +47,15 @@ export default function EventForm({
   return (
     <form onSubmit={onSubmit} className="bg-white rounded-xl border border-dotan-mint shadow-sm mb-4 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 bg-dotan-green-dark text-white">
-        <h3 className="font-bold text-sm">{isEdit ? "עריכת אירוע" : "הוספת אירוע"}</h3>
+        <h3 className="font-bold text-sm">{isEdit ? t.schedule.editEvent : t.schedule.addEvent}</h3>
         <button type="button" onClick={onClose} className="text-white/70 hover:text-white"><MdClose /></button>
       </div>
       <div className="p-4 space-y-3">
         <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-          placeholder="כותרת האירוע" required
+          placeholder={t.schedule.eventTitle} required
           className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green focus:border-transparent focus:bg-white outline-none" />
         <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="תיאור (אופציונלי)"
+          placeholder={t.schedule.descriptionOptional}
           className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green focus:border-transparent focus:bg-white outline-none" />
 
         {/* Time inputs — dir="ltr" to fix RTL reversal */}
@@ -69,21 +74,21 @@ export default function EventForm({
             <input type="checkbox" checked={form.allDay}
               onChange={(e) => setForm({ ...form, allDay: e.target.checked })}
               className="rounded border-gray-300 w-3.5 h-3.5" />
-            כל היום
+            {t.common.allDay}
           </label>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <select value={form.target} onChange={(e) => setForm({ ...form, target: e.target.value })}
             className="w-full px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
-            {Object.entries(TARGET_LABELS).map(([val, label]) => (
+            {Object.entries(targetLabels).map(([val, label]) => (
               <option key={val} value={val}>{label}</option>
             ))}
           </select>
           <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
             className="w-full px-2 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs">
-            {Object.entries(TYPE_CONFIG).map(([val, { label }]) => (
-              <option key={val} value={val}>{label}</option>
+            {Object.entries(TYPE_CONFIG).map(([val]) => (
+              <option key={val} value={val}>{typeLabels[val]}</option>
             ))}
           </select>
         </div>
@@ -94,7 +99,7 @@ export default function EventForm({
             className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-100 transition">
             <span className="flex items-center gap-1.5">
               <MdPersonAdd className="text-sm text-gray-400" />
-              שיוך חיילים
+              {t.schedule.assignSoldiers}
               {selectedUserIds.length > 0 && (
                 <span className="bg-dotan-green text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
                   {selectedUserIds.length}
@@ -110,15 +115,15 @@ export default function EventForm({
               <div className="p-2 bg-gray-50 border-b space-y-1.5">
                 <div className="relative">
                   <MdSearch className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                  <input type="text" placeholder="חפש שם..." value={memberSearch}
+                  <input type="text" placeholder={t.schedule.searchName} value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
                     className="w-full pr-7 pl-2 py-1.5 border border-gray-200 rounded text-xs bg-white outline-none focus:ring-1 focus:ring-dotan-green" />
                 </div>
                 <div className="flex gap-1 overflow-x-auto">
-                  {["all", "14", "15", "16", "17"].map((t) => (
-                    <button key={t} type="button" onClick={() => setMemberTeamFilter(t)}
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${memberTeamFilter === t ? "bg-dotan-green-dark text-white" : "bg-white text-gray-500 border border-gray-200"}`}>
-                      {t === "all" ? "הכל" : `צוות ${t}`}
+                  {["all", "14", "15", "16", "17"].map((tf) => (
+                    <button key={tf} type="button" onClick={() => setMemberTeamFilter(tf)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${memberTeamFilter === tf ? "bg-dotan-green-dark text-white" : "bg-white text-gray-500 border border-gray-200"}`}>
+                      {tf === "all" ? t.common.all : `${t.common.team} ${tf}`}
                     </button>
                   ))}
                 </div>
@@ -145,10 +150,10 @@ export default function EventForm({
               <div className="max-h-40 overflow-y-auto">
                 {filteredUsers.map((u) => (
                   <button key={u.id} type="button" onClick={() => toggleUser(u.id)}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-right transition text-xs ${selectedUserIds.includes(u.id) ? "bg-dotan-mint-light/50" : "hover:bg-gray-50"}`}>
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-start transition text-xs ${selectedUserIds.includes(u.id) ? "bg-dotan-mint-light/50" : "hover:bg-gray-50"}`}>
                     <Avatar name={u.name} image={u.image} size="xs" />
                     <span className="flex-1 text-gray-700">{u.name}</span>
-                    {u.team && <span className="text-[10px] text-gray-400">צוות {u.team}</span>}
+                    {u.team && <span className="text-[10px] text-gray-400">{t.common.team} {u.team}</span>}
                     {selectedUserIds.includes(u.id) && (
                       <span className="text-dotan-green font-bold text-sm">✓</span>
                     )}
@@ -161,7 +166,7 @@ export default function EventForm({
 
         <button type="submit"
           className="w-full bg-dotan-green-dark text-white py-2.5 rounded-lg hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
-          <MdSave /> {isEdit ? "שמור" : "הוסף"}
+          <MdSave /> {isEdit ? t.common.save : t.common.add}
         </button>
       </div>
     </form>

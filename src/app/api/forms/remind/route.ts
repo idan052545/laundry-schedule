@@ -42,8 +42,12 @@ export async function POST(request: Request) {
     select: { userId: true },
   });
 
-  // Get all users who haven't submitted
-  const allUsers = await prisma.user.findMany({ select: { id: true } });
+  // Get all users who haven't submitted (exclude simulator users)
+  const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
+  const allUsers = await prisma.user.findMany({
+    where: { role: { notIn: EXCLUDED_ROLES } },
+    select: { id: true },
+  });
   const submittedIds = new Set(submissions.map((s) => s.userId));
   const notSubmittedIds = allUsers
     .map((u) => u.id)

@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MdLock, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import Image from "next/image";
+import { useLanguage } from "@/i18n";
 
 export default function ChangePasswordPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -25,11 +27,11 @@ export default function ChangePasswordPage() {
     setError("");
 
     if (password.length < 6) {
-      setError("סיסמה חייבת להכיל לפחות 6 תווים");
+      setError(t.auth.passwordMinLength);
       return;
     }
     if (password !== confirm) {
-      setError("הסיסמאות לא תואמות");
+      setError(t.auth.passwordMismatch);
       return;
     }
 
@@ -44,7 +46,7 @@ export default function ChangePasswordPage() {
       router.push("/dashboard");
     } else {
       const data = await res.json();
-      setError(data.error || "שגיאה בשינוי סיסמה");
+      setError(data.error || t.auth.changePasswordError);
       setLoading(false);
     }
   };
@@ -56,19 +58,19 @@ export default function ChangePasswordPage() {
           <div className="w-16 h-16 rounded-full shadow overflow-hidden mx-auto mb-4">
             <Image src="/dotanLogo.png" alt="דותן" width={64} height={64} className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-xl font-bold text-gray-800">שלום, {userName}</h1>
-          <p className="text-sm text-gray-500 mt-1">נא לבחור סיסמה חדשה לחשבון שלך</p>
+          <h1 className="text-xl font-bold text-gray-800">{t.auth.changePasswordGreeting.replace("{name}", userName)}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t.auth.changePasswordSubtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">סיסמה חדשה</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">{t.auth.newPassword}</label>
             <div className="relative">
               <input
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="לפחות 6 תווים"
+                placeholder={t.auth.newPasswordPlaceholder}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm pr-10 focus:ring-2 focus:ring-green-300 transition"
               />
               <button type="button" onClick={() => setShowPass(!showPass)}
@@ -79,12 +81,12 @@ export default function ChangePasswordPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">אימות סיסמה</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">{t.auth.confirmPassword}</label>
             <input
               type="password"
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
-              placeholder="הקלידו שוב"
+              placeholder={t.auth.confirmPasswordPlaceholder}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-green-300 transition"
             />
           </div>
@@ -95,8 +97,8 @@ export default function ChangePasswordPage() {
 
           <button type="submit" disabled={loading || !password || !confirm}
             className="w-full py-3 rounded-xl bg-dotan-green text-white font-bold text-sm shadow hover:bg-dotan-green-dark transition disabled:opacity-50">
-            <MdLock className="inline text-base ml-1" />
-            {loading ? "משנה..." : "שנה סיסמה"}
+            <MdLock className="inline text-base ms-1" />
+            {loading ? t.auth.changing : t.auth.changePassword}
           </button>
         </form>
       </div>

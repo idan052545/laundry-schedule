@@ -1,25 +1,30 @@
 import type { SectionKey } from "./types";
+import type { Dictionary } from "@/i18n";
 
-export const SECTION_LABELS: Record<SectionKey, string> = {
-  quote: "משפט היומי",
-  schedule: 'לו"ז',
-  duty: "תורנויות",
-  teamSchedule: "לו\"ז צוות",
-  notes: "הערות",
-  tasks: "משימות",
-  forms: "טפסים",
-  surveys: "סקרים",
-  birthdays: "ימי הולדת",
-  messages: "הודעות",
-  materials: "חומר מקצועי",
-  commander: "מפקדים",
-  vote: "איש השבוע",
-  machines: "מכונות",
-  chopal: 'חופ"ל',
-  volunteers: "התנדבויות",
-};
+export const getSectionLabels = (t: Dictionary): Record<SectionKey, string> => ({
+  quote: t.dashboard.sectionQuote,
+  schedule: t.dashboard.sectionSchedule,
+  duty: t.dashboard.sectionDuty,
+  teamSchedule: t.dashboard.sectionTeamSchedule,
+  notes: t.dashboard.sectionNotes,
+  tasks: t.dashboard.sectionTasks,
+  forms: t.dashboard.sectionForms,
+  surveys: t.dashboard.sectionSurveys,
+  birthdays: t.dashboard.sectionBirthdays,
+  messages: t.dashboard.sectionMessages,
+  materials: t.dashboard.sectionMaterials,
+  commander: t.dashboard.sectionCommander,
+  vote: t.dashboard.sectionVote,
+  machines: t.dashboard.sectionMachines,
+  chopal: t.dashboard.sectionChopal,
+  volunteers: t.dashboard.sectionVolunteers,
+});
 
-export const DEFAULT_VISIBLE: SectionKey[] = Object.keys(SECTION_LABELS) as SectionKey[];
+export const DEFAULT_VISIBLE: SectionKey[] = [
+  "quote", "schedule", "duty", "teamSchedule", "notes", "tasks", "forms",
+  "surveys", "birthdays", "messages", "materials", "commander", "vote",
+  "machines", "chopal", "volunteers",
+];
 
 export function loadVisibleSections(): Set<SectionKey> {
   if (typeof window === "undefined") return new Set(DEFAULT_VISIBLE);
@@ -30,13 +35,13 @@ export function loadVisibleSections(): Set<SectionKey> {
   return new Set(DEFAULT_VISIBLE);
 }
 
-export function getGreeting(): string {
+export function getGreeting(t: Dictionary): string {
   const h = new Date().getHours();
-  if (h < 6) return "לילה טוב";
-  if (h < 12) return "בוקר טוב";
-  if (h < 17) return "צהריים טובים";
-  if (h < 21) return "ערב טוב";
-  return "לילה טוב";
+  if (h < 6) return t.greetings.night;
+  if (h < 12) return t.greetings.morning;
+  if (h < 17) return t.greetings.afternoon;
+  if (h < 21) return t.greetings.evening;
+  return t.greetings.night;
 }
 
 export function getNotificationHref(url: string | null, tag: string | null): string {
@@ -61,9 +66,9 @@ export function getNotificationHref(url: string | null, tag: string | null): str
   return "/dashboard";
 }
 
-export function getTimeAgo(dateStr: string): string {
+export function getTimeAgo(t: Dictionary, dateStr: string): string {
   const diffMin = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
-  if (diffMin < 1) return "עכשיו";
-  if (diffMin < 60) return `לפני ${diffMin} דק׳`;
-  return `לפני ${Math.floor(diffMin / 60)} שע׳`;
+  if (diffMin < 1) return t.timeAgo.now;
+  if (diffMin < 60) return t.timeAgo.minutesAgo.replace("{n}", String(diffMin));
+  return t.timeAgo.hoursAgo.replace("{n}", String(Math.floor(diffMin / 60)));
 }

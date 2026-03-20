@@ -5,7 +5,8 @@ import {
   MdArrowUpward, MdArrowDownward, MdAccessAlarm,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
-import { TYPE_CONFIG, TARGET_LABELS } from "./constants";
+import { useLanguage } from "@/i18n";
+import { TYPE_CONFIG, getTargetLabels } from "./constants";
 import { ScheduleEvent } from "./types";
 import { formatTime, formatEndTime, getDurationMin, isEventNow, isNameInTitle } from "./utils";
 
@@ -32,7 +33,9 @@ export default function EventCard({
   event, idx, compact, isAdmin, isToday, timedEventsLength,
   reminding, currentUserId, currentUserName, onDetail, onEdit, onDelete, onRemind, onRemindAssigned, onAssign, onMove,
 }: EventCardProps) {
+  const { t, dateLocale } = useLanguage();
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
+  const targetLabels = getTargetLabels(t);
   const Icon = config.icon;
   const active = isEventNow(event, isToday);
   const duration = getDurationMin(event);
@@ -82,30 +85,30 @@ export default function EventCard({
             <h3 className={`font-bold text-gray-800 ${compact ? "text-xs" : "text-sm"} leading-tight truncate`}>{event.title}</h3>
             {active && (
               <span className="px-1 py-0.5 bg-dotan-green text-white rounded text-[8px] font-bold animate-pulse">
-                עכשיו
+                {t.common.now}
               </span>
             )}
             {isTeamEvent && (
               <span className="px-1 py-0.5 bg-cyan-500 text-white rounded text-[8px] font-bold">
-                {TARGET_LABELS[event.target] || "צוות"}
+                {targetLabels[event.target] || t.common.team}
               </span>
             )}
             {isAssignedToMe && (
               <span className="px-1.5 py-0.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-full text-[8px] font-bold shadow-sm">
-                ⭐ עבורך
+                ⭐ {t.schedule.forYou}
               </span>
             )}
           </div>
 
           {compact && (
             <div className="text-[10px] text-gray-500 mt-0.5 font-medium" dir="ltr">
-              {formatTime(event.startTime)} – {formatEndTime(event.startTime, event.endTime)}
+              {formatTime(event.startTime, dateLocale)} – {formatEndTime(event.startTime, event.endTime, dateLocale)}
             </div>
           )}
 
           {!compact && duration > 0 && (
             <div className="text-[10px] text-gray-400 mt-0.5">
-              {duration >= 60 ? `${Math.floor(duration / 60)} שע׳` : ""}{duration % 60 > 0 ? ` ${duration % 60} דק׳` : ""}
+              {duration >= 60 ? `${Math.floor(duration / 60)} ${t.common.hours}` : ""}{duration % 60 > 0 ? ` ${duration % 60} ${t.common.minutes}` : ""}
             </div>
           )}
 
@@ -131,7 +134,7 @@ export default function EventCard({
               className={`flex items-center gap-1 ${compact ? "mt-1" : "mt-1.5"} text-[10px] font-medium text-blue-500 hover:text-blue-700 transition disabled:opacity-50`}
             >
               <MdAccessAlarm className={`text-xs ${reminding === event.id ? "animate-bounce" : ""}`} />
-              <span>הזכר משובצים</span>
+              <span>{t.schedule.remindAssigned}</span>
             </button>
           )}
 

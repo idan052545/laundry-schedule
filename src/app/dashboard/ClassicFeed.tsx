@@ -9,6 +9,7 @@ import {
 } from "react-icons/md";
 import type { DashboardFeed, SectionKey } from "./types";
 import { CAT_ICONS, CAT_COLORS } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface ClassicFeedProps {
   feed: DashboardFeed;
@@ -16,19 +17,21 @@ interface ClassicFeedProps {
 }
 
 export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-2 mb-5">
       {visible.has("quote") && feed.dailyQuote && (
         <Link href="/daily-quote" className="block bg-gradient-to-l from-purple-50/80 to-indigo-50/80 border border-purple-100 rounded-xl px-3.5 py-3 hover:shadow-sm transition">
           <p className="text-[13px] font-medium text-gray-700 leading-relaxed">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
-          <span className="text-[10px] text-purple-400 mt-1 block">{feed.dailyQuote.user.name} — משפט היומי</span>
+          <span className="text-[10px] text-purple-400 mt-1 block">{feed.dailyQuote.user.name} — {t.dashboard.dailyQuote}</span>
         </Link>
       )}
       {visible.has("schedule") && (feed.currentSchedule || feed.allDaySchedule.length > 0) && (
         <Link href="/schedule-daily" className="block bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 hover:shadow-sm transition">
           <div className="flex items-center gap-2 mb-1">
             <MdCalendarMonth className="text-sm text-dotan-green" />
-            <span className="text-[10px] font-bold text-gray-400 tracking-wide">לו&quot;ז היום</span>
+            <span className="text-[10px] font-bold text-gray-400 tracking-wide">{t.dashboard.dailySchedule}</span>
           </div>
           {feed.currentSchedule && (() => {
             const cs = feed.currentSchedule;
@@ -37,7 +40,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                 {cs.status === "now" && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse shrink-0" />}
                 <span className="text-sm font-medium text-gray-800 truncate">{cs.title}</span>
                 <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${cs.target === "all" ? "bg-emerald-50 text-emerald-600" : "bg-cyan-50 text-cyan-600"}`}>
-                  {cs.target === "all" ? "פלוגה" : "צוות"}
+                  {cs.target === "all" ? t.schedule.platoon : t.common.team}
                 </span>
                 <span className="text-[11px] text-gray-400 shrink-0 tabular-nums" dir="ltr">
                   {new Date(cs.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–{new Date(cs.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
@@ -67,7 +70,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                   </span>
                 ))}
               </div>
-            ) : <span className="text-[10px] text-gray-400 block">אין שיבוצים עבורך</span>}
+            ) : <span className="text-[10px] text-gray-400 block">{t.guardDuty.noAssignment}</span>}
           </div>
         </Link>
       ))}
@@ -76,14 +79,14 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
           <MdCalendarMonth className="text-lg text-teal-600 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-teal-700">לו&quot;ז צוות</span>
-              <span className="text-[8px] bg-teal-500 text-white px-1 rounded font-bold">עבורך</span>
+              <span className="text-xs font-bold text-teal-700">{t.dashboard.sectionTeamSchedule}</span>
+              <span className="text-[8px] bg-teal-500 text-white px-1 rounded font-bold">{t.schedule.forYou}</span>
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
               {feed.myTeamAssignments.map((e) => (
                 <span key={e.id} className="text-[11px] text-teal-800">
                   <span className="font-bold tabular-nums" dir="ltr">
-                    {e.allDay ? "כל היום" : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                    {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                   </span>{" "}{e.title}
                 </span>
               ))}
@@ -94,13 +97,13 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("forms") && feed.pendingForms.length > 0 && (
         <Link href="/forms" className="flex items-center gap-2.5 bg-amber-50/60 border border-amber-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdDescription className="text-lg text-amber-500 shrink-0" />
-          <span className="text-xs font-medium text-amber-700 flex-1 truncate">{feed.pendingForms.length} טפסים למילוי</span>
+          <span className="text-xs font-medium text-amber-700 flex-1 truncate">{feed.pendingForms.length} {t.dashboard.forms}</span>
         </Link>
       )}
       {visible.has("chopal") && feed.chopalStatus?.isOpen && !feed.chopalStatus?.registered && (
         <Link href="/chopal" className="flex items-center gap-2.5 bg-rose-50/60 border border-rose-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdLocalHospital className="text-lg text-rose-500 shrink-0" />
-          <span className="text-xs font-medium text-rose-700 flex-1 truncate">מסדר חופ&quot;ל — הירשם/י למחר</span>
+          <span className="text-xs font-medium text-rose-700 flex-1 truncate">{t.dashboard.chopal} — {t.chopal.iNeedChopal}</span>
         </Link>
       )}
       {visible.has("chopal") && feed.chopalStatus?.registered && (
@@ -115,16 +118,16 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
             <>
               <MdAccessTime className={`text-lg shrink-0 ${feed.chopalStatus.assignment.status === "pending" ? "text-amber-500" : "text-green-500"}`} />
               <span className={`text-xs font-medium flex-1 truncate ${feed.chopalStatus.assignment.status === "pending" ? "text-amber-700" : "text-green-700"}`}>
-                חופ&quot;ל — {feed.chopalStatus.assignment.assignedTime}
-                {feed.chopalStatus.assignment.status === "pending" && " (ממתין לאישור)"}
+                {t.dashboard.chopal} — {feed.chopalStatus.assignment.assignedTime}
+                {feed.chopalStatus.assignment.status === "pending" && ` (${t.chopal.waitingForAppointment})`}
                 {feed.chopalStatus.assignment.status === "accepted" && " ✓"}
-                {feed.chopalStatus.assignment.status === "rejected" && " (נדחה)"}
+                {feed.chopalStatus.assignment.status === "rejected" && ` (${t.chopal.appointmentRejected})`}
               </span>
             </>
           ) : (
             <>
               <MdCheckCircle className="text-lg text-green-500 shrink-0" />
-              <span className="text-xs font-medium text-green-700 flex-1 truncate">נרשמת לחופ&quot;ל — ממתין/ה לתור</span>
+              <span className="text-xs font-medium text-green-700 flex-1 truncate">{t.chopal.registeredForChopal} — {t.chopal.waitingForAppointment}</span>
             </>
           )}
         </Link>
@@ -132,14 +135,14 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("volunteers") && feed.urgentReplacement && (
         <Link href={`/volunteers?highlight=${feed.urgentReplacement.request.id}`} className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2 hover:shadow-sm transition animate-pulse">
           <MdVolunteerActivism className="text-lg text-red-500 shrink-0" />
-          <span className="text-xs font-bold text-red-700 flex-1 truncate flex items-center gap-1"><MdWarning className="text-sm shrink-0" /> דרוש/ה מחליף/ה דחוף — {feed.urgentReplacement.request.title}</span>
+          <span className="text-xs font-bold text-red-700 flex-1 truncate flex items-center gap-1"><MdWarning className="text-sm shrink-0" /> {t.volAlerts.needsReplacement} {t.volAlerts.urgent} — {feed.urgentReplacement.request.title}</span>
         </Link>
       )}
       {visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0 && (
         <div className="bg-white border border-green-200 rounded-xl px-3.5 py-2.5">
           <Link href="/volunteers" className="flex items-center gap-2 mb-1.5">
             <MdVolunteerActivism className="text-sm text-green-500" />
-            <span className="text-[10px] font-bold text-gray-400">בקשות התנדבות ({feed.activeVolunteerRequests.length})</span>
+            <span className="text-[10px] font-bold text-gray-400">{t.volunteers.title} ({feed.activeVolunteerRequests.length})</span>
           </Link>
           <div className="space-y-1.5">
             {feed.activeVolunteerRequests.slice(0, 3).map((r) => {
@@ -171,7 +174,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
         <div className="bg-white border border-emerald-200 rounded-xl px-3.5 py-2.5">
           <Link href="/volunteers?tab=my" className="flex items-center gap-2 mb-1.5">
             <MdVolunteerActivism className="text-sm text-emerald-500" />
-            <span className="text-[10px] font-bold text-gray-400">ההתנדבויות שלי ({feed.myVolunteerAssignments.length})</span>
+            <span className="text-[10px] font-bold text-gray-400">{t.volunteers.myTab} ({feed.myVolunteerAssignments.length})</span>
           </Link>
           <div className="space-y-1.5">
             {feed.myVolunteerAssignments.slice(0, 3).map((a) => {
@@ -187,7 +190,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                     <p className={`text-xs font-medium truncate ${isNow ? "text-emerald-700" : "text-gray-700"}`}>{a.request.title}</p>
                     <p className="text-[10px] text-gray-400 flex items-center gap-1">
                       <MdAccessTime className="text-[10px]" /> {timeStr}
-                      {isNow && <span className="text-emerald-500 font-bold mr-1 flex items-center gap-0.5"><MdSchedule className="text-[10px]" />עכשיו</span>}
+                      {isNow && <span className="text-emerald-500 font-bold me-1 flex items-center gap-0.5"><MdSchedule className="text-[10px]" />{t.common.now}</span>}
                     </p>
                   </div>
                 </Link>
@@ -200,7 +203,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
         <div className="bg-white border border-teal-200 rounded-xl px-3.5 py-2.5">
           <Link href="/volunteers" className="flex items-center gap-2 mb-1.5">
             <MdVolunteerActivism className="text-sm text-teal-500" />
-            <span className="text-[10px] font-bold text-gray-400">תורנויות שיצרתי ({feed.myCreatedRequests.length})</span>
+            <span className="text-[10px] font-bold text-gray-400">{t.dashboard.volunteers} ({feed.myCreatedRequests.length})</span>
           </Link>
           <div className="space-y-1.5">
             {feed.myCreatedRequests.slice(0, 3).map((r) => {
@@ -224,14 +227,14 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0) && (
         <Link href="/surveys" className="flex items-center gap-2.5 bg-violet-50/60 border border-violet-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdPoll className="text-lg text-violet-500 shrink-0" />
-          <span className="text-xs font-medium text-violet-700 flex-1 truncate">{(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} סקרים ממתינים</span>
+          <span className="text-xs font-medium text-violet-700 flex-1 truncate">{(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} {t.dashboard.surveys}</span>
         </Link>
       )}
       {visible.has("tasks") && feed.todayTasks.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl px-3.5 py-2.5">
           <Link href="/tasks" className="flex items-center gap-2 mb-1.5">
             <MdAssignment className="text-sm text-purple-500" />
-            <span className="text-[10px] font-bold text-gray-400">משימות ({feed.todayTasks.length})</span>
+            <span className="text-[10px] font-bold text-gray-400">{t.dashboard.tasks} ({feed.todayTasks.length})</span>
           </Link>
           <div className="space-y-1">
             {feed.todayTasks.slice(0, 4).map((t) => (
@@ -252,13 +255,13 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("birthdays") && feed.birthdayUsers.length > 0 && (
         <Link href="/birthdays" className="flex items-center gap-2.5 bg-pink-50/60 border border-pink-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdCake className="text-lg text-pink-500 shrink-0" />
-          <span className="text-xs font-medium text-pink-700 flex-1 truncate">יום הולדת: {feed.birthdayUsers.map((u) => u.name).join(", ")}</span>
+          <span className="text-xs font-medium text-pink-700 flex-1 truncate">{t.birthdays.birthdayToday}: {feed.birthdayUsers.map((u) => u.name).join(", ")}</span>
         </Link>
       )}
       {visible.has("materials") && feed.unreadMaterials.length > 0 && (
         <Link href="/materials" className="flex items-center gap-2.5 bg-rose-50/60 border border-rose-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdNewReleases className="text-base text-rose-500 shrink-0" />
-          <span className="text-xs font-medium text-rose-700 truncate flex-1">{feed.unreadMaterials.length} חומרים שלא נקראו</span>
+          <span className="text-xs font-medium text-rose-700 truncate flex-1">{feed.unreadMaterials.length} {t.dashboard.materials}</span>
         </Link>
       )}
     </div>

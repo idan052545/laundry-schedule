@@ -1,6 +1,7 @@
 "use client";
 
 import { MdSync, MdNotifications, MdClose } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 
 interface SyncDiff {
   added: string[];
@@ -21,6 +22,7 @@ interface SyncDiffPanelProps {
 }
 
 export default function SyncDiffPanel({ diff, onClose, onNotify, notifyDisabled, label, notifyLabel, unchangedLabel, variant }: SyncDiffPanelProps) {
+  const { t } = useLanguage();
   if (!diff) return null;
 
   if (diff.unchanged) {
@@ -60,25 +62,25 @@ export default function SyncDiffPanel({ diff, onClose, onNotify, notifyDisabled,
       </div>
       {diff.updated?.length > 0 && (
         <div className="mb-2">
-          <span className="text-[10px] font-bold text-amber-700 uppercase">עודכנו:</span>
-          {diff.updated.map((t, i) => (
-            <div key={i} className="text-xs text-amber-800 bg-amber-50 rounded-lg px-2 py-1 mt-1 border border-amber-200">✏️ {t}</div>
+          <span className="text-[10px] font-bold text-amber-700 uppercase">{t.schedule.updated}</span>
+          {diff.updated.map((item, i) => (
+            <div key={i} className="text-xs text-amber-800 bg-amber-50 rounded-lg px-2 py-1 mt-1 border border-amber-200">✏️ {item}</div>
           ))}
         </div>
       )}
       {diff.added.length > 0 && (
         <div className="mb-2">
-          <span className="text-[10px] font-bold text-green-700 uppercase">נוספו:</span>
-          {diff.added.map((t, i) => (
-            <div key={i} className="text-xs text-green-800 bg-green-50 rounded-lg px-2 py-1 mt-1 border border-green-200">+ {t}</div>
+          <span className="text-[10px] font-bold text-green-700 uppercase">{t.schedule.added}</span>
+          {diff.added.map((item, i) => (
+            <div key={i} className="text-xs text-green-800 bg-green-50 rounded-lg px-2 py-1 mt-1 border border-green-200">+ {item}</div>
           ))}
         </div>
       )}
       {diff.removed.length > 0 && (
         <div>
-          <span className="text-[10px] font-bold text-red-700 uppercase">הוסרו:</span>
-          {diff.removed.map((t, i) => (
-            <div key={i} className="text-xs text-red-800 bg-red-50 rounded-lg px-2 py-1 mt-1 border border-red-200">- {t}</div>
+          <span className="text-[10px] font-bold text-red-700 uppercase">{t.schedule.removed}</span>
+          {diff.removed.map((item, i) => (
+            <div key={i} className="text-xs text-red-800 bg-red-50 rounded-lg px-2 py-1 mt-1 border border-red-200">- {item}</div>
           ))}
         </div>
       )}

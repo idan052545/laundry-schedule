@@ -9,6 +9,7 @@ import {
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface AktualiaEntry {
   id: string;
@@ -23,6 +24,7 @@ interface AktualiaEntry {
 export default function AktualiaPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const [entries, setEntries] = useState<AktualiaEntry[]>([]);
   const [allRooms, setAllRooms] = useState<string[]>([]);
   const [date, setDate] = useState("");
@@ -81,7 +83,7 @@ export default function AktualiaPage() {
       setSubject("");
     } else {
       const err = await res.json();
-      setError(err.error || "שגיאה");
+      setError(err.error || t.common.error);
     }
     setSending(false);
   };
@@ -92,7 +94,7 @@ export default function AktualiaPage() {
   };
 
   const formatTime = (dateStr: string) =>
-    new Date(dateStr).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+    new Date(dateStr).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" });
 
   const filledRooms = new Set(entries.map((e) => e.roomNumber));
   const missingRooms = allRooms.filter((r) => !filledRooms.has(r));
@@ -105,9 +107,9 @@ export default function AktualiaPage() {
     return (
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[50vh] text-center">
         <MdNewspaper className="text-6xl text-gray-300 mb-4" />
-        <h1 className="text-2xl font-bold text-gray-700 mb-2">אקטואליה</h1>
-        <p className="text-lg text-gray-500 font-medium">חכו למסדר מחר</p>
-        <p className="text-sm text-gray-400 mt-2">תוכן זה אינו זמין לסגל מפקד</p>
+        <h1 className="text-2xl font-bold text-gray-700 mb-2">{t.aktualia.title}</h1>
+        <p className="text-lg text-gray-500 font-medium">{t.aktualia.waitForParade}</p>
+        <p className="text-sm text-gray-400 mt-2">{t.aktualia.sagalNotAvailable}</p>
       </div>
     );
   }
@@ -116,11 +118,11 @@ export default function AktualiaPage() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-2 flex items-center gap-3">
         <MdNewspaper className="text-dotan-green" />
-        אקטואליה
+        {t.aktualia.title}
       </h1>
       <p className="text-sm text-gray-500 mb-6">
-        כל חדר בוחר נושא לדיון בוקר. מתאפס בשעה 10:00.
-        <span className="text-xs text-gray-400 block mt-0.5">תאריך: {new Date(date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}</span>
+        {t.aktualia.description}
+        <span className="text-xs text-gray-400 block mt-0.5">{t.aktualia.dateLabel} {new Date(date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}</span>
       </p>
 
       {/* Stats bar */}
@@ -128,12 +130,12 @@ export default function AktualiaPage() {
         <div className="flex items-center gap-1.5 text-sm">
           <MdCheckCircle className="text-green-500" />
           <span className="font-medium text-green-700">{entries.length}</span>
-          <span className="text-gray-500">בחרו</span>
+          <span className="text-gray-500">{t.aktualia.selected}</span>
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <MdAccessTime className="text-amber-500" />
           <span className="font-medium text-amber-700">{missingRooms.length}</span>
-          <span className="text-gray-500">ממתינים</span>
+          <span className="text-gray-500">{t.aktualia.waiting}</span>
         </div>
         <div className="flex-1 bg-gray-100 rounded-full h-2">
           <div
@@ -148,20 +150,20 @@ export default function AktualiaPage() {
         <form onSubmit={handleSubmit} className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint mb-6">
           <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
             <MdMeetingRoom className="text-dotan-green" />
-            <span>חדר {userRoom}</span>
+            <span>{t.aktualia.room} {userRoom}</span>
           </div>
           <div className="flex gap-2">
             <input
               type="text"
               value={subject}
               onChange={(e) => { setSubject(e.target.value); setError(""); }}
-              placeholder="הזן נושא לאקטואליה..."
+              placeholder={t.aktualia.inputPlaceholder}
               className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
               required
             />
             <button type="submit" disabled={sending || !subject.trim()}
               className="bg-dotan-green-dark text-white px-4 py-2.5 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1.5 disabled:opacity-50 text-sm shrink-0">
-              <MdSend /> {sending ? "שולח..." : "שלח"}
+              <MdSend /> {sending ? t.common.sending : t.common.send}
             </button>
           </div>
           {error && (
@@ -174,13 +176,13 @@ export default function AktualiaPage() {
 
       {!canSubmit && !userRoom && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-700 flex items-center gap-2">
-          <MdWarning /> עדכן מספר חדר בפרופיל כדי לבחור נושא
+          <MdWarning /> {t.aktualia.updateRoomFirst}
         </div>
       )}
 
       {!canSubmit && userRoom && (myRoomHasEntry || iAlreadyChose) && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-sm text-green-700 flex items-center gap-2">
-          <MdCheckCircle /> {iAlreadyChose ? "כבר בחרת נושא להיום" : "מישהו מהחדר שלך כבר בחר נושא"}
+          <MdCheckCircle /> {iAlreadyChose ? t.aktualia.alreadyChosen : t.aktualia.someoneChose}
         </div>
       )}
 
@@ -221,12 +223,12 @@ export default function AktualiaPage() {
         <div className="mt-6">
           <h3 className="text-sm font-bold text-gray-500 mb-2 flex items-center gap-1.5">
             <MdAccessTime className="text-amber-500" />
-            חדרים שעדיין לא בחרו ({missingRooms.length})
+            {t.aktualia.missingRooms} ({missingRooms.length})
           </h3>
           <div className="flex flex-wrap gap-2">
             {missingRooms.map((room) => (
               <span key={room} className="px-3 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-500 font-medium">
-                חדר {room}
+                {t.aktualia.room} {room}
               </span>
             ))}
           </div>
@@ -236,8 +238,8 @@ export default function AktualiaPage() {
       {entries.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <MdNewspaper className="text-5xl mx-auto mb-4 text-gray-300" />
-          <p>אין נושאים עדיין להיום</p>
-          <p className="text-sm mt-2">בחרו נושא לאקטואליה של הבוקר</p>
+          <p>{t.aktualia.noTopics}</p>
+          <p className="text-sm mt-2">{t.aktualia.chooseHint}</p>
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { MdPoll, MdThumbUp, MdRadioButtonChecked, MdCheckBox } from "react-icons/md";
+import type { Dictionary } from "@/i18n";
 
 export interface User {
   id: string;
@@ -33,5 +34,13 @@ export const TYPE_CONFIG: Record<string, { label: string; icon: typeof MdPoll }>
   multi: { label: "בחירה מרובה", icon: MdCheckBox },
 };
 
-export const formatDate = (d: string) =>
-  new Date(d).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+export function getTypeConfig(t: Dictionary): Record<string, { label: string; icon: typeof MdPoll }> {
+  return {
+    yes_no: { label: t.surveys.typeYesNo, icon: MdThumbUp },
+    single: { label: t.surveys.typeSingle, icon: MdRadioButtonChecked },
+    multi: { label: t.surveys.typeMulti, icon: MdCheckBox },
+  };
+}
+
+export const formatDate = (d: string, dateLocale = "he-IL") =>
+  new Date(d).toLocaleDateString(dateLocale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });

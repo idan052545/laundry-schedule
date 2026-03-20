@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import SurveyDetailView from "./SurveyDetailView";
 import SurveyListView from "./SurveyListView";
 import { Survey, SurveyUser } from "./types";
+import { useLanguage } from "@/i18n";
 
 export default function SimulationsSurveys({ userId, commanderId, isCommander }: { userId: string; commanderId: string; isCommander: boolean }) {
+  const { t, dateLocale } = useLanguage();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [teamMembers, setTeamMembers] = useState<SurveyUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,7 @@ export default function SimulationsSurveys({ userId, commanderId, isCommander }:
   };
 
   const handleDelete = async (surveyId: string) => {
-    if (!confirm("למחוק סקר זה?")) return;
+    if (!confirm(t.commander.deleteSurveyConfirm)) return;
     await fetch(`/api/surveys?id=${surveyId}`, { method: "DELETE" });
     setSelectedSurvey(null);
     await fetchSurveys();
@@ -130,17 +132,17 @@ export default function SimulationsSurveys({ userId, commanderId, isCommander }:
     const rows = survey.responses.map((r) => {
       const answer = JSON.parse(r.answer);
       let answerStr = "";
-      if (survey.type === "yes_no") answerStr = answer === "yes" ? "כן" : "לא";
+      if (survey.type === "yes_no") answerStr = answer === "yes" ? t.commander.yes : t.commander.no;
       else if (survey.type === "single" && options) answerStr = options[answer] || answer;
       else if (survey.type === "multi" && options) answerStr = (answer as number[]).map((i: number) => options[i] || i).join(", ");
-      const teamStr = r.user.team ? `צוות ${r.user.team}` : "";
-      return { שם: r.user.name, צוות: teamStr, תשובה: answerStr };
+      const teamStr = r.user.team ? `${t.commander.teamN} ${r.user.team}` : "";
+      return { [t.commander.exportName]: r.user.name, [t.commander.exportTeam]: teamStr, [t.commander.exportAnswer]: answerStr };
     });
     const respondedIds = new Set(survey.responses.map((r) => r.user.id));
     teamMembers.filter((m) => !respondedIds.has(m.id)).forEach((m) => {
-      rows.push({ שם: m.name, צוות: m.team ? `צוות ${m.team}` : "", תשובה: "לא ענה" });
+      rows.push({ [t.commander.exportName]: m.name, [t.commander.exportTeam]: m.team ? `${t.commander.teamN} ${m.team}` : "", [t.commander.exportAnswer]: t.commander.didNotAnswer });
     });
-    const headers = ["שם", "צוות", "תשובה"];
+    const headers = [t.commander.exportName, t.commander.exportTeam, t.commander.exportAnswer];
     const csv = [
       headers.join(","),
       ...rows.map((r) => headers.map((h) => `"${String((r as Record<string, string>)[h]).replace(/"/g, '""')}"`).join(",")),
@@ -148,14 +150,14 @@ export default function SimulationsSurveys({ userId, commanderId, isCommander }:
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `סקר_${survey.title}.csv`; a.click();
+    a.href = url; a.download = `${t.commander.surveyPrefix}_${survey.title}.csv`; a.click();
     URL.revokeObjectURL(url);
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    new Date(d).toLocaleDateString(dateLocale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-  if (loading) return <div className="py-8 text-center text-gray-400 text-sm">טוען סקרים...</div>;
+  if (loading) return <div className="py-8 text-center text-gray-400 text-sm">{t.commander.loadingSurveys}</div>;
 
   if (selectedSurvey) {
     return (

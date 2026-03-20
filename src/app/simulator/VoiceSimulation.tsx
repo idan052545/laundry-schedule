@@ -6,6 +6,7 @@ import {
   MdCheckCircle, MdRecordVoiceOver, MdDone,
   MdPerson, MdSmartToy,
 } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 import { Scenario, SimSession, ChatMessage } from "./types";
 import { buildSimulationIntroPrompt, buildChatSystemPrompt, buildScorePrompt, buildFeedbackPrompt } from "./prompts";
 
@@ -17,6 +18,7 @@ export function VoiceSimulation({ simSession, scenario, commander, firstName, on
   onEnd: (session: SimSession) => void;
   onBack: () => void;
 }) {
+  const { t } = useLanguage();
   const [voiceStatus, setVoiceStatus] = useState<string>("disconnected");
   // Aggregated complete turns (for UI and saving)
   const [turns, setTurns] = useState<ChatMessage[]>([]);
@@ -121,7 +123,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
   useEffect(() => {
     const maxDurationTimer = setTimeout(() => {
       if (!completedRef.current && clientRef.current) {
-        setErrorMsg("הסימולציה הקולית הסתיימה אוטומטית אחרי 15 דקות.");
+        setErrorMsg(t.simulator.autoEndMessage);
         triggerEnd();
       }
     }, 15 * 60 * 1000);
@@ -138,7 +140,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
   };
 
   const startVoiceSession = async () => {
-    if (!apiKey) { setErrorMsg("מפתח Gemini API לא מוגדר"); return; }
+    if (!apiKey) { setErrorMsg(t.simulator.geminiKeyMissing); return; }
 
     const { GeminiLiveClient } = await import("@/lib/gemini-live");
 
@@ -285,7 +287,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
   };
 
   const handleForceEnd = () => {
-    if (!confirm("לסיים את הסימולציה?")) return;
+    if (!confirm(t.simulator.endConfirm)) return;
     triggerEnd();
   };
 
@@ -293,12 +295,12 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
 
   // Status indicator colors
   const statusConfig: Record<string, { color: string; text: string; pulse: boolean }> = {
-    disconnected: { color: "bg-gray-400", text: "מנותק", pulse: false },
-    connecting: { color: "bg-yellow-400", text: "מתחבר...", pulse: true },
-    connected: { color: "bg-blue-400", text: "מחובר", pulse: false },
-    listening: { color: "bg-green-500", text: "מקשיב...", pulse: true },
-    "ai-speaking": { color: "bg-purple-500", text: "מדבר...", pulse: true },
-    error: { color: "bg-red-500", text: "שגיאה", pulse: false },
+    disconnected: { color: "bg-gray-400", text: t.simulator.disconnected, pulse: false },
+    connecting: { color: "bg-yellow-400", text: t.simulator.connecting, pulse: true },
+    connected: { color: "bg-blue-400", text: t.simulator.connected, pulse: false },
+    listening: { color: "bg-green-500", text: t.simulator.listening, pulse: true },
+    "ai-speaking": { color: "bg-purple-500", text: t.simulator.aiSpeaking, pulse: true },
+    error: { color: "bg-red-500", text: t.simulator.error, pulse: false },
   };
   const st = statusConfig[voiceStatus] || statusConfig.disconnected;
 
@@ -307,13 +309,13 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
       {/* Header */}
       <div className="bg-gradient-to-l from-purple-700 to-blue-700 text-white rounded-t-xl p-3 sm:p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => { if (confirm("סימולציה קולית פעילה. לצאת? הנתונים יאבדו.")) { clientRef.current?.disconnect(); onBack(); } }} className="text-white/80 hover:text-white">
+          <button onClick={() => { if (confirm(t.simulator.voiceExitConfirm)) { clientRef.current?.disconnect(); onBack(); } }} className="text-white/80 hover:text-white">
             <MdArrowBack className="text-xl" />
           </button>
           <div>
             <h2 className="font-bold text-sm sm:text-base">{scenario.title}</h2>
             <div className="text-[10px] sm:text-xs text-white/70 flex items-center gap-2">
-              <span>סימולציה קולית</span><span>•</span><span>קושי: {scenario.difficulty}/10</span>
+              <span>{t.simulator.voiceSimulation}</span><span>•</span><span>{t.simulator.difficulty}: {scenario.difficulty}/10</span>
               <span>•</span>
               <span className="flex items-center gap-1">
                 <span className={`w-2 h-2 rounded-full ${st.color} ${st.pulse ? "animate-pulse" : ""}`}></span>
@@ -323,7 +325,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
           </div>
         </div>
         <button onClick={handleForceEnd} className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition">
-          <MdStop className="inline" /> סיים
+          <MdStop className="inline" /> {t.simulator.end}
         </button>
       </div>
 
@@ -331,7 +333,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
       {introText && (
         <div className="bg-gray-50 border-b p-3 sm:p-4">
           <div className="bg-white rounded-xl p-3 sm:p-4 border border-gray-200 shadow-sm">
-            <h3 className="font-bold text-gray-800 text-sm mb-2">תרחיש הסימולציה</h3>
+            <h3 className="font-bold text-gray-800 text-sm mb-2">{t.simulator.scenarioBackground}</h3>
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{introText}</p>
           </div>
         </div>
@@ -376,18 +378,18 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
         <div className="text-center">
           {voiceStatus === "disconnected" && !generating && (
             <div>
-              <p className="text-gray-600 mb-4">לחץ להתחיל שיחה קולית עם {scenario.machineName}</p>
+              <p className="text-gray-600 mb-4">{t.simulator.clickToStartVoice} {scenario.machineName}</p>
               <button onClick={startVoiceSession}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl hover:opacity-90 transition font-bold text-lg flex items-center gap-3 mx-auto shadow-lg">
-                <MdMic className="text-2xl" /> התחל שיחה קולית
+                <MdMic className="text-2xl" /> {t.simulator.startVoiceChat}
               </button>
             </div>
           )}
-          {voiceStatus === "connecting" && <p className="text-yellow-600 font-medium animate-pulse">מתחבר לשרת הקולי...</p>}
-          {voiceStatus === "connected" && !isMicOn && <p className="text-blue-600 font-medium">מחובר. המיקרופון כבוי.</p>}
-          {voiceStatus === "listening" && <p className="text-green-600 font-medium">מקשיב... דבר עכשיו</p>}
-          {voiceStatus === "ai-speaking" && <p className="text-purple-600 font-medium">{scenario.machineName} {scenario.soldierGender === "male" ? "מדבר" : "מדברת"}... (מיקרופון מושתק)</p>}
-          {generating && <p className="text-gray-500 animate-pulse">מכין את הסימולציה...</p>}
+          {voiceStatus === "connecting" && <p className="text-yellow-600 font-medium animate-pulse">{t.simulator.connectingToVoice}</p>}
+          {voiceStatus === "connected" && !isMicOn && <p className="text-blue-600 font-medium">{t.simulator.connectedMicOff}</p>}
+          {voiceStatus === "listening" && <p className="text-green-600 font-medium">{t.simulator.listeningSpeakNow}</p>}
+          {voiceStatus === "ai-speaking" && <p className="text-purple-600 font-medium">{scenario.machineName} {scenario.soldierGender === "male" ? t.simulator.speaking : t.simulator.speakingFemale}... ({t.simulator.speakingMicMuted})</p>}
+          {generating && <p className="text-gray-500 animate-pulse">{t.simulator.preparingSimulation}</p>}
         </div>
 
         {/* Controls */}
@@ -395,7 +397,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
           <div className="flex items-center gap-3">
             {/* Mute/Unmute toggle */}
             <button onClick={toggleMic}
-              title={isMicOn ? "השתק מיקרופון" : "הפעל מיקרופון"}
+              title={isMicOn ? t.simulator.muteMic : t.simulator.unmuteMic}
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-md ${
                 isMicOn ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 hover:bg-gray-500"
               } text-white`}>
@@ -417,9 +419,9 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
                 clientRef.current?.sendEndOfTurn();
                 setIsMicOn(false);
               }}
-                title="סיימתי לדבר - תור הבוט"
+                title={t.simulator.finishedSpeakingTooltip}
                 className="h-14 px-5 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm flex items-center gap-2 shadow-md transition-all">
-                <MdDone className="text-xl" /> סיימתי לדבר
+                <MdDone className="text-xl" /> {t.simulator.finishedSpeaking}
               </button>
             )}
 
@@ -435,7 +437,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
                 }
               }}
                 className="h-14 px-5 rounded-full bg-green-500 hover:bg-green-600 text-white font-medium text-sm flex items-center gap-2 shadow-md transition-all">
-                <MdMic className="text-xl" /> לחץ לדבר
+                <MdMic className="text-xl" /> {t.simulator.pressToSpeak}
               </button>
             )}
           </div>
@@ -444,7 +446,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
         {/* Live transcripts - aggregated turns */}
         {turns.length > 0 && (
           <div className="w-full max-w-md max-h-48 overflow-y-auto bg-white rounded-xl border border-gray-200 p-3 space-y-2">
-            <h4 className="text-xs font-bold text-gray-500 mb-1">תמליל חי</h4>
+            <h4 className="text-xs font-bold text-gray-500 mb-1">{t.simulator.liveTranscript}</h4>
             {turns.map((t, i) => (
               <div key={i} className={`text-xs ${t.role === "user" ? "text-dotan-green-dark" : "text-purple-600"}`}>
                 {t.role === "user" ? <MdPerson className="inline text-sm" /> : <MdSmartToy className="inline text-sm" />}
@@ -458,7 +460,7 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
         {voiceStatus !== "disconnected" && !isCompleted && (
           <div className="w-full max-w-md">
             <form onSubmit={(e) => { e.preventDefault(); sendTextInVoice(textInput); setTextInput(""); }} className="flex gap-2">
-              <input type="text" value={textInput} onChange={e => setTextInput(e.target.value)} placeholder="או הקלד כאן..."
+              <input type="text" value={textInput} onChange={e => setTextInput(e.target.value)} placeholder={t.simulator.orTypeHere}
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none" />
               <button type="submit" disabled={!textInput.trim()}
                 className="bg-purple-600 text-white p-2 rounded-lg hover:bg-purple-700 transition disabled:opacity-50"><MdSend /></button>
@@ -470,8 +472,8 @@ ${scenario.difficulty <= 3 ? `- קושי נמוך (${scenario.difficulty}): בפ
       {isCompleted && (
         <div className="bg-green-50 border-t border-green-200 p-4 text-center rounded-b-xl">
           <MdCheckCircle className="text-green-500 text-3xl mx-auto mb-2" />
-          <p className="text-green-700 font-bold">הסימולציה הסתיימה!</p>
-          {generating && <p className="text-xs text-gray-500 mt-1">מכין משוב...</p>}
+          <p className="text-green-700 font-bold">{t.simulator.simulationEnded}</p>
+          {generating && <p className="text-xs text-gray-500 mt-1">{t.simulator.preparingFeedback}</p>}
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@
 import { MdClose, MdCheck, MdStar } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 import { TEAM_COLORS } from "../constants";
 import type { VolRequest, Candidate } from "../types";
 
@@ -19,11 +20,12 @@ export default function CandidatesModal({
   selectedRequest, candidates, loadingCandidates, submitting,
   onClose, onAssign,
 }: CandidatesModalProps) {
+  const { t } = useLanguage();
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="bg-white w-full max-w-lg max-h-[85vh] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h2 className="text-sm font-bold text-gray-800">שיבוץ — {selectedRequest.title}</h2>
+          <h2 className="text-sm font-bold text-gray-800">{t.volunteers.candidatesTitle} {selectedRequest.title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><MdClose className="text-lg" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
@@ -38,7 +40,7 @@ export default function CandidatesModal({
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-bold text-gray-800">{c.name}</span>
                       {c.team && <span className={`text-[8px] font-bold px-1 py-0.5 rounded border ${TEAM_COLORS[c.team] || TEAM_COLORS[0]}`}>{c.team}</span>}
-                      {c.isAssigned && <span className="text-[8px] font-bold px-1 py-0.5 bg-green-200 text-green-800 rounded">משובץ</span>}
+                      {c.isAssigned && <span className="text-[8px] font-bold px-1 py-0.5 bg-green-200 text-green-800 rounded">{t.volunteers.alreadyAssigned}</span>}
                     </div>
                     {c.conflicts.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -53,17 +55,17 @@ export default function CandidatesModal({
                         ))}
                       </div>
                     )}
-                    {c.isFree && !c.isAssigned && <span className="text-[10px] text-green-600 font-medium">פנוי/ה</span>}
+                    {c.isFree && !c.isAssigned && <span className="text-[10px] text-green-600 font-medium">{t.volunteers.available}</span>}
                   </div>
                   {!c.isAssigned && (
                     <div className="flex gap-1">
                       <button onClick={() => onAssign(selectedRequest.id, c.id, "commander")} disabled={submitting}
-                        title="שבץ כמפקד"
+                        title={t.volunteers.assignAsCommander}
                         className="p-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition disabled:opacity-50">
                         <MdStar className="text-sm" />
                       </button>
                       <button onClick={() => onAssign(selectedRequest.id, c.id, "team-member")} disabled={submitting}
-                        title="שבץ כחבר צוות"
+                        title={t.volunteers.assignAsTeammate}
                         className="p-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition disabled:opacity-50">
                         <MdCheck className="text-sm" />
                       </button>

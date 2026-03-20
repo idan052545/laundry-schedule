@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { MdPoll, MdAdd, MdClose, MdPeople, MdGroups } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 import { useSurveys } from "./useSurveys";
 import SurveyDetail from "./SurveyDetail";
 import SurveyForm from "./SurveyForm";
@@ -17,6 +18,7 @@ export default function SurveysPageWrapper() {
 }
 
 function SurveysPage() {
+  const { t } = useLanguage();
   const {
     authStatus, loading, surveys, teamMembers, userTeam, userId, isSagal,
     selectedSurvey, setSelectedSurvey, viewScope, setViewScope,
@@ -34,8 +36,8 @@ function SurveysPage() {
     return (
       <div className="max-w-2xl mx-auto text-center py-16 text-gray-400">
         <MdPoll className="text-5xl mx-auto mb-3" />
-        <p className="font-medium">אינך משויך לצוות</p>
-        <p className="text-sm">פנה למפקד כדי להצטרף לצוות</p>
+        <p className="font-medium">{t.surveys.noTeam}</p>
+        <p className="text-sm">{t.surveys.contactCommander}</p>
       </div>
     );
   }
@@ -74,18 +76,18 @@ function SurveysPage() {
     <div className="max-w-2xl mx-auto">
       {isSagal && (
         <div className="mb-4 px-4 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm text-center font-medium">
-          צפייה בלבד — סגל מפקד
+          {t.surveys.sagalViewOnly}
         </div>
       )}
 
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-dotan-green-dark flex items-center gap-2">
-          <MdPoll className="text-purple-500" /> סקרים
+          <MdPoll className="text-purple-500" /> {t.surveys.title}
         </h1>
         {!isSagal && (
           <button onClick={() => setShowForm(!showForm)}
             className="bg-dotan-green-dark text-white px-3 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-1 text-sm">
-            {showForm ? <><MdClose /> סגור</> : <><MdAdd /> סקר חדש</>}
+            {showForm ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.surveys.newSurvey}</>}
           </button>
         )}
       </div>
@@ -96,13 +98,13 @@ function SurveysPage() {
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
             viewScope === "team" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}>
-          <MdPeople className="text-base" /> צוות {userTeam}
+          <MdPeople className="text-base" /> {t.surveys.teamTab} {userTeam}
         </button>
         <button onClick={() => setViewScope("platoon")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
             viewScope === "platoon" ? "bg-white text-violet-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
           }`}>
-          <MdGroups className="text-base" /> כל הפלוגה
+          <MdGroups className="text-base" /> {t.surveys.platoonTab}
         </button>
       </div>
 

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useLanguage } from "@/i18n";
 import { ScheduleNote } from "./types";
 
 export function useScheduleNotes(date: string) {
+  const { t } = useLanguage();
   const [notes, setNotes] = useState<ScheduleNote[]>([]);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [editingNote, setEditingNote] = useState<ScheduleNote | null>(null);
@@ -53,7 +55,7 @@ export function useScheduleNotes(date: string) {
   };
 
   const handleDeleteNote = async (id: string) => {
-    if (!confirm("למחוק הערה זו?")) return;
+    if (!confirm(t.common.delete + "?")) return;
     const res = await fetch(`/api/schedule/notes?id=${id}`, { method: "DELETE" });
     if (res.ok) setNotes((prev) => prev.filter((n) => n.id !== id));
   };

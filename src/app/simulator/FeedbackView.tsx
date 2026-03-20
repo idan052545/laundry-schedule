@@ -6,6 +6,7 @@ import {
   MdEdit, MdCheckCircle, MdVolumeUp,
   MdPerson, MdSmartToy, MdFeedback, MdStar,
 } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 import { SimSession, ChatMessage } from "./types";
 
 // ─── Feedback Parser ───
@@ -81,6 +82,7 @@ export function FeedbackView({ session: sess, onBack }: {
   session: SimSession;
   onBack: () => void;
 }) {
+  const { t } = useLanguage();
   const messages: ChatMessage[] = sess.messages ? JSON.parse(sess.messages) : [];
   const [showTranscript, setShowTranscript] = useState(false);
   const score = sess.score ?? 0;
@@ -104,7 +106,7 @@ export function FeedbackView({ session: sess, onBack }: {
   return (
     <div className="max-w-2xl mx-auto">
       <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-4">
-        <MdArrowBack /> חזרה לתרחישים
+        <MdArrowBack /> {t.simulator.backToScenarios}
       </button>
 
       {/* Score Hero Card */}
@@ -124,7 +126,7 @@ export function FeedbackView({ session: sess, onBack }: {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-3xl sm:text-4xl font-black leading-none">{score}</span>
-              <span className="text-[10px] text-white/60 mt-0.5">מתוך 100</span>
+              <span className="text-[10px] text-white/60 mt-0.5">{t.simulator.outOf100}</span>
             </div>
           </div>
 
@@ -134,9 +136,9 @@ export function FeedbackView({ session: sess, onBack }: {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-white/70">
               <span className="flex items-center gap-1">
                 {sess.mode === "voice" ? <MdRecordVoiceOver className="text-sm" /> : <MdChat className="text-sm" />}
-                {sess.mode === "voice" ? "קולי" : "צ׳אט"}
+                {sess.mode === "voice" ? t.simulator.voice : t.simulator.chat}
               </span>
-              <span>קושי {sess.scenario.difficulty}/10</span>
+              <span>{t.simulator.difficulty} {sess.scenario.difficulty}/10</span>
               {sess.completedAt && <span>{new Date(sess.completedAt).toLocaleDateString("he-IL", { day: "numeric", month: "long" })}</span>}
             </div>
             {sess.grade && (
@@ -161,7 +163,7 @@ export function FeedbackView({ session: sess, onBack }: {
               {score >= 60 ? <MdCheckCircle className="text-green-600 text-lg" /> : <MdFeedback className="text-amber-600 text-lg" />}
             </div>
             <div>
-              <h3 className={`text-sm font-bold ${score >= 60 ? "text-green-800" : "text-amber-800"}`}>עמידה במטרה</h3>
+              <h3 className={`text-sm font-bold ${score >= 60 ? "text-green-800" : "text-amber-800"}`}>{t.simulator.goalAchievement}</h3>
               <p className={`text-sm mt-1 leading-relaxed ${score >= 60 ? "text-green-700" : "text-amber-700"}`}>{parsed.goalCheck}</p>
             </div>
           </div>
@@ -194,7 +196,7 @@ export function FeedbackView({ session: sess, onBack }: {
                     </li>
                   ))}
                   {section.items.length === 0 && (
-                    <li className="text-xs text-gray-400">אין נתונים</li>
+                    <li className="text-xs text-gray-400">{t.simulator.noData}</li>
                   )}
                 </ul>
               </div>
@@ -207,7 +209,7 @@ export function FeedbackView({ session: sess, onBack }: {
       {sess.feedback && (!parsed?.sections || parsed.sections.length === 0) && !parsed?.goalCheck && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 mb-4">
           <h2 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
-            <MdFeedback className="text-teal-600" /> משוב על השיחה
+            <MdFeedback className="text-teal-600" /> {t.simulator.conversationFeedback}
           </h2>
           <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{sess.feedback}</div>
         </div>
@@ -219,7 +221,7 @@ export function FeedbackView({ session: sess, onBack }: {
           <button onClick={() => setShowTranscript(!showTranscript)}
             className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition">
             <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-              <MdChat className="text-blue-600" /> תמליל השיחה ({messages.length} הודעות)
+              <MdChat className="text-blue-600" /> {t.simulator.transcript} ({messages.length} {t.simulator.messages})
             </h2>
             <MdArrowBack className={`text-gray-400 transition-transform ${showTranscript ? "rotate-90" : "-rotate-90"}`} />
           </button>
@@ -238,7 +240,7 @@ export function FeedbackView({ session: sess, onBack }: {
                         : <MdSmartToy className="text-purple-500 text-xs" />
                       }
                       <span className="text-[10px] font-medium text-gray-400">
-                        {msg.role === "user" ? "אתה" : sess.scenario.machineName}
+                        {msg.role === "user" ? t.simulator.you : sess.scenario.machineName}
                       </span>
                       <span className="text-[10px] text-gray-300 mr-auto" dir="ltr">
                         {new Date(msg.timestamp).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}

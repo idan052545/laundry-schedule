@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sendPushToUsers, sendPushToAll } from "@/lib/push";
 
+const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -47,18 +49,19 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  // Get relevant members
+  // Get relevant members (exclude commanders & simulator users)
   let teamMembers;
   if (scope === "team" && user?.team) {
     // Only team members for team-scoped view
     teamMembers = await prisma.user.findMany({
-      where: { team: user.team },
+      where: { team: user.team, role: { notIn: EXCLUDED_ROLES } },
       select: { id: true, name: true, image: true, team: true },
       orderBy: { name: "asc" },
     });
   } else {
     // All users for platoon or mixed views
     teamMembers = await prisma.user.findMany({
+      where: { role: { notIn: EXCLUDED_ROLES } },
       select: { id: true, name: true, image: true, team: true },
       orderBy: { name: "asc" },
     });
@@ -197,12 +200,12 @@ export async function PUT(request: Request) {
     if (survey.team === 0) {
       // Platoon-wide: remind all who haven't responded
       members = await prisma.user.findMany({
-        where: { id: { notIn: respondedIds } },
+        where: { id: { notIn: respondedIds }, role: { notIn: EXCLUDED_ROLES } },
         select: { id: true },
       });
     } else {
       members = await prisma.user.findMany({
-        where: { team: survey.team, id: { notIn: respondedIds } },
+        where: { team: survey.team, id: { notIn: respondedIds }, role: { notIn: EXCLUDED_ROLES } },
         select: { id: true },
       });
     }

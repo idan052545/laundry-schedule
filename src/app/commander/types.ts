@@ -7,6 +7,7 @@ import {
   MdRadioButtonChecked,
   MdCheckBox,
 } from "react-icons/md";
+import type { Dictionary } from "@/i18n";
 
 export interface Commander {
   id: string;
@@ -63,8 +64,25 @@ export const POST_TYPE_CONFIG: Record<string, { label: string; icon: typeof MdMe
   image: { label: "תמונה", icon: MdImage, color: "text-purple-600", bg: "bg-purple-50 border-purple-200" },
 };
 
+export function getPostTypeConfig(t: Dictionary) {
+  return {
+    message: { ...POST_TYPE_CONFIG.message, label: t.commander.postTypeMessage },
+    task: { ...POST_TYPE_CONFIG.task, label: t.commander.postTypeTask },
+    reminder: { ...POST_TYPE_CONFIG.reminder, label: t.commander.postTypeReminder },
+    image: { ...POST_TYPE_CONFIG.image, label: t.commander.postTypeImage },
+  } as typeof POST_TYPE_CONFIG;
+}
+
 export const SURVEY_TYPE_CONFIG: Record<string, { label: string; icon: typeof MdThumbUp }> = {
   yes_no: { label: "כן / לא", icon: MdThumbUp },
   single: { label: "בחירה יחידה", icon: MdRadioButtonChecked },
   multi: { label: "בחירה מרובה", icon: MdCheckBox },
 };
+
+export function getSurveyTypeConfig(t: Dictionary) {
+  return {
+    yes_no: { ...SURVEY_TYPE_CONFIG.yes_no, label: t.commander.surveyYesNo },
+    single: { ...SURVEY_TYPE_CONFIG.single, label: t.commander.surveySingle },
+    multi: { ...SURVEY_TYPE_CONFIG.multi, label: t.commander.surveyMulti },
+  } as typeof SURVEY_TYPE_CONFIG;
+}

@@ -5,6 +5,7 @@ import {
   MdBarChart, MdFilterList,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 import { STATUS_CONFIG } from "./constants";
 import { useVolunteers } from "./useVolunteers";
 import type { Tab } from "./useVolunteers";
@@ -19,6 +20,7 @@ import DisputeModal from "./modals/DisputeModal";
 import EditModal from "./modals/EditModal";
 
 export default function VolunteersPage() {
+  const { t } = useLanguage();
   const v = useVolunteers();
 
   if (v.status === "loading" || v.loading) return <InlineLoading />;
@@ -29,30 +31,30 @@ export default function VolunteersPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <MdVolunteerActivism className="text-green-600" />
-          תורנויות
+          {t.volunteers.title}
         </h1>
         {!v.isSagal && (
           <button
             onClick={() => { v.setForm(f => ({ ...f, startTime: v.nowTimeStr(), endTime: v.plus15() })); v.setShowCreate(true); }}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-bold shadow hover:bg-green-700 transition"
           >
-            <MdAdd /> {v.isCommander ? "יצירת תורנות" : "בקשת עזרה"}
+            <MdAdd /> {v.isCommander ? t.volunteers.createVolunteer : t.volunteers.helpRequest}
           </button>
         )}
       </div>
 
       {v.isSagal && (
         <div className="mb-4 px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-medium text-center">
-          צפייה בלבד — סגל מפקד
+          {t.volunteers.sagalViewOnly}
         </div>
       )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
         {([
-          { key: "active" as Tab, label: "פעילות", icon: MdPeople },
-          { key: "my" as Tab, label: "שלי", icon: MdPerson },
-          { key: "stats" as Tab, label: "סטטיסטיקה", icon: MdBarChart },
+          { key: "active" as Tab, label: t.volunteers.activityTab, icon: MdPeople },
+          { key: "my" as Tab, label: t.volunteers.myTab, icon: MdPerson },
+          { key: "stats" as Tab, label: t.volunteers.statsTab, icon: MdBarChart },
         ]).map(t => (
           <button
             key={t.key}
@@ -73,7 +75,7 @@ export default function VolunteersPage() {
           {["open", "filled", "in-progress", "completed", "all"].map(s => (
             <button key={s} onClick={() => v.setStatusFilter(s)}
               className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition shrink-0 ${v.statusFilter === s ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}>
-              {s === "all" ? "הכל" : STATUS_CONFIG[s]?.label || s}
+              {s === "all" ? t.common.all : STATUS_CONFIG[s]?.label || s}
             </button>
           ))}
         </div>
@@ -85,7 +87,7 @@ export default function VolunteersPage() {
           {v.requests.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
               <MdVolunteerActivism className="text-4xl text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400 font-medium">אין תורנויות {v.statusFilter === "open" ? "פתוחות" : ""}</p>
+              <p className="text-sm text-gray-400 font-medium">{t.volunteers.noVolunteers} {v.statusFilter === "open" ? t.volunteers.openTab : ""}</p>
             </div>
           ) : v.requests.map(req => (
             <RequestCard
@@ -117,7 +119,7 @@ export default function VolunteersPage() {
           {v.myRequests.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
               <MdPerson className="text-4xl text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400 font-medium">אין תורנויות משובצות</p>
+              <p className="text-sm text-gray-400 font-medium">{t.volunteers.noAssignments}</p>
             </div>
           ) : v.myRequests.map(req => (
             <MyAssignmentCard

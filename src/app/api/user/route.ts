@@ -17,6 +17,7 @@ const userSelect = {
   medicalExemptions: true,
   otherExemptions: true,
   role: true,
+  language: true,
 };
 
 export async function GET() {
@@ -46,15 +47,16 @@ export async function PUT(request: Request) {
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
-      name: body.name,
-      roomNumber: body.roomNumber || null,
-      team: body.team ? parseInt(body.team) : null,
-      phone: body.phone || null,
-      birthDate: body.birthDate || null,
-      foodPreference: body.foodPreference || null,
-      allergies: body.allergies || null,
-      medicalExemptions: body.medicalExemptions || null,
-      otherExemptions: body.otherExemptions || null,
+      ...(body.name !== undefined && { name: body.name }),
+      ...(body.roomNumber !== undefined && { roomNumber: body.roomNumber || null }),
+      ...(body.team !== undefined && { team: body.team ? parseInt(body.team) : null }),
+      ...(body.phone !== undefined && { phone: body.phone || null }),
+      ...(body.birthDate !== undefined && { birthDate: body.birthDate || null }),
+      ...(body.foodPreference !== undefined && { foodPreference: body.foodPreference || null }),
+      ...(body.allergies !== undefined && { allergies: body.allergies || null }),
+      ...(body.medicalExemptions !== undefined && { medicalExemptions: body.medicalExemptions || null }),
+      ...(body.otherExemptions !== undefined && { otherExemptions: body.otherExemptions || null }),
+      ...(body.language !== undefined && { language: body.language }),
     },
     select: userSelect,
   });

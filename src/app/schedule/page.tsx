@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { MdLocalLaundryService, MdDry, MdDelete, MdAccessTime } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 
 interface Machine {
   id: string;
@@ -31,6 +32,7 @@ const TIME_SLOTS = [
 export default function SchedulePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedDate, setSelectedDate] = useState(
@@ -76,13 +78,13 @@ export default function SchedulePage() {
       await fetchData();
     } else {
       const data = await res.json();
-      alert(data.error || "שגיאה בהזמנה");
+      alert(data.error || t.laundry.bookingError);
     }
     setBookingLoading(null);
   };
 
   const handleCancel = async (bookingId: string) => {
-    if (!confirm("האם אתה בטוח שברצונך לבטל את ההזמנה?")) return;
+    if (!confirm(t.laundry.cancelConfirm)) return;
 
     const res = await fetch(`/api/bookings?id=${bookingId}`, {
       method: "DELETE",
@@ -113,14 +115,14 @@ export default function SchedulePage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-dotan-green-dark mb-6">לוח זמנים</h1>
+      <h1 className="text-3xl font-bold text-dotan-green-dark mb-6">{t.laundry.title}</h1>
 
       {/* Controls */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex gap-2 overflow-x-auto pb-2">
           {dates.map((date) => {
             const d = new Date(date + "T00:00:00");
-            const dayName = d.toLocaleDateString("he-IL", { weekday: "short" });
+            const dayName = d.toLocaleDateString(dateLocale, { weekday: "short" });
             const dayNum = d.getDate();
             return (
               <button
@@ -149,7 +151,7 @@ export default function SchedulePage() {
             }`}
           >
             <MdLocalLaundryService className="text-lg" />
-            כביסה
+            {t.laundry.washer}
           </button>
           <button
             onClick={() => setSelectedType("dryer")}
@@ -160,7 +162,7 @@ export default function SchedulePage() {
             }`}
           >
             <MdDry className="text-lg" />
-            מייבש
+            {t.laundry.dryer}
           </button>
         </div>
       </div>
@@ -168,15 +170,15 @@ export default function SchedulePage() {
       {/* Schedule Grid */}
       {filteredMachines.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          <p className="text-lg">אין מכונות מסוג זה</p>
+          <p className="text-lg">{t.laundry.noMachines}</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-dotan-mint overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-dotan-mint-light">
-                <th className="p-3 text-right font-medium text-dotan-green-dark sticky right-0 bg-dotan-mint-light min-w-[100px]">
-                  שעה
+                <th className="p-3 text-start font-medium text-dotan-green-dark sticky right-0 bg-dotan-mint-light min-w-[100px]">
+                  {t.laundry.hour}
                 </th>
                 {filteredMachines.map((machine) => (
                   <th
@@ -210,11 +212,11 @@ export default function SchedulePage() {
                             }`}
                           >
                             <div className="font-medium">
-                              {isMyBooking ? "ההזמנה שלי" : booking.user.name}
+                              {isMyBooking ? t.laundry.myBooking : booking.user.name}
                             </div>
                             {booking.user.roomNumber && (
                               <div className="text-xs text-gray-500">
-                                חדר {booking.user.roomNumber}
+                                {t.laundry.room} {booking.user.roomNumber}
                               </div>
                             )}
                             {isMyBooking && (
@@ -222,7 +224,7 @@ export default function SchedulePage() {
                                 onClick={() => handleCancel(booking.id)}
                                 className="text-xs text-red-600 hover:underline mt-1 flex items-center gap-1 mx-auto"
                               >
-                                <MdDelete /> בטל
+                                <MdDelete /> {t.laundry.cancelBooking}
                               </button>
                             )}
                           </div>
@@ -232,7 +234,7 @@ export default function SchedulePage() {
                             disabled={isLoading}
                             className="w-full py-2 px-3 text-sm bg-dotan-mint-light text-dotan-green-dark rounded-lg hover:bg-dotan-mint border border-dotan-green/30 transition disabled:opacity-50 font-medium"
                           >
-                            {isLoading ? "..." : "הזמן"}
+                            {isLoading ? "..." : t.laundry.book}
                           </button>
                         )}
                       </td>
@@ -247,7 +249,7 @@ export default function SchedulePage() {
 
       {/* My bookings */}
       <div className="mt-8">
-        <h2 className="text-xl font-bold text-dotan-green-dark mb-4">ההזמנות שלי</h2>
+        <h2 className="text-xl font-bold text-dotan-green-dark mb-4">{t.laundry.myBookings}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {bookings
             .filter((b) => b.user.id === userId && b.date === selectedDate)
@@ -266,7 +268,7 @@ export default function SchedulePage() {
                     </div>
                     <div className="text-sm text-gray-500 flex items-center gap-1">
                       <MdAccessTime />
-                      שעה {booking.timeSlot}
+                      {t.laundry.hour} {booking.timeSlot}
                     </div>
                   </div>
                 </div>
@@ -275,14 +277,14 @@ export default function SchedulePage() {
                   className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1"
                 >
                   <MdDelete />
-                  בטל הזמנה
+                  {t.laundry.cancelBookingBtn}
                 </button>
               </div>
             ))}
           {bookings.filter((b) => b.user.id === userId && b.date === selectedDate)
             .length === 0 && (
             <div className="text-gray-500 col-span-2">
-              אין לך הזמנות לתאריך זה
+              {t.laundry.noBookings}
             </div>
           )}
         </div>

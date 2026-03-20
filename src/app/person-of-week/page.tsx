@@ -9,6 +9,7 @@ import {
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface User {
   id: string;
@@ -42,6 +43,7 @@ const MEDAL_BG = ["bg-yellow-50 border-yellow-300", "bg-gray-50 border-gray-300"
 export default function PersonOfWeekPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
 
   const [data, setData] = useState<WeeklyVoteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,8 +93,8 @@ export default function PersonOfWeekPage() {
   };
 
   const handleExportReasons = (entry: LeaderboardEntry) => {
-    const rows = entry.reasons.map((r, i) => ({ "#": i + 1, סיבה: r }));
-    const headers = ["#", "סיבה"];
+    const rows = entry.reasons.map((r, i) => ({ "#": i + 1, [t.personOfWeek.why]: r }));
+    const headers = ["#", t.personOfWeek.why];
     const csv = [
       headers.join(","),
       ...rows.map((r) => headers.map((h) => `"${String((r as Record<string, unknown>)[h]).replace(/"/g, '""')}"`).join(",")),
@@ -101,7 +103,7 @@ export default function PersonOfWeekPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `איש_השבוע_${entry.user.name}_${data?.week}.csv`;
+    a.download = `${t.personOfWeek.title}_${entry.user.name}_${data?.week}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -109,7 +111,7 @@ export default function PersonOfWeekPage() {
   const formatWeekRange = (start: string, end: string) => {
     const s = new Date(start);
     const e = new Date(end);
-    return `${s.toLocaleDateString("he-IL", { day: "numeric", month: "short" })} - ${e.toLocaleDateString("he-IL", { day: "numeric", month: "short" })}`;
+    return `${s.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })} - ${e.toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}`;
   };
 
   if (authStatus === "loading" || loading) return <InlineLoading />;
@@ -124,8 +126,8 @@ export default function PersonOfWeekPage() {
       {/* Header */}
       <div className="text-center mb-6">
         <MdEmojiEvents className="text-5xl text-yellow-500 mx-auto mb-2" />
-        <h1 className="text-2xl font-bold text-dotan-green-dark">איש/אשת השבוע</h1>
-        <p className="text-sm text-gray-500 mt-1">בחרו את מי שהכי בלט השבוע</p>
+        <h1 className="text-2xl font-bold text-dotan-green-dark">{t.personOfWeek.title}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t.personOfWeek.subtitle}</p>
       </div>
 
       {/* Week navigator */}
@@ -137,7 +139,7 @@ export default function PersonOfWeekPage() {
         <div className="text-center">
           <div className="font-bold text-gray-800">{data.week}</div>
           <div className="text-xs text-gray-400">{formatWeekRange(data.weekStart, data.weekEnd)}</div>
-          {data.isCurrentWeek && <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-200">שבוע נוכחי</span>}
+          {data.isCurrentWeek && <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-200">{t.personOfWeek.currentWeek}</span>}
         </div>
         <button onClick={() => setWeekOffset((p) => Math.min(p + 1, 0))} disabled={weekOffset >= 0}
           className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-500 disabled:opacity-30">
@@ -149,7 +151,7 @@ export default function PersonOfWeekPage() {
       {data.leaderboard.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-1">
-            <MdStar className="text-yellow-500" /> טבלת מובילים ({data.totalVoters}/{data.totalUsers} הצביעו)
+            <MdStar className="text-yellow-500" /> {t.personOfWeek.leaderboard} ({data.totalVoters}/{data.totalUsers} {t.personOfWeek.vote})
           </h2>
 
           {/* Top 3 podium */}
@@ -164,12 +166,11 @@ export default function PersonOfWeekPage() {
                   <Avatar name={entry.user.name} image={entry.user.image} size="md" />
                   <h3 className={`font-bold text-sm mt-2 truncate ${isMe ? "text-dotan-green-dark" : "text-gray-800"}`}>{entry.user.name}</h3>
                   <div className={`text-lg font-bold ${MEDAL_COLORS[entry.rank - 1]}`}>{entry.votes}</div>
-                  <div className="text-[10px] text-gray-400">הצבעות</div>
-                  {/* Download reasons if it's the user's own card and there are reasons */}
+                  <div className="text-[10px] text-gray-400">{t.personOfWeek.votes}</div>
                   {isMe && entry.reasons.length > 0 && (
                     <button onClick={() => handleExportReasons(entry)}
                       className="mt-2 text-[10px] text-blue-500 hover:underline flex items-center gap-0.5 justify-center">
-                      <MdDownload /> הורד תשובות
+                      <MdDownload /> {t.personOfWeek.downloadVotes}
                     </button>
                   )}
                 </div>
@@ -198,10 +199,10 @@ export default function PersonOfWeekPage() {
           {/* Show reasons for past weeks */}
           {data.showDetails && data.leaderboard.length > 0 && data.leaderboard[0].reasons.length > 0 && (
             <div className="mt-4 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
-              <h4 className="text-xs font-medium text-yellow-700 mb-2">למה {data.leaderboard[0].user.name}?</h4>
+              <h4 className="text-xs font-medium text-yellow-700 mb-2">{t.personOfWeek.why} {data.leaderboard[0].user.name}?</h4>
               <div className="space-y-1">
                 {data.leaderboard[0].reasons.map((r, i) => (
-                  <p key={i} className="text-xs text-yellow-800">• {r}</p>
+                  <p key={i} className="text-xs text-yellow-800">{r}</p>
                 ))}
               </div>
             </div>
@@ -212,7 +213,7 @@ export default function PersonOfWeekPage() {
       {data.leaderboard.length === 0 && (
         <div className="text-center py-8 text-gray-400 mb-6">
           <MdEmojiEvents className="text-4xl mx-auto mb-2 text-gray-300" />
-          <p className="text-sm">אין הצבעות עדיין לשבוע זה</p>
+          <p className="text-sm">{t.personOfWeek.noVotes}</p>
         </div>
       )}
 
@@ -220,14 +221,14 @@ export default function PersonOfWeekPage() {
       {data.isCurrentWeek && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-4">
           <h2 className="font-bold text-gray-800 flex items-center gap-2">
-            {data.userVote ? <><MdCheckCircle className="text-green-500" /> שנה הצבעה</> : "הצבע"}
+            {data.userVote ? <><MdCheckCircle className="text-green-500" /> {t.personOfWeek.changeVote}</> : t.personOfWeek.castVote}
           </h2>
 
           {/* Search */}
           <div className="relative">
             <MdSearch className="absolute right-3 top-2.5 text-gray-400" />
             <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="חפש חייל/ת..."
+              placeholder={t.personOfWeek.searchSoldier}
               className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none" />
           </div>
 
@@ -235,7 +236,7 @@ export default function PersonOfWeekPage() {
           <div className="max-h-48 overflow-y-auto space-y-1">
             {filteredUsers.map((u) => (
               <button key={u.id} onClick={() => setSelectedUser(u.id)}
-                className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg text-sm text-right transition ${
+                className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg text-sm text-start transition ${
                   selectedUser === u.id ? "bg-dotan-mint-light border-2 border-dotan-green" : "hover:bg-gray-50 border-2 border-transparent"
                 }`}>
                 <Avatar name={u.name} image={u.image} size="sm" />
@@ -249,13 +250,13 @@ export default function PersonOfWeekPage() {
           {selectedUser && (
             <textarea value={reason} onChange={(e) => setReason(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none min-h-[60px]"
-              placeholder="למה? (אופציונלי)" />
+              placeholder={t.personOfWeek.whyOptional} />
           )}
 
           {/* Submit */}
           <button onClick={handleVote} disabled={!selectedUser || sending}
             className="w-full bg-dotan-green-dark text-white py-3 rounded-xl font-bold hover:bg-dotan-green transition disabled:opacity-50 flex items-center justify-center gap-2">
-            <MdSend /> {sending ? "שולח..." : data.userVote ? "עדכן הצבעה" : "הצבע"}
+            <MdSend /> {sending ? t.common.sending : data.userVote ? t.personOfWeek.updateVote : t.personOfWeek.castVote}
           </button>
         </div>
       )}

@@ -8,10 +8,12 @@ import {
   toDateStr, parseTimeRange,
   DEFAULT_GUARD_ROLES, DEFAULT_GUARD_SLOTS, DEFAULT_OBS_ROLES, DEFAULT_OBS_SLOTS,
 } from "./constants";
+import { useLanguage } from "@/i18n";
 
 export function useGuardDuty() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
   const [date, setDate] = useState(toDateStr(new Date()));
@@ -100,7 +102,7 @@ export function useGuardDuty() {
       await fetchData();
     } else {
       const err = await res.json();
-      alert(err.error || "שגיאה");
+      alert(err.error || t.common.error);
     }
     setSubmitting(false);
   };
@@ -132,7 +134,7 @@ export function useGuardDuty() {
     });
     if (!res.ok) {
       const err = await res.json();
-      alert(err.error || "שגיאה");
+      alert(err.error || t.common.error);
     }
     setSubmitting(false);
     await fetchData();
@@ -143,7 +145,7 @@ export function useGuardDuty() {
     const slots = tableType === "guard" ? [...DEFAULT_GUARD_SLOTS] : [...DEFAULT_OBS_SLOTS];
     setCreateRoles(roles);
     setCreateSlots(slots);
-    setCreateTitle(tableType === "guard" ? "שיבוץ לשמירות" : `עב"ס בהד"י`);
+    setCreateTitle(tableType === "guard" ? t.guardDuty.guardDefaultTitle : t.guardDuty.obsDefaultTitle);
     setCreateAssignments({});
     setShowCreate(true);
   };
@@ -187,9 +189,9 @@ export function useGuardDuty() {
     const roles: string[] = JSON.parse(table.roles);
     const slots: string[] = JSON.parse(table.timeSlots);
 
-    const header = ["משמרת", ...roles];
+    const header = [t.guardDuty.shift, ...roles];
     const rows = slots.map(slot => {
-      const row: Record<string, string> = { "משמרת": slot };
+      const row: Record<string, string> = { [t.guardDuty.shift]: slot };
       roles.forEach(role => {
         const found = table.assignments.filter(a => a.timeSlot === slot && a.role === role);
         row[role] = found.map(a => a.note ? `${a.note} ${a.user.name}` : a.user.name).join(", ");
@@ -205,13 +207,13 @@ export function useGuardDuty() {
   };
 
   const handleDeleteTable = async () => {
-    if (!table || !confirm("למחוק את הטבלה?")) return;
+    if (!table || !confirm(t.guardDuty.deleteTableConfirm)) return;
     await fetch(`/api/guard-duty?id=${table.id}`, { method: "DELETE" });
     await fetchData();
   };
 
   const handleNotifyAll = async () => {
-    if (!table || !confirm("לשלוח התראה אישית לכל חייל עם השיבוצים שלו?")) return;
+    if (!table || !confirm(t.guardDuty.notifyAllConfirm)) return;
     setSubmitting(true);
     const res = await fetch("/api/guard-duty", {
       method: "PUT",
@@ -220,9 +222,9 @@ export function useGuardDuty() {
     });
     const data = await res.json();
     if (res.ok) {
-      alert(`נשלחו התראות ל-${data.notified} חיילים`);
+      alert(t.guardDuty.notifiedCount.replace("{n}", data.notified));
     } else {
-      alert(data.error || "שגיאה בשליחה");
+      alert(data.error || t.guardDuty.sendError);
     }
     setSubmitting(false);
   };
@@ -311,7 +313,7 @@ export function useGuardDuty() {
               type: "same-slot",
               userId: uid,
               userName: ai.user.name,
-              details: `חפיפת זמנים: ${ai.role} (${ai.note || ai.timeSlot}) ↔ ${aj.role} (${aj.note || aj.timeSlot})`,
+              details: `${t.guardDuty.timeOverlap} ${ai.role} (${ai.note || ai.timeSlot}) ↔ ${aj.role} (${aj.note || aj.timeSlot})`,
             });
           }
         }
@@ -319,8 +321,8 @@ export function useGuardDuty() {
     }
 
     if (otherTable) {
-      const otherName = tableType === "guard" ? 'עב"ס' : "שמירות";
-      const currentName = tableType === "guard" ? "שמירות" : 'עב"ס';
+      const otherName = tableType === "guard" ? t.guardDuty.avs : t.guardDuty.guards;
+      const currentName = tableType === "guard" ? t.guardDuty.guards : t.guardDuty.avs;
       for (const a of table.assignments) {
         if (DAY_ROLES.includes(a.role)) continue;
         const ra = getRange(a);
@@ -367,7 +369,7 @@ export function useGuardDuty() {
     .sort((a, b) => b.hours - a.hours);
   const avgHours = fairnessData.length > 0 ? fairnessData.reduce((s, u) => s + u.hours, 0) / fairnessData.length : 0;
 
-  const dateDisplay = new Date(date + "T12:00:00").toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" });
+  const dateDisplay = new Date(date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" });
 
   const assignedPeople = table ? [...new Map(table.assignments.map(a => [a.userId, a.user])).values()] : [];
 

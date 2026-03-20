@@ -7,6 +7,7 @@ import { MdFolder, MdAdd, MdClose, MdDelete, MdDownload, MdFilterList, MdUploadF
 import { InlineLoading } from "@/components/LoadingScreen";
 import { upload } from "@vercel/blob/client";
 import Avatar from "@/components/Avatar";
+import { useLanguage } from "@/i18n";
 
 interface TaskFormat {
   id: string;
@@ -20,13 +21,13 @@ interface TaskFormat {
   author: { id: string; name: string; image: string | null };
 }
 
-const CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
-  general: { label: "כללי", color: "text-gray-600", bg: "bg-gray-100 border-gray-300" },
-  guard: { label: "שמירות", color: "text-red-600", bg: "bg-red-50 border-red-300" },
-  operations: { label: "מבצעים", color: "text-blue-600", bg: "bg-blue-50 border-blue-300" },
-  training: { label: "אימונים", color: "text-green-600", bg: "bg-green-50 border-green-300" },
-  logistics: { label: "לוגיסטיקה", color: "text-amber-600", bg: "bg-amber-50 border-amber-300" },
-  other: { label: "אחר", color: "text-purple-600", bg: "bg-purple-50 border-purple-300" },
+const CATEGORY_STYLES: Record<string, { color: string; bg: string }> = {
+  general: { color: "text-gray-600", bg: "bg-gray-100 border-gray-300" },
+  guard: { color: "text-red-600", bg: "bg-red-50 border-red-300" },
+  operations: { color: "text-blue-600", bg: "bg-blue-50 border-blue-300" },
+  training: { color: "text-green-600", bg: "bg-green-50 border-green-300" },
+  logistics: { color: "text-amber-600", bg: "bg-amber-50 border-amber-300" },
+  other: { color: "text-purple-600", bg: "bg-purple-50 border-purple-300" },
 };
 
 function getFileIcon(fileType: string) {
@@ -43,6 +44,7 @@ function getFileExtension(fileName: string) {
 export default function FormatsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const [formats, setFormats] = useState<TaskFormat[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -56,6 +58,15 @@ export default function FormatsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userId = session?.user ? (session.user as { id: string }).id : null;
+
+  const CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
+    general: { label: t.formats.general, ...CATEGORY_STYLES.general },
+    guard: { label: t.formats.guards, ...CATEGORY_STYLES.guard },
+    operations: { label: t.formats.operations, ...CATEGORY_STYLES.operations },
+    training: { label: t.formats.training, ...CATEGORY_STYLES.training },
+    logistics: { label: t.formats.logistics, ...CATEGORY_STYLES.logistics },
+    other: { label: t.formats.other, ...CATEGORY_STYLES.other },
+  };
 
   const fetchFormats = useCallback(async () => {
     const res = await fetch("/api/task-formats");
@@ -100,10 +111,10 @@ export default function FormatsPage() {
         setTitle(""); setDescription(""); setCategory("general"); setFile(null); setShowForm(false);
       } else {
         const err = await res.json();
-        alert(err.error || "שגיאה");
+        alert(err.error || t.common.error);
       }
     } catch {
-      alert("שגיאה בהעלאת הקובץ");
+      alert(t.common.error);
     }
     setSending(false);
   };
@@ -147,13 +158,13 @@ export default function FormatsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("למחוק פורמט זה?")) return;
+    if (!confirm(t.formats.deleteFormat)) return;
     const res = await fetch(`/api/task-formats?id=${id}`, { method: "DELETE" });
     if (res.ok) setFormats((prev) => prev.filter((f) => f.id !== id));
   };
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
+    new Date(dateStr).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" });
 
   const filtered = filter === "all" ? formats : formats.filter((f) => f.category === filter);
 
@@ -166,24 +177,24 @@ export default function FormatsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark flex items-center gap-3">
           <MdFolder className="text-dotan-green" />
-          פורמטים ועבודות
+          {t.formats.title}
         </h1>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 text-sm">
-          {showForm ? <><MdClose /> סגור</> : <><MdAdd /> העלה פורמט</>}
+          {showForm ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.formats.uploadFormat}</>}
         </button>
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">שתפו פורמטים, תבניות עבודה ומשימות שאחרים יוכלו להשתמש בהם</p>
+      <p className="text-sm text-gray-500 mb-4">{t.formats.subtitle}</p>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-dotan-mint mb-6 space-y-4">
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
-            placeholder="שם הפורמט / העבודה" required />
+            placeholder={t.formats.formatName} required />
           <textarea value={description} onChange={(e) => setDescription(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none min-h-[80px] text-sm"
-            placeholder="תיאור - מה הפורמט מכיל, מתי להשתמש בו..." />
+            placeholder={t.formats.descriptionPlaceholder} />
           <select value={category} onChange={(e) => setCategory(e.target.value)}
             className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm">
             {Object.entries(CATEGORIES).map(([key, { label }]) => (
@@ -194,15 +205,15 @@ export default function FormatsPage() {
             <button type="button" onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-4 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm text-gray-700 border border-dashed border-gray-300">
               <MdUploadFile className="text-lg" />
-              {file ? file.name : "בחר קובץ (PDF, Word, תמונה...)"}
+              {file ? file.name : t.formats.chooseFile}
             </button>
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp,.xlsx,.xls,.pptx,.ppt"
               onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
-            <p className="text-xs text-gray-400 mt-1">מקסימום 30MB</p>
+            <p className="text-xs text-gray-400 mt-1">{t.common.max30mb}</p>
           </div>
           <button type="submit" disabled={sending || !file}
             className="bg-dotan-green-dark text-white px-6 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
-            <MdUploadFile /> {sending ? "מעלה..." : "העלה פורמט"}
+            <MdUploadFile /> {sending ? t.common.uploading : t.formats.uploadFormat}
           </button>
         </form>
       )}
@@ -212,7 +223,7 @@ export default function FormatsPage() {
         <MdFilterList className="text-gray-500" />
         <button onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === "all" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-          הכל
+          {t.common.all}
         </button>
         {Object.entries(CATEGORIES).map(([key, { label }]) => (
           <button key={key} onClick={() => setFilter(key)}
@@ -252,7 +263,7 @@ export default function FormatsPage() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => handleDownload(format)} disabled={isDownloading}
                         className="flex items-center gap-1 text-xs font-medium text-dotan-green-dark hover:text-dotan-green transition bg-dotan-mint-light px-3 py-1.5 rounded-lg disabled:opacity-50">
-                        <MdDownload /> {isDownloading ? "..." : "הורד"}
+                        <MdDownload /> {isDownloading ? "..." : t.common.download}
                       </button>
                       {format.author.id === userId && (
                         <button onClick={() => handleDelete(format.id)}
@@ -272,8 +283,8 @@ export default function FormatsPage() {
       {filtered.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <MdFolder className="text-5xl mx-auto mb-4 text-gray-300" />
-          <p>אין פורמטים {filter !== "all" ? "בקטגוריה זו" : "עדיין"}</p>
-          <p className="text-sm mt-2">לחץ &quot;העלה פורמט&quot; כדי לשתף עם הפלוגה</p>
+          <p>{t.formats.noFormats} {filter !== "all" ? t.formats.inCategory : t.formats.yet}</p>
+          <p className="text-sm mt-2">{t.formats.uploadHint}</p>
         </div>
       )}
     </div>

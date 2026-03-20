@@ -9,6 +9,7 @@ import {
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface UserOption {
   id: string;
@@ -28,6 +29,7 @@ type SendTarget = "all" | "team" | "users";
 export default function NotificationsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [stats, setStats] = useState<PushStats | null>(null);
@@ -94,7 +96,7 @@ export default function NotificationsPage() {
       setResult(data);
     } else {
       const err = await res.json();
-      alert(err.error || "שגיאה");
+      alert(err.error || t.common.error);
     }
     setSending(false);
   };
@@ -117,8 +119,8 @@ export default function NotificationsPage() {
     return (
       <div className="text-center py-12 text-gray-500">
         <MdNotifications className="text-5xl mx-auto mb-4 text-gray-300" />
-        <p>אין לך הרשאה לשלוח התראות</p>
-        <p className="text-sm mt-2">רק מפקדים ואדמינים יכולים לשלוח</p>
+        <p>{t.notifications.noPermission}</p>
+        <p className="text-sm mt-2">{t.notifications.onlyAdmins}</p>
       </div>
     );
   }
@@ -127,21 +129,21 @@ export default function NotificationsPage() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-6 flex items-center gap-3">
         <MdNotifications className="text-dotan-green" />
-        שליחת התראות
+        {t.notifications.title}
       </h1>
 
       {/* Stats */}
       {stats && (
         <div className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint mb-6">
-          <h2 className="text-sm font-bold text-gray-700 mb-3">סטטיסטיקת מנויים</h2>
+          <h2 className="text-sm font-bold text-gray-700 mb-3">{t.notifications.subscriberStats}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="bg-dotan-mint-light p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-dotan-green-dark">{stats.uniqueUsers}</div>
-              <div className="text-xs text-gray-500">משתמשים רשומים</div>
+              <div className="text-xs text-gray-500">{t.notifications.registeredUsers}</div>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg text-center">
               <div className="text-2xl font-bold text-gray-700">{stats.totalSubscriptions}</div>
-              <div className="text-xs text-gray-500">מכשירים רשומים</div>
+              <div className="text-xs text-gray-500">{t.notifications.registeredDevices}</div>
             </div>
             {Object.entries(stats.teamStats).map(([team, count]) => (
               <div key={team} className="bg-blue-50 p-3 rounded-lg text-center">
@@ -155,41 +157,41 @@ export default function NotificationsPage() {
 
       {/* Send form */}
       <form onSubmit={handleSend} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-dotan-mint space-y-4">
-        <h2 className="text-base font-bold text-gray-800">שלח התראה</h2>
+        <h2 className="text-base font-bold text-gray-800">{t.notifications.sendNotification}</h2>
 
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
-          placeholder="כותרת ההתראה" required />
+          placeholder={t.notifications.notifTitle} required />
 
         <textarea value={body} onChange={(e) => setBody(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm min-h-[80px]"
-          placeholder="תוכן ההתראה" required />
+          placeholder={t.notifications.notifContent} required />
 
         <input type="text" value={url} onChange={(e) => setUrl(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
-          placeholder="קישור בלחיצה (אופציונלי, למשל: /messages)" dir="ltr" />
+          placeholder={t.notifications.linkOptional} dir="ltr" />
 
         {/* Target selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">שלח ל:</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t.notifications.sendTo}</label>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setTarget("all")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
                 target === "all" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}>
-              <MdPeople /> כל הפלוגה
+              <MdPeople /> {t.teams.allPlatoon}
             </button>
             <button type="button" onClick={() => setTarget("team")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
                 target === "team" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}>
-              <MdGroup /> צוות
+              <MdGroup /> {t.common.team}
             </button>
             <button type="button" onClick={() => setTarget("users")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
                 target === "users" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}>
-              <MdPerson /> חיילים ספציפיים
+              <MdPerson /> {t.notifications.specificSoldiers}
             </button>
           </div>
         </div>
@@ -198,11 +200,11 @@ export default function NotificationsPage() {
         {target === "team" && (
           <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green outline-none text-sm" required>
-            <option value="">בחר צוות</option>
-            <option value="14">צוות 14</option>
-            <option value="15">צוות 15</option>
-            <option value="16">צוות 16</option>
-            <option value="17">צוות 17</option>
+            <option value="">{t.notifications.selectTeam}</option>
+            <option value="14">{t.teams.team14}</option>
+            <option value="15">{t.teams.team15}</option>
+            <option value="16">{t.teams.team16}</option>
+            <option value="17">{t.teams.team17}</option>
           </select>
         )}
 
@@ -226,22 +228,22 @@ export default function NotificationsPage() {
             <button type="button" onClick={() => setShowUserPicker(!showUserPicker)}
               className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition">
               {showUserPicker ? <MdExpandLess /> : <MdExpandMore />}
-              בחר חיילים ({selectedUsers.length} נבחרו)
+              {t.notifications.selectSoldiers} ({selectedUsers.length} {t.notifications.selected})
             </button>
 
             {showUserPicker && (
               <div className="mt-2 border border-gray-200 rounded-lg p-3 max-h-[250px] overflow-y-auto bg-gray-50">
                 <input type="text" value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
-                  placeholder="חיפוש..." className="w-full px-3 py-1.5 border border-gray-300 rounded-lg mb-2 text-sm outline-none" />
+                  placeholder={t.common.search} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg mb-2 text-sm outline-none" />
                 <div className="space-y-1">
                   {filteredUsers.map((u) => (
                     <button key={u.id} type="button" onClick={() => toggleUser(u.id)}
-                      className={`w-full text-right flex items-center gap-2 p-1.5 rounded text-sm transition ${
+                      className={`w-full text-start flex items-center gap-2 p-1.5 rounded text-sm transition ${
                         selectedUsers.includes(u.id) ? "bg-dotan-mint-light" : "hover:bg-gray-100"
                       }`}>
                       <Avatar name={u.name} image={u.image} size="xs" />
                       <span className="flex-1">{u.name}</span>
-                      {u.team && <span className="text-xs text-gray-400">צוות {u.team}</span>}
+                      {u.team && <span className="text-xs text-gray-400">{t.common.team} {u.team}</span>}
                       {selectedUsers.includes(u.id) && <MdCheckCircle className="text-dotan-green text-sm" />}
                     </button>
                   ))}
@@ -259,16 +261,16 @@ export default function NotificationsPage() {
             : "bg-amber-50 text-amber-700 border border-amber-200"
           }`}>
             {result.total === 0 ? (
-              "אין מכשירים רשומים לקבלת התראות"
+              t.notifications.noDevices
             ) : (
-              <>נשלח בהצלחה ל-{result.succeeded} מכשירים{result.failed > 0 && ` (${result.failed} נכשלו)`}</>
+              <>{t.notifications.sentSuccess}{result.succeeded} {t.notifications.devices}{result.failed > 0 && ` (${result.failed} ${t.notifications.failed})`}</>
             )}
           </div>
         )}
 
         <button type="submit" disabled={sending || (target === "team" && !selectedTeam) || (target === "users" && selectedUsers.length === 0)}
           className="w-full bg-dotan-green-dark text-white py-3 rounded-lg hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base">
-          <MdSend /> {sending ? "שולח..." : "שלח התראה"}
+          <MdSend /> {sending ? t.common.sending : t.notifications.sendBtn}
         </button>
       </form>
     </div>

@@ -4,12 +4,14 @@ import {
   MdLocalLaundryService, MdDry, MdCheckCircle, MdCancel, MdBuild,
 } from "react-icons/md";
 import type { Machine } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface MachineStatusProps {
   machines: Machine[];
 }
 
 export default function MachineStatus({ machines }: MachineStatusProps) {
+  const { t } = useLanguage();
   const today = new Date().toISOString().split("T")[0];
   const currentHour = new Date().getHours();
   const currentSlot = `${currentHour.toString().padStart(2, "0")}:00`;
@@ -26,7 +28,7 @@ export default function MachineStatus({ machines }: MachineStatusProps) {
   return (
     <div className="mb-6">
       <h2 className="text-sm font-bold text-gray-500 mb-2 flex items-center gap-1.5">
-        <MdLocalLaundryService className="text-base" /> מכונות
+        <MdLocalLaundryService className="text-base" /> {t.machines.title}
       </h2>
       <div className="grid grid-cols-2 gap-2">
         {machines.map((machine) => {
@@ -46,9 +48,9 @@ export default function MachineStatus({ machines }: MachineStatusProps) {
               <div className={`text-[10px] font-medium mt-0.5 flex items-center gap-0.5 ${
                 machine.status === "maintenance" ? "text-yellow-600" : available ? "text-green-600" : "text-red-500"
               }`}>
-                {machine.status === "maintenance" ? <><MdBuild className="text-[10px]" /> תחזוקה</>
-                : available ? <><MdCheckCircle className="text-[10px]" /> {isWasher ? "פנויה" : "פנוי"}</>
-                : <><MdCancel className="text-[10px]" /> {currentUser?.name || (isWasher ? "תפוסה" : "תפוס")}</>}
+                {machine.status === "maintenance" ? <><MdBuild className="text-[10px]" /> {t.machines.maintenance}</>
+                : available ? <><MdCheckCircle className="text-[10px]" /> {isWasher ? t.machines.free : t.machines.freeMale}</>
+                : <><MdCancel className="text-[10px]" /> {currentUser?.name || (isWasher ? t.machines.occupied : t.machines.occupiedMale)}</>}
               </div>
             </div>
           );

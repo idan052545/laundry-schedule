@@ -8,6 +8,7 @@ import {
   MdEmojiPeople, MdStars, MdForum, MdLock, MdDownload,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface UserInfo {
   team: number | null;
@@ -20,55 +21,13 @@ const TEAM_MEMBERS = [
   "עילי גולדשטיין", "רוני מאירסון", "תמר נגר",
 ];
 
-const VALUES = [
-  {
-    icon: MdHandshake,
-    title: "רעות ואמון",
-    text: "אנו פועלים כגוף אחד ומגבים זה את זה. אנו יוצרים סביבה בטוחה שבה אמון הדדי, חברות ותמיכה הם היסוד לכל עשייה שלנו.",
-    gradient: "from-emerald-500 to-teal-600",
-    glow: "shadow-emerald-200/50",
-    accent: "#10b981",
-  },
-  {
-    icon: MdSelfImprovement,
-    title: "ענווה",
-    text: "אנו שמים את האגו בצד. אנו פתוחים תמיד ללמוד מכל אדם, מקבלים משוב באהבה וזוכרים שההצלחה של הצוות קודמת להצלחה האישית.",
-    gradient: "from-sky-500 to-blue-600",
-    glow: "shadow-sky-200/50",
-    accent: "#0ea5e9",
-  },
-  {
-    icon: MdGroups,
-    title: "אחריות משותפת",
-    text: 'אנו שותפים מלאים לדרך – מצליחים ביחד ולומדים מאתגרים ביחד. אין אצלנו "זה לא התפקיד שלי"; ההצלחה של כל פרט היא הצלחת הצוות כולו.',
-    gradient: "from-violet-500 to-purple-600",
-    glow: "shadow-violet-200/50",
-    accent: "#8b5cf6",
-  },
-  {
-    icon: MdEmojiPeople,
-    title: "דוגמה אישית",
-    text: "אנו מנהיגים דרך עשייה. כל אחד מאיתנו מתחייב לדרוש מעצמו את המקסימום, להוות מודל לחיקוי עבור חבריו ולעמוד בסטנדרטים הגבוהים ביותר.",
-    gradient: "from-amber-500 to-orange-600",
-    glow: "shadow-amber-200/50",
-    accent: "#f59e0b",
-  },
-  {
-    icon: MdStars,
-    title: "חתירה למצוינות",
-    text: 'אנו לא מתפשרים על הקיים ולא מסתפקים ב"מספיק טוב". אנו שואפים תמיד להשתפר, ליזום, לפרוץ גבולות ולהגיע לתוצאות הטובות ביותר.',
-    gradient: "from-rose-500 to-pink-600",
-    glow: "shadow-rose-200/50",
-    accent: "#f43f5e",
-  },
-  {
-    icon: MdForum,
-    title: "כבוד ושיח פתוח",
-    text: "אנו מקדמים תקשורת כנה, שקופה ומכבדת. לכל קול בצוות יש מקום, ואנו מתחייבים לפתור מחלוקות מתוך הקשבה אמיתית והערכה הדדית.",
-    gradient: "from-cyan-500 to-teal-600",
-    glow: "shadow-cyan-200/50",
-    accent: "#06b6d4",
-  },
+const VALUE_STYLES = [
+  { icon: MdHandshake, titleKey: "value1Title" as const, descKey: "value1Desc" as const, gradient: "from-emerald-500 to-teal-600", glow: "shadow-emerald-200/50", accent: "#10b981" },
+  { icon: MdSelfImprovement, titleKey: "value2Title" as const, descKey: "value2Desc" as const, gradient: "from-sky-500 to-blue-600", glow: "shadow-sky-200/50", accent: "#0ea5e9" },
+  { icon: MdGroups, titleKey: "value3Title" as const, descKey: "value3Desc" as const, gradient: "from-violet-500 to-purple-600", glow: "shadow-violet-200/50", accent: "#8b5cf6" },
+  { icon: MdEmojiPeople, titleKey: "value4Title" as const, descKey: "value4Desc" as const, gradient: "from-amber-500 to-orange-600", glow: "shadow-amber-200/50", accent: "#f59e0b" },
+  { icon: MdStars, titleKey: "value5Title" as const, descKey: "value5Desc" as const, gradient: "from-rose-500 to-pink-600", glow: "shadow-rose-200/50", accent: "#f43f5e" },
+  { icon: MdForum, titleKey: "value6Title" as const, descKey: "value6Desc" as const, gradient: "from-cyan-500 to-teal-600", glow: "shadow-cyan-200/50", accent: "#06b6d4" },
 ];
 
 const HEART_POSITIONS = [
@@ -109,6 +68,7 @@ const NAME_COLORS = [
 export default function AmanaPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState(0);
@@ -164,8 +124,8 @@ export default function AmanaPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
         <MdLock className="text-6xl text-gray-300 mb-4" />
-        <h2 className="text-xl font-bold text-gray-600 mb-2">דף זה מוגבל לצוות 16</h2>
-        <p className="text-gray-400 text-sm">האמנה הצוותית זמינה רק לחברי צוות 16.</p>
+        <h2 className="text-xl font-bold text-gray-600 mb-2">{t.amana.restrictedToTeam}</h2>
+        <p className="text-gray-400 text-sm">{t.amana.restrictedDesc}</p>
       </div>
     );
   }
@@ -255,7 +215,7 @@ export default function AmanaPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-dotan-green-dark text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md"
         >
           <MdDownload className="text-base text-dotan-green" />
-          שמור כ-PDF
+          {t.amana.savePdf}
         </button>
       </div>
 
@@ -314,7 +274,7 @@ export default function AmanaPage() {
                 WebkitTextFillColor: "transparent",
                 animation: "shimmer 4s linear infinite",
               }}>
-                אמנת צוות 16
+                {t.amana.title}
               </h1>
 
               <div className="flex items-center gap-4 mb-6">
@@ -327,18 +287,18 @@ export default function AmanaPage() {
               <div className="bg-white/[0.07] backdrop-blur-xl rounded-2xl px-7 py-5 mb-6 border border-white/10 max-w-md mx-auto shadow-2xl relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-dotan-gold/5 to-transparent" />
                 <p className="text-white text-lg sm:text-xl font-bold italic leading-relaxed relative z-10">
-                  &ldquo;מי שליבו בדרך<br />אינו מפחד מהמרחק&rdquo;
+                  &ldquo;{t.amana.motto}&rdquo;
                 </p>
               </div>
 
               {/* Commander — premium badge */}
               <div className="flex items-center gap-3 bg-white/[0.08] backdrop-blur-sm rounded-2xl px-6 py-3 border border-white/10 shadow-xl">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-dotan-gold to-amber-600 flex items-center justify-center text-dotan-green-dark font-black text-sm shadow-lg ring-2 ring-dotan-gold/30">
-                  נ.ו
+                  {t.amana.commanderInitials}
                 </div>
-                <div className="text-right">
-                  <div className="text-white font-bold text-base">נטע וקנין</div>
-                  <div className="text-dotan-gold/70 text-[11px] font-medium tracking-wide">מפקדת צוות 16</div>
+                <div className="text-start">
+                  <div className="text-white font-bold text-base">{t.amana.commanderName}</div>
+                  <div className="text-dotan-gold/70 text-[11px] font-medium tracking-wide">{t.amana.commanderTitle}</div>
                 </div>
               </div>
             </div>
@@ -352,15 +312,14 @@ export default function AmanaPage() {
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-l from-emerald-500 via-dotan-gold to-rose-500 animate-gradient" />
               <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/5 rounded-full blur-3xl" />
               <p className="text-sm sm:text-[15px] text-gray-700 leading-[1.9] text-center relative z-10">
-                אנו, חברי <span className="font-black text-dotan-green-dark">צוות 16</span>, מתחייבים לפעול לאור הערכים הבאים.
-                ערכים אלו יהוו את <span className="bg-gradient-to-l from-dotan-green to-emerald-600 bg-clip-text text-transparent font-black">המצפן</span> שלנו בכל משימה, החלטה ואתגר שניצב בפנינו:
+                {t.amana.intro}
               </p>
             </div>
           </div>
 
           {/* VALUES */}
           <div className="space-y-5">
-            {VALUES.map((value, i) => {
+            {VALUE_STYLES.map((value, i) => {
               const Icon = value.icon;
               const visible = phase >= i + 3;
               return (
@@ -380,15 +339,14 @@ export default function AmanaPage() {
                           <Icon className="text-white text-3xl" />
                         </div>
                         <div>
-                          <h3 className="text-white font-black text-xl sm:text-2xl tracking-tight">{value.title}</h3>
-                          <div className="text-white/40 text-xs font-medium mt-0.5 tracking-wide">ערך {i + 1} מתוך 6</div>
+                          <h3 className="text-white font-black text-xl sm:text-2xl tracking-tight">{t.amana[value.titleKey]}</h3>
                         </div>
                       </div>
                     </div>
                     {/* Body with accent border */}
                     <div className="p-5 sm:p-6 relative">
                       <div className="absolute top-0 right-6 w-12 h-1 rounded-full" style={{ backgroundColor: value.accent, opacity: 0.3 }} />
-                      <p className="text-gray-700 text-sm sm:text-[15px] leading-[2]">{value.text}</p>
+                      <p className="text-gray-700 text-sm sm:text-[15px] leading-[2]">{t.amana[value.descKey]}</p>
                     </div>
                   </div>
                 </div>
@@ -402,7 +360,7 @@ export default function AmanaPage() {
               <div className="text-center mb-5">
                 <div className="inline-flex items-center gap-3">
                   <div className="w-12 h-px bg-gradient-to-l from-gray-300 to-transparent" />
-                  <span className="text-xs font-black text-gray-400 tracking-[0.2em] uppercase">חברי הצוות</span>
+                  <span className="text-xs font-black text-gray-400 tracking-[0.2em] uppercase">{t.amana.teamMembers}</span>
                   <div className="w-12 h-px bg-gradient-to-r from-gray-300 to-transparent" />
                 </div>
               </div>
@@ -437,7 +395,7 @@ export default function AmanaPage() {
                 {/* Commander name — special */}
                 <div className="relative z-10 flex justify-center mt-6">
                   <div className="bg-gradient-to-l from-dotan-gold via-amber-400 to-yellow-500 px-6 py-2.5 rounded-xl shadow-xl animate-glow border border-amber-300/30">
-                    <span className="text-dotan-green-dark font-black text-sm sm:text-base tracking-wide">נטע וקנין  -  מפקדת</span>
+                    <span className="text-dotan-green-dark font-black text-sm sm:text-base tracking-wide">{t.amana.commanderName}  -  {t.amana.commanderTitle}</span>
                   </div>
                 </div>
               </div>
@@ -470,7 +428,7 @@ export default function AmanaPage() {
                     <MdFavorite className="text-red-400/70 text-lg animate-float" style={{ animationDelay: "0.6s" }} />
                   </div>
                   <p className="text-white text-xl sm:text-2xl font-black leading-relaxed mb-4">
-                    יחד, כצוות 16,<br />נוביל, נצליח ונישאר מאוחדים.
+                    {t.amana.closing}
                   </p>
                   <div className="flex items-center justify-center gap-4 mt-5">
                     <div className="w-20 h-px bg-gradient-to-l from-dotan-gold to-transparent" />
@@ -489,8 +447,8 @@ export default function AmanaPage() {
                   <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
                   <div className="w-12 h-px bg-gradient-to-r from-gray-300 to-transparent" />
                 </div>
-                <span className="text-[11px] text-gray-400 font-bold tracking-wide">אמנת צוות 16  -  פלוגת דותן</span>
-                <span className="text-[10px] text-gray-300 italic">מי שליבו בדרך אינו מפחד מהמרחק</span>
+                <span className="text-[11px] text-gray-400 font-bold tracking-wide">{t.amana.pdfTitle}</span>
+                <span className="text-[10px] text-gray-300 italic">{t.amana.motto}</span>
               </div>
             </div>
           </div>

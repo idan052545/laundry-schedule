@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import { MdCake } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
+import { useLanguage } from "@/i18n";
 
 interface UserBirthday {
   id: string;
@@ -16,10 +17,10 @@ interface UserBirthday {
   birthDate: string | null;
 }
 
-const MONTHS_HE = [
-  "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
-  "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
-];
+const MONTH_KEYS = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec",
+] as const;
 
 function parseBirthDate(dateStr: string): { day: number; month: number; year: number } | null {
   const parts = dateStr.split(".");
@@ -54,6 +55,7 @@ function isBirthdayThisWeek(dateStr: string | null): boolean {
 export default function BirthdaysPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [users, setUsers] = useState<UserBirthday[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -110,14 +112,14 @@ export default function BirthdaysPage() {
     <div>
       <h1 className="text-3xl font-bold text-dotan-green-dark mb-6 flex items-center gap-3">
         <MdCake className="text-pink-500" />
-        ימי הולדת - פלוגת דותן
+        {t.birthdays.title}
       </h1>
 
       {/* Today */}
       {todayBirthdays.length > 0 && (
         <div className="bg-gradient-to-l from-pink-100 to-dotan-mint-light p-6 rounded-xl border-2 border-pink-300 mb-6">
           <h2 className="text-xl font-bold text-pink-600 mb-4 flex items-center gap-2">
-            <MdCake /> יום הולדת היום!
+            <MdCake /> {t.birthdays.birthdayToday}
           </h2>
           <div className="flex flex-wrap gap-4">
             {todayBirthdays.map((user) => (
@@ -125,7 +127,7 @@ export default function BirthdaysPage() {
                 <Avatar name={user.name} image={user.image} size="md" />
                 <div>
                   <div className="font-bold text-gray-800">{user.name}</div>
-                  <div className="text-xs text-gray-500">צוות {user.team}</div>
+                  <div className="text-xs text-gray-500">{t.common.team} {user.team}</div>
                 </div>
               </div>
             ))}
@@ -136,7 +138,7 @@ export default function BirthdaysPage() {
       {/* This week */}
       {weekBirthdays.length > 0 && (
         <div className="bg-dotan-mint-light p-5 rounded-xl border border-dotan-mint mb-6">
-          <h2 className="text-lg font-bold text-dotan-green-dark mb-3">ימי הולדת השבוע הקרוב</h2>
+          <h2 className="text-lg font-bold text-dotan-green-dark mb-3">{t.birthdays.upcomingWeek}</h2>
           <div className="flex flex-wrap gap-3">
             {weekBirthdays.map((user) => {
               const parsed = parseBirthDate(user.birthDate!);
@@ -165,7 +167,7 @@ export default function BirthdaysPage() {
               <div className={`px-4 py-2 font-bold ${
                 month === currentMonth ? "bg-dotan-gold text-dotan-green-dark" : "bg-dotan-mint-light text-dotan-green-dark"
               }`}>
-                {MONTHS_HE[month - 1]}
+                {t.months[MONTH_KEYS[month - 1]]}
               </div>
               <div className="p-3 space-y-2">
                 {monthUsers.map((user) => {
@@ -176,7 +178,7 @@ export default function BirthdaysPage() {
                       <Avatar name={user.name} image={user.image} size="sm" />
                       <div className="flex-1">
                         <span className="text-sm font-medium">{user.name}</span>
-                        <span className="text-xs text-gray-400 mr-2">צוות {user.team}</span>
+                        <span className="text-xs text-gray-400 me-2">{t.common.team} {user.team}</span>
                       </div>
                       <span className="text-sm text-gray-500 font-mono">{parsed?.day}</span>
                     </div>

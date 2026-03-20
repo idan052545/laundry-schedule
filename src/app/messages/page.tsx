@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { MdPushPin, MdDelete, MdAdd, MdClose, MdSend, MdImage, MdPerson, MdInbox } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface Assignee {
   id: string;
@@ -33,6 +34,7 @@ interface UserOption {
 export default function MessagesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [allUsers, setAllUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ export default function MessagesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("למחוק הודעה זו?")) return;
+    if (!confirm(t.messages.deleteMessage)) return;
     const res = await fetch(`/api/messages?id=${id}`, { method: "DELETE" });
     if (res.ok) setMessages((prev) => prev.filter((m) => m.id !== id));
   };
@@ -111,7 +113,7 @@ export default function MessagesPage() {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("he-IL", {
+    return new Date(dateStr).toLocaleDateString(dateLocale, {
       day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
     });
   };
@@ -127,10 +129,10 @@ export default function MessagesPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark">לוח הודעות</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark">{t.messages.title}</h1>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 text-sm">
-          {showForm ? <><MdClose /> סגור</> : <><MdAdd /> הודעה חדשה</>}
+          {showForm ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.messages.newMessage}</>}
         </button>
       </div>
 
@@ -138,11 +140,11 @@ export default function MessagesPage() {
       <div className="flex gap-2 mb-4">
         <button onClick={() => setTab("all")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition ${tab === "all" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-          כל ההודעות
+          {t.messages.allMessages}
         </button>
         <button onClick={() => setTab("mine")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1 ${tab === "mine" ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-          <MdInbox /> הודעות שלי
+          <MdInbox /> {t.messages.myMessages}
         </button>
       </div>
 
@@ -150,21 +152,21 @@ export default function MessagesPage() {
         <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-dotan-mint mb-6 space-y-4">
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm sm:text-base"
-            placeholder="כותרת ההודעה" required />
+            placeholder={t.messages.messageTitle} required />
           <textarea value={content} onChange={(e) => setContent(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none min-h-[100px] text-sm sm:text-base"
-            placeholder="תוכן ההודעה..." required />
+            placeholder={t.messages.messageContent} required />
 
           {/* Image upload */}
           <div>
             <button type="button" onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm text-gray-700">
-              <MdImage /> צרף תמונה
+              <MdImage /> {t.messages.attachImage}
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
             {imagePreview && (
               <div className="mt-2 relative inline-block">
-                <img src={imagePreview} alt="תצוגה מקדימה" className="max-h-[200px] rounded-lg border border-gray-200" />
+                <img src={imagePreview} alt={t.messages.preview} className="max-h-[200px] rounded-lg border border-gray-200" />
                 <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
                   <MdClose />
@@ -177,7 +179,7 @@ export default function MessagesPage() {
           <div>
             <button type="button" onClick={() => setShowAssigneePicker(!showAssigneePicker)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm text-gray-700">
-              <MdPerson /> שייך לחיילים {selectedAssignees.length > 0 && `(${selectedAssignees.length})`}
+              <MdPerson /> {t.messages.assignSoldiers} {selectedAssignees.length > 0 && `(${selectedAssignees.length})`}
             </button>
 
             {selectedAssignees.length > 0 && (
@@ -197,11 +199,11 @@ export default function MessagesPage() {
             {showAssigneePicker && (
               <div className="mt-2 border border-gray-200 rounded-lg p-3 max-h-[200px] overflow-y-auto bg-gray-50">
                 <input type="text" value={assigneeSearch} onChange={(e) => setAssigneeSearch(e.target.value)}
-                  placeholder="חיפוש..." className="w-full px-3 py-1.5 border border-gray-300 rounded-lg mb-2 text-sm outline-none" />
+                  placeholder={t.common.search} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg mb-2 text-sm outline-none" />
                 <div className="space-y-1">
                   {filteredUsers.map((u) => (
                     <button key={u.id} type="button" onClick={() => toggleAssignee(u.id)}
-                      className={`w-full text-right flex items-center gap-2 p-1.5 rounded text-sm transition ${
+                      className={`w-full text-start flex items-center gap-2 p-1.5 rounded text-sm transition ${
                         selectedAssignees.includes(u.id) ? "bg-dotan-mint-light" : "hover:bg-gray-100"
                       }`}>
                       <Avatar name={u.name} image={u.image} size="sm" />
@@ -216,7 +218,7 @@ export default function MessagesPage() {
 
           <button type="submit" disabled={sending}
             className="bg-dotan-green-dark text-white px-6 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm sm:text-base">
-            <MdSend /> {sending ? "שולח..." : "פרסם הודעה"}
+            <MdSend /> {sending ? t.common.sending : t.messages.publishMessage}
           </button>
         </form>
       )}
@@ -253,7 +255,7 @@ export default function MessagesPage() {
 
             {msg.assignees.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1 items-center">
-                <span className="text-xs text-gray-400 ml-1">משויך ל:</span>
+                <span className="text-xs text-gray-400 ms-1">{t.messages.assignedTo}</span>
                 {msg.assignees.map((a) => (
                   <span key={a.id} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
                     {a.user.name}
@@ -269,12 +271,12 @@ export default function MessagesPage() {
             {tab === "mine" ? (
               <>
                 <MdInbox className="text-5xl mx-auto mb-4 text-gray-300" />
-                <p>אין הודעות משויכות אליך</p>
+                <p>{t.messages.noAssignedMessages}</p>
               </>
             ) : (
               <>
                 <MdAdd className="text-5xl mx-auto mb-4 text-gray-300" />
-                <p>אין הודעות עדיין. היה הראשון לפרסם!</p>
+                <p>{t.messages.noMessages}</p>
               </>
             )}
           </div>

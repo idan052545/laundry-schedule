@@ -26,6 +26,7 @@ model User {
   role              String    @default("user") // "user", "admin", "commander", "sagal"
   roleTitle         String?   // תפקיד מפקד, e.g. "קהדית פלוגתית"
   mustChangePassword Boolean  @default(false)
+  language          String    @default("he") // "he" | "en"
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   bookings          Booking[]
@@ -641,4 +642,15 @@ model VolunteerTitleHistory {
   category   String
   usageCount Int      @default(1)
   lastUsed   DateTime @default(now())
+}
+
+model TranslationCache {
+  id         String   @id @default(uuid())
+  sourceHash String   @unique // SHA-256 hash of source text + target lang
+  sourceText String
+  targetLang String   // "en", "he"
+  translated String
+  createdAt  DateTime @default(now())
+
+  @@index([sourceHash])
 }

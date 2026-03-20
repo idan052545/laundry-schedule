@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 import { Scenario, SimSession } from "./types";
 import { ScenarioList } from "./ScenarioList";
 import { ScenarioForm } from "./ScenarioForm";
@@ -13,6 +14,7 @@ import { SessionHistory } from "./SessionHistory";
 import { FeedbackView } from "./FeedbackView";
 
 export default function SimulatorPage() {
+  const { t } = useLanguage();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [view, setView] = useState<"list" | "create" | "edit" | "session" | "history" | "feedback">("list");
@@ -81,7 +83,7 @@ export default function SimulatorPage() {
           onCreate={() => setView("create")}
           onEdit={(s) => { setSelectedScenario(s); setView("edit"); }}
           onDelete={async (id) => {
-            if (!confirm("למחוק תרחיש זה?")) return;
+            if (!confirm(t.simulator.deleteConfirm)) return;
             await fetch(`/api/sim-scenarios?id=${id}`, { method: "DELETE" });
             fetchData();
           }}

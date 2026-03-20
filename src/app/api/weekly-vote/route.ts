@@ -73,8 +73,10 @@ export async function GET(request: Request) {
     .sort((a, b) => b.votes - a.votes)
     .map((entry, i) => ({ ...entry, rank: i + 1 }));
 
-  // Get all users for voting dropdown
+  // Get all users for voting dropdown (exclude commanders & simulator users)
+  const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
   const allUsers = await prisma.user.findMany({
+    where: { role: { notIn: EXCLUDED_ROLES } },
     select: { id: true, name: true, image: true },
     orderBy: { name: "asc" },
   });

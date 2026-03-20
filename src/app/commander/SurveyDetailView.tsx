@@ -18,6 +18,7 @@ import {
 import Avatar from "@/components/Avatar";
 import SimMultiSelect from "./SimMultiSelect";
 import { Survey, SurveyUser } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface SurveyDetailViewProps {
   survey: Survey;
@@ -52,6 +53,7 @@ export default function SurveyDetailView({
   editOptions, setEditOptions, sending, reminding,
   onBack, onRespond, onAction, onRemind, onExport, onDelete, onStartEdit, onSaveEdit, formatDate,
 }: SurveyDetailViewProps) {
+  const { t } = useLanguage();
   const options: string[] = survey.options ? JSON.parse(survey.options) : [];
   const myResponse = survey.responses.find((r) => r.user.id === userId);
   const myAnswer = myResponse ? JSON.parse(myResponse.answer) : null;
@@ -79,12 +81,12 @@ export default function SurveyDetailView({
   const filteredNotResponded = filteredMembers.filter((m) => !respondedIds.has(m.id));
 
   // Available teams
-  const teams = [...new Set(teamMembers.map((m) => m.team).filter((t): t is number => t !== null && t !== undefined))].sort();
+  const teams = [...new Set(teamMembers.map((m) => m.team).filter((tm): tm is number => tm !== null && tm !== undefined))].sort();
 
   return (
     <div className="space-y-4">
       <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-        ← חזרה לסקרים
+        {"\u2190"} {t.commander.backToSurveys}
       </button>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-4">
@@ -92,25 +94,25 @@ export default function SurveyDetailView({
         {editing ? (
           <div className="space-y-3 border-b pb-4">
             <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-purple-400 outline-none" placeholder="כותרת" />
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-purple-400 outline-none" placeholder={t.commander.surveyTitlePlaceholder} />
             <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none min-h-[50px]" placeholder="תיאור (אופציונלי)" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none min-h-[50px]" placeholder={t.commander.surveyDescOptional} />
             {survey.type !== "yes_no" && (
               <div className="space-y-2">
-                <label className="text-xs text-gray-500 font-medium">אפשרויות:</label>
+                <label className="text-xs text-gray-500 font-medium">{t.commander.optionsLabel}</label>
                 {editOptions.map((opt, i) => (
                   <div key={i} className="flex gap-2">
                     <input type="text" value={opt} onChange={(e) => { const o = [...editOptions]; o[i] = e.target.value; setEditOptions(o); }}
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none" placeholder={`אפשרות ${i + 1}`} />
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 outline-none" placeholder={`${t.commander.optionN} ${i + 1}`} />
                     {editOptions.length > 2 && <button type="button" onClick={() => setEditOptions(editOptions.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 px-2"><MdClose /></button>}
                   </div>
                 ))}
-                <button type="button" onClick={() => setEditOptions([...editOptions, ""])} className="text-xs text-purple-600 hover:underline flex items-center gap-1"><MdAdd /> הוסף אפשרות</button>
+                <button type="button" onClick={() => setEditOptions([...editOptions, ""])} className="text-xs text-purple-600 hover:underline flex items-center gap-1"><MdAdd /> {t.commander.addOption}</button>
               </div>
             )}
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">ביטול</button>
-              <button onClick={onSaveEdit} disabled={sending} className="px-4 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50">{sending ? "שומר..." : "שמור"}</button>
+              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">{t.common.cancel}</button>
+              <button onClick={onSaveEdit} disabled={sending} className="px-4 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50">{sending ? t.commander.saving : t.commander.saveSurvey}</button>
             </div>
           </div>
         ) : (
@@ -127,14 +129,14 @@ export default function SurveyDetailView({
                 <span>{formatDate(survey.createdAt)}</span>
                 <span>•</span>
                 <span className={`px-2 py-0.5 rounded-full font-medium ${survey.team === 0 ? "bg-purple-50 text-purple-600 border border-purple-200" : "bg-blue-50 text-blue-600 border border-blue-200"}`}>
-                  {survey.team === 0 ? "כל הפלוגה" : `צוות ${survey.team}`}
+                  {survey.team === 0 ? t.commander.allPlatoon : `${t.commander.teamN} ${survey.team}`}
                 </span>
               </div>
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
               survey.status === "active" ? "bg-green-50 text-green-600 border border-green-200" : "bg-gray-100 text-gray-500 border border-gray-200"
             }`}>
-              {survey.status === "active" ? "פעיל" : "סגור"}
+              {survey.status === "active" ? t.commander.active : t.commander.closed}
             </span>
           </div>
         )}
@@ -142,16 +144,16 @@ export default function SurveyDetailView({
         {/* Voting section */}
         {survey.status === "active" && (
           <div className="border rounded-xl p-4 space-y-3">
-            <h3 className="font-medium text-gray-700 text-sm">{myAnswer !== null ? "שנה תשובה:" : "הצבע:"}</h3>
+            <h3 className="font-medium text-gray-700 text-sm">{myAnswer !== null ? t.commander.changeAnswer : t.commander.vote}</h3>
             {survey.type === "yes_no" && (
               <div className="flex gap-3">
                 <button onClick={() => onRespond(survey.id, "yes")}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${myAnswer === "yes" ? "bg-green-500 text-white" : "bg-green-50 text-green-600 border-2 border-green-200 hover:border-green-400"}`}>
-                  <MdThumbUp /> כן
+                  <MdThumbUp /> {t.commander.yes}
                 </button>
                 <button onClick={() => onRespond(survey.id, "no")}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${myAnswer === "no" ? "bg-red-500 text-white" : "bg-red-50 text-red-600 border-2 border-red-200 hover:border-red-400"}`}>
-                  <MdThumbDown /> לא
+                  <MdThumbDown /> {t.commander.no}
                 </button>
               </div>
             )}
@@ -159,7 +161,7 @@ export default function SurveyDetailView({
               <div className="space-y-2">
                 {options.map((opt, i) => (
                   <button key={i} onClick={() => onRespond(survey.id, i)}
-                    className={`w-full text-right p-3 rounded-lg text-sm transition flex items-center gap-2 ${myAnswer === i ? "bg-purple-600 text-white" : "bg-gray-50 hover:bg-gray-100 border border-gray-200"}`}>
+                    className={`w-full text-start p-3 rounded-lg text-sm transition flex items-center gap-2 ${myAnswer === i ? "bg-purple-600 text-white" : "bg-gray-50 hover:bg-gray-100 border border-gray-200"}`}>
                     <MdRadioButtonChecked className={myAnswer === i ? "text-white" : "text-gray-300"} /> {opt}
                   </button>
                 ))}
@@ -173,10 +175,10 @@ export default function SurveyDetailView({
 
         {/* Results */}
         <div className="space-y-3">
-          <h3 className="font-medium text-gray-700 text-sm">תוצאות ({totalResponses}/{teamMembers.length})</h3>
+          <h3 className="font-medium text-gray-700 text-sm">{t.commander.results} ({totalResponses}/{teamMembers.length})</h3>
           {survey.type === "yes_no" && (
             <div className="space-y-2">
-              {[{ key: "yes", label: "כן", color: "bg-green-500" }, { key: "no", label: "לא", color: "bg-red-500" }].map(({ key, label, color }) => {
+              {[{ key: "yes", label: t.commander.yes, color: "bg-green-500" }, { key: "no", label: t.commander.no, color: "bg-red-500" }].map(({ key, label, color }) => {
                 const count = resultMap.get(key) || 0;
                 const pct = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
                 return (
@@ -187,7 +189,7 @@ export default function SurveyDetailView({
                         <span className="text-xs text-white font-bold">{pct}%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 w-8 text-left">{count}</span>
+                    <span className="text-xs text-gray-400 w-8 text-end">{count}</span>
                   </div>
                 );
               })}
@@ -206,7 +208,7 @@ export default function SurveyDetailView({
                         <span className="text-xs text-white font-bold">{pct}%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 w-8 text-left">{count}</span>
+                    <span className="text-xs text-gray-400 w-8 text-end">{count}</span>
                   </div>
                 );
               })}
@@ -217,15 +219,15 @@ export default function SurveyDetailView({
         {/* Team filter for responses */}
         {teams.length > 1 && (
           <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-xs text-gray-500 font-medium">סנן לפי צוות:</span>
+            <span className="text-xs text-gray-500 font-medium">{t.commander.filterByTeam}</span>
             <button onClick={() => setDetailTeamFilter(null)}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${!detailTeamFilter ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-              הכל
+              {t.commander.all}
             </button>
-            {teams.map((t) => (
-              <button key={t} onClick={() => setDetailTeamFilter(detailTeamFilter === t ? null : t)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${detailTeamFilter === t ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
-                צוות {t}
+            {teams.map((tm) => (
+              <button key={tm} onClick={() => setDetailTeamFilter(detailTeamFilter === tm ? null : tm)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition ${detailTeamFilter === tm ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {t.commander.teamN} {tm}
               </button>
             ))}
           </div>
@@ -234,7 +236,7 @@ export default function SurveyDetailView({
         {/* Who responded / didn't */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1"><MdCheckCircle /> ענו ({filteredResponses.length})</h4>
+            <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1"><MdCheckCircle /> {t.commander.responded} ({filteredResponses.length})</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {filteredResponses.map((r) => (
                 <div key={r.id} className="flex items-center gap-1.5 text-xs">
@@ -246,7 +248,7 @@ export default function SurveyDetailView({
             </div>
           </div>
           <div>
-            <h4 className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><MdPerson /> לא ענו ({filteredNotResponded.length})</h4>
+            <h4 className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><MdPerson /> {t.commander.notResponded} ({filteredNotResponded.length})</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {filteredNotResponded.map((m) => (
                 <div key={m.id} className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -263,16 +265,16 @@ export default function SurveyDetailView({
         {isCreator && (
           <div className="flex flex-wrap gap-2 pt-3 border-t">
             {survey.status === "active" ? (
-              <button onClick={() => onAction(survey.id, "close")} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center gap-1"><MdLock /> סגור סקר</button>
+              <button onClick={() => onAction(survey.id, "close")} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center gap-1"><MdLock /> {t.commander.closeSurvey}</button>
             ) : (
-              <button onClick={() => onAction(survey.id, "reopen")} className="text-xs px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1"><MdLockOpen /> פתח מחדש</button>
+              <button onClick={() => onAction(survey.id, "reopen")} className="text-xs px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1"><MdLockOpen /> {t.commander.reopenSurvey}</button>
             )}
             <button onClick={() => onRemind(survey.id)} disabled={reminding}
               className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 flex items-center gap-1 disabled:opacity-50">
-              <MdNotifications /> {reminding ? "שולח..." : `תזכר (${filteredNotResponded.length})`}
+              <MdNotifications /> {reminding ? t.commander.reminding : `${t.commander.remind} (${filteredNotResponded.length})`}
             </button>
-            <button onClick={() => onExport(survey)} className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 flex items-center gap-1"><MdDownload /> ייצוא</button>
-            <button onClick={() => onDelete(survey.id)} className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 flex items-center gap-1"><MdDelete /> מחק</button>
+            <button onClick={() => onExport(survey)} className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 flex items-center gap-1"><MdDownload /> {t.commander.exportSurvey}</button>
+            <button onClick={() => onDelete(survey.id)} className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 flex items-center gap-1"><MdDelete /> {t.commander.deleteSurvey}</button>
           </div>
         )}
       </div>

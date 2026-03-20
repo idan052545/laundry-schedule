@@ -23,10 +23,12 @@ import ClassicFeed from "./ClassicFeed";
 import NewFeed from "./NewFeed";
 import CarouselFeed from "./CarouselFeed";
 import MachineStatus from "./MachineStatus";
+import { useLanguage } from "@/i18n";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [feed, setFeed] = useState<DashboardFeed | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,26 +89,26 @@ export default function DashboardPage() {
   }
 
   const features = [
-    { href: "/schedule-daily", icon: MdCalendarMonth, title: 'לו"ז יומי', color: "text-sky-600", bg: "bg-sky-50" },
-    { href: "/messages", icon: MdMessage, title: "הודעות", color: "text-blue-600", bg: "bg-blue-50" },
-    { href: "/tasks", icon: MdAssignment, title: "משימות", color: "text-purple-600", bg: "bg-purple-50" },
-    { href: "/forms", icon: MdDescription, title: "טפסים", color: "text-indigo-600", bg: "bg-indigo-50" },
-    { href: "/attendance", icon: MdFactCheck, title: "מצל", color: "text-orange-600", bg: "bg-orange-50" },
-    { href: "/commander", icon: MdStar, title: "מפקדים", color: "text-amber-600", bg: "bg-amber-50" },
-    { href: "/surveys", icon: MdPoll, title: "סקרים", color: "text-violet-600", bg: "bg-violet-50" },
-    { href: "/person-of-week", icon: MdAutoAwesome, title: "איש השבוע", color: "text-yellow-600", bg: "bg-yellow-50" },
-    { href: "/issues", icon: MdBuild, title: "תקלות", color: "text-red-600", bg: "bg-red-50" },
-    { href: "/users-wall", icon: MdPeople, title: "חיילי הפלוגה", color: "text-teal-600", bg: "bg-teal-50" },
-    { href: "/materials", icon: MdMenuBook, title: "חומר מקצועי", color: "text-rose-600", bg: "bg-rose-50" },
-    { href: "/formats", icon: MdFolder, title: "פורמטים", color: "text-cyan-600", bg: "bg-cyan-50" },
-    { href: "/schedule", icon: MdLocalLaundryService, title: "מכבסה", color: "text-dotan-green", bg: "bg-green-50" },
-    { href: "/birthdays", icon: MdCake, title: "ימי הולדת", color: "text-pink-600", bg: "bg-pink-50" },
-    { href: "/guard-duty", icon: MdSecurity, title: "תורנויות", color: "text-amber-700", bg: "bg-amber-50" },
-    { href: "/daily-quote", icon: MdAutoAwesome, title: "משפט היומי", color: "text-purple-600", bg: "bg-purple-50" },
-    { href: "/chopal", icon: MdLocalHospital, title: 'חופ"ל', color: "text-rose-600", bg: "bg-rose-50" },
-    { href: "/aktualia", icon: MdNewspaper, title: "אקטואליה", color: "text-emerald-600", bg: "bg-emerald-50" },
-    { href: "/notifications", icon: MdNotifications, title: "התראות", color: "text-gray-600", bg: "bg-gray-50" },
-    { href: "/profile", icon: MdPerson, title: "פרופיל", color: "text-gray-500", bg: "bg-gray-50" },
+    { href: "/schedule-daily", icon: MdCalendarMonth, title: t.dashboard.dailySchedule, color: "text-sky-600", bg: "bg-sky-50" },
+    { href: "/messages", icon: MdMessage, title: t.dashboard.messages, color: "text-blue-600", bg: "bg-blue-50" },
+    { href: "/tasks", icon: MdAssignment, title: t.dashboard.tasks, color: "text-purple-600", bg: "bg-purple-50" },
+    { href: "/forms", icon: MdDescription, title: t.dashboard.forms, color: "text-indigo-600", bg: "bg-indigo-50" },
+    { href: "/attendance", icon: MdFactCheck, title: t.dashboard.attendance, color: "text-orange-600", bg: "bg-orange-50" },
+    { href: "/commander", icon: MdStar, title: t.dashboard.commanders, color: "text-amber-600", bg: "bg-amber-50" },
+    { href: "/surveys", icon: MdPoll, title: t.dashboard.surveys, color: "text-violet-600", bg: "bg-violet-50" },
+    { href: "/person-of-week", icon: MdAutoAwesome, title: t.dashboard.personOfWeek, color: "text-yellow-600", bg: "bg-yellow-50" },
+    { href: "/issues", icon: MdBuild, title: t.dashboard.issues, color: "text-red-600", bg: "bg-red-50" },
+    { href: "/users-wall", icon: MdPeople, title: t.dashboard.soldiers, color: "text-teal-600", bg: "bg-teal-50" },
+    { href: "/materials", icon: MdMenuBook, title: t.dashboard.materials, color: "text-rose-600", bg: "bg-rose-50" },
+    { href: "/formats", icon: MdFolder, title: t.dashboard.formats, color: "text-cyan-600", bg: "bg-cyan-50" },
+    { href: "/schedule", icon: MdLocalLaundryService, title: t.dashboard.laundry, color: "text-dotan-green", bg: "bg-green-50" },
+    { href: "/birthdays", icon: MdCake, title: t.dashboard.birthdays, color: "text-pink-600", bg: "bg-pink-50" },
+    { href: "/guard-duty", icon: MdSecurity, title: t.dashboard.volunteers, color: "text-amber-700", bg: "bg-amber-50" },
+    { href: "/daily-quote", icon: MdAutoAwesome, title: t.dashboard.dailyQuote, color: "text-purple-600", bg: "bg-purple-50" },
+    { href: "/chopal", icon: MdLocalHospital, title: t.dashboard.chopal, color: "text-rose-600", bg: "bg-rose-50" },
+    { href: "/aktualia", icon: MdNewspaper, title: t.dashboard.aktualia, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { href: "/notifications", icon: MdNotifications, title: t.dashboard.notifications, color: "text-gray-600", bg: "bg-gray-50" },
+    { href: "/profile", icon: MdPerson, title: t.dashboard.profile, color: "text-gray-500", bg: "bg-gray-50" },
   ];
 
   const firstName = session?.user?.name?.split(" ")[0] || "";
@@ -127,7 +129,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-gray-900 truncate">
-            {getGreeting()}, {firstName}
+            {getGreeting(t)}, {firstName}
           </h1>
           <p className="text-xs text-gray-400">
             {new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
@@ -167,11 +169,11 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3">
           <MdWarning className="text-red-500 shrink-0" />
           <span className="text-xs font-medium text-red-700 flex-1">
-            {urgentCount} פריטים דורשים טיפול
+            {urgentCount} {t.dashboard.actionItems}
           </span>
           {(feed?.pendingForms.length || 0) > 0 && (
             <Link href="/forms" className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold hover:bg-red-200 transition">
-              {feed?.pendingForms.length} טפסים
+              {feed?.pendingForms.length} {t.dashboard.forms}
             </Link>
           )}
         </div>

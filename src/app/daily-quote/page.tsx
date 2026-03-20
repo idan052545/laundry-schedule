@@ -7,6 +7,7 @@ import {
   MdFormatQuote, MdSend, MdAutoAwesome, MdHistory,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import { useLanguage } from "@/i18n";
 
 interface Quote {
   id: string;
@@ -18,6 +19,7 @@ interface Quote {
 export default function DailyQuotePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t, dateLocale } = useLanguage();
   const [todayQuote, setTodayQuote] = useState<Quote | null>(null);
   const [yesterdayQuote, setYesterdayQuote] = useState<Quote | null>(null);
   const [isDana, setIsDana] = useState(false);
@@ -73,7 +75,7 @@ export default function DailyQuotePage() {
 
   if (status === "loading" || loading) return <InlineLoading />;
 
-  const todayDate = new Date().toLocaleDateString("he-IL", {
+  const todayDate = new Date().toLocaleDateString(dateLocale, {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
@@ -138,7 +140,7 @@ export default function DailyQuotePage() {
               WebkitTextFillColor: "transparent",
               animation: "shimmer 5s linear infinite",
             }}>
-              משפט היומי
+              {t.dailyQuote.title}
             </h1>
 
             <p className="text-white/50 text-sm font-medium">{todayDate}</p>
@@ -179,7 +181,7 @@ export default function DailyQuotePage() {
                   <div className="text-center">
                     <span className="text-sm font-bold text-purple-700">{todayQuote.user.name}</span>
                     {todayQuote.user.team && (
-                      <span className="text-xs text-purple-400 mr-2"> | צוות {todayQuote.user.team}</span>
+                      <span className="text-xs text-purple-400 me-2"> | {t.common.team} {todayQuote.user.team}</span>
                     )}
                   </div>
                 </div>
@@ -190,8 +192,8 @@ export default function DailyQuotePage() {
               <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
                 <MdFormatQuote className="text-gray-300 text-3xl rotate-180" />
               </div>
-              <p className="text-gray-400 text-sm font-medium">עדיין לא נבחר משפט להיום</p>
-              <p className="text-gray-300 text-xs mt-1">המשפט היומי ייבחר על ידי דנה פרידמן</p>
+              <p className="text-gray-400 text-sm font-medium">{t.dailyQuote.noQuoteYet}</p>
+              <p className="text-gray-300 text-xs mt-1">{t.dailyQuote.quoteSelectedBy}</p>
             </div>
           )}
         </div>
@@ -202,24 +204,24 @@ export default function DailyQuotePage() {
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-5 border border-purple-100 shadow-sm">
               <h3 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
                 <MdAutoAwesome className="text-amber-500" />
-                {todayQuote ? "עדכני את המשפט להיום" : "בחרי את המשפט להיום"}
+                {todayQuote ? t.dailyQuote.updateQuote : t.dailyQuote.chooseQuote}
               </h3>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="כתבי כאן את המשפט היומי..."
+                placeholder={t.dailyQuote.placeholder}
                 className="w-full border border-purple-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-purple-300 focus:border-purple-300 outline-none resize-none bg-white min-h-[100px] text-gray-800 placeholder-gray-400"
                 dir="rtl"
               />
               <div className="flex items-center justify-between mt-3">
-                <span className="text-[11px] text-purple-400">{text.length} תווים</span>
+                <span className="text-[11px] text-purple-400">{text.length} {t.dailyQuote.characters}</span>
                 <button
                   onClick={handleSubmit}
                   disabled={!text.trim() || submitting}
                   className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-l from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <MdSend className="text-base" />
-                  {submitting ? "שולח..." : todayQuote ? "עדכן" : "פרסם"}
+                  {submitting ? t.common.sending : todayQuote ? t.common.update : t.common.publish}
                 </button>
               </div>
             </div>
@@ -232,7 +234,7 @@ export default function DailyQuotePage() {
             <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
               <div className="flex items-center gap-2 mb-3">
                 <MdHistory className="text-gray-400 text-lg" />
-                <span className="text-xs font-bold text-gray-400 tracking-wide">המשפט של אתמול</span>
+                <span className="text-xs font-bold text-gray-400 tracking-wide">{t.dailyQuote.yesterdayQuote}</span>
               </div>
               <p className="text-gray-500 text-sm leading-[1.8] text-center italic">
                 &ldquo;{yesterdayQuote.text}&rdquo;
@@ -240,7 +242,7 @@ export default function DailyQuotePage() {
               <div className="text-center mt-3">
                 <span className="text-xs text-gray-400 font-medium">{yesterdayQuote.user.name}</span>
                 {yesterdayQuote.user.team && (
-                  <span className="text-[11px] text-gray-300 mr-1"> | צוות {yesterdayQuote.user.team}</span>
+                  <span className="text-[11px] text-gray-300 me-1"> | {t.common.team} {yesterdayQuote.user.team}</span>
                 )}
               </div>
             </div>

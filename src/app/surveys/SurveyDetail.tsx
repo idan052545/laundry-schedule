@@ -8,6 +8,7 @@ import {
 import Avatar from "@/components/Avatar";
 import MultiSelect from "./MultiSelect";
 import { Survey, User, formatDate } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface SurveyDetailProps {
   survey: Survey;
@@ -40,6 +41,7 @@ export default function SurveyDetail({
   editing, editTitle, editDesc, editOptions, setEditing, setEditTitle, setEditDesc, setEditOptions,
   onBack, onRespond, onClose, onReopen, onRemind, onDelete, onExport, onStartEdit, onSaveEdit,
 }: SurveyDetailProps) {
+  const { t, dateLocale } = useLanguage();
   const options: string[] = survey.options ? JSON.parse(survey.options) : [];
   const myResponse = survey.responses.find((r) => r.user.id === userId);
   const myAnswer = myResponse ? JSON.parse(myResponse.answer) : null;
@@ -71,12 +73,12 @@ export default function SurveyDetail({
   return (
     <div className="max-w-2xl mx-auto">
       <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
-        ← חזרה לסקרים
+        {t.surveys.backToSurveys}
       </button>
 
       {isSagal && (
         <div className="mb-4 px-4 py-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm text-center font-medium">
-          צפייה בלבד — סגל מפקד
+          {t.surveys.sagalViewOnly}
         </div>
       )}
 
@@ -86,13 +88,13 @@ export default function SurveyDetail({
           <div className="space-y-3 border-b pb-4">
             <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-dotan-green outline-none"
-              placeholder="כותרת" />
+              placeholder={t.surveys.titlePlaceholder} />
             <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none min-h-[50px]"
-              placeholder="תיאור (אופציונלי)" />
+              placeholder={t.surveys.descriptionOptional} />
             {survey.type !== "yes_no" && (
               <div className="space-y-2">
-                <label className="text-xs text-gray-500 font-medium">אפשרויות:</label>
+                <label className="text-xs text-gray-500 font-medium">{t.surveys.optionsLabel}</label>
                 {editOptions.map((opt, i) => (
                   <div key={i} className="flex gap-2">
                     <input type="text" value={opt} onChange={(e) => {
@@ -101,7 +103,7 @@ export default function SurveyDetail({
                       setEditOptions(newOpts);
                     }}
                       className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none"
-                      placeholder={`אפשרות ${i + 1}`} />
+                      placeholder={`${t.surveys.optionN} ${i + 1}`} />
                     {editOptions.length > 2 && (
                       <button type="button" onClick={() => setEditOptions(editOptions.filter((_, j) => j !== i))}
                         className="text-red-400 hover:text-red-600 px-2"><MdClose /></button>
@@ -109,14 +111,14 @@ export default function SurveyDetail({
                   </div>
                 ))}
                 <button type="button" onClick={() => setEditOptions([...editOptions, ""])}
-                  className="text-xs text-dotan-green hover:underline flex items-center gap-1"><MdAdd /> הוסף אפשרות</button>
+                  className="text-xs text-dotan-green hover:underline flex items-center gap-1"><MdAdd /> {t.surveys.addOption}</button>
               </div>
             )}
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">ביטול</button>
+              <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">{t.surveys.cancel}</button>
               <button onClick={onSaveEdit} disabled={sending}
                 className="px-4 py-1.5 text-sm bg-dotan-green-dark text-white rounded-lg hover:bg-dotan-green transition disabled:opacity-50">
-                {sending ? "שומר..." : "שמור"}
+                {sending ? t.surveys.saving : t.surveys.save}
               </button>
             </div>
           </div>
@@ -135,15 +137,15 @@ export default function SurveyDetail({
               <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
                 <span>{survey.createdBy.name}</span>
                 <span>•</span>
-                <span>{formatDate(survey.createdAt)}</span>
+                <span>{formatDate(survey.createdAt, dateLocale)}</span>
                 <span>•</span>
-                <span>{survey.team === 0 ? "כל הפלוגה" : `צוות ${survey.team}`}</span>
+                <span>{survey.team === 0 ? t.surveys.allPlatoon : `${t.surveys.teamN} ${survey.team}`}</span>
               </div>
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
               survey.status === "active" ? "bg-green-50 text-green-600 border border-green-200" : "bg-gray-100 text-gray-500 border border-gray-200"
             }`}>
-              {survey.status === "active" ? "פעיל" : "סגור"}
+              {survey.status === "active" ? t.surveys.active : t.surveys.closed}
             </span>
           </div>
         )}
@@ -152,7 +154,7 @@ export default function SurveyDetail({
         {survey.status === "active" && !isSagal && (
           <div className="border rounded-xl p-4 space-y-3">
             <h3 className="font-medium text-gray-700 text-sm">
-              {myAnswer !== null ? "שנה תשובה:" : "הצבע:"}
+              {myAnswer !== null ? t.surveys.changeAnswer : t.surveys.vote}
             </h3>
 
             {survey.type === "yes_no" && (
@@ -161,13 +163,13 @@ export default function SurveyDetail({
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${
                     myAnswer === "yes" ? "bg-green-500 text-white" : "bg-green-50 text-green-600 border-2 border-green-200 hover:border-green-400"
                   }`}>
-                  <MdThumbUp /> כן
+                  <MdThumbUp /> {t.surveys.yes}
                 </button>
                 <button onClick={() => onRespond(survey.id, "no")}
                   className={`flex-1 py-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${
                     myAnswer === "no" ? "bg-red-500 text-white" : "bg-red-50 text-red-600 border-2 border-red-200 hover:border-red-400"
                   }`}>
-                  <MdThumbDown /> לא
+                  <MdThumbDown /> {t.surveys.no}
                 </button>
               </div>
             )}
@@ -176,7 +178,7 @@ export default function SurveyDetail({
               <div className="space-y-2">
                 {options.map((opt, i) => (
                   <button key={i} onClick={() => onRespond(survey.id, i)}
-                    className={`w-full text-right p-3 rounded-lg text-sm transition flex items-center gap-2 ${
+                    className={`w-full text-start p-3 rounded-lg text-sm transition flex items-center gap-2 ${
                       myAnswer === i ? "bg-dotan-green-dark text-white" : "bg-gray-50 hover:bg-gray-100 border border-gray-200"
                     }`}>
                     <MdRadioButtonChecked className={myAnswer === i ? "text-white" : "text-gray-300"} />
@@ -194,11 +196,11 @@ export default function SurveyDetail({
 
         {/* Results */}
         <div className="space-y-3">
-          <h3 className="font-medium text-gray-700 text-sm">תוצאות ({totalResponses}/{relevantMembers.length})</h3>
+          <h3 className="font-medium text-gray-700 text-sm">{t.surveys.results} ({totalResponses}/{relevantMembers.length})</h3>
 
           {survey.type === "yes_no" && (
             <div className="space-y-2">
-              {[{ key: "yes", label: "כן", color: "bg-green-500" }, { key: "no", label: "לא", color: "bg-red-500" }].map(({ key, label, color }) => {
+              {[{ key: "yes", label: t.surveys.yes, color: "bg-green-500" }, { key: "no", label: t.surveys.no, color: "bg-red-500" }].map(({ key, label, color }) => {
                 const count = resultMap.get(key) || 0;
                 const pct = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
                 return (
@@ -209,7 +211,7 @@ export default function SurveyDetail({
                         <span className="text-xs text-white font-bold">{pct}%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 w-8 text-left">{count}</span>
+                    <span className="text-xs text-gray-400 w-8 text-end">{count}</span>
                   </div>
                 );
               })}
@@ -229,7 +231,7 @@ export default function SurveyDetail({
                         <span className="text-xs text-white font-bold">{pct}%</span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400 w-8 text-left">{count}</span>
+                    <span className="text-xs text-gray-400 w-8 text-end">{count}</span>
                   </div>
                 );
               })}
@@ -240,7 +242,7 @@ export default function SurveyDetail({
         {/* Who responded / didn't */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1"><MdCheckCircle /> ענו ({survey.responses.length})</h4>
+            <h4 className="text-xs font-medium text-green-600 mb-2 flex items-center gap-1"><MdCheckCircle /> {t.surveys.answeredList} ({survey.responses.length})</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {survey.responses.map((r) => (
                 <div key={r.id} className="flex items-center gap-1.5 text-xs">
@@ -251,7 +253,7 @@ export default function SurveyDetail({
             </div>
           </div>
           <div>
-            <h4 className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><MdPerson /> לא ענו ({notResponded.length})</h4>
+            <h4 className="text-xs font-medium text-red-500 mb-2 flex items-center gap-1"><MdPerson /> {t.surveys.notAnsweredList} ({notResponded.length})</h4>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {notResponded.map((m) => (
                 <div key={m.id} className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -269,25 +271,25 @@ export default function SurveyDetail({
             {survey.status === "active" ? (
               <button onClick={() => onClose(survey.id)}
                 className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center gap-1">
-                <MdLock /> סגור סקר
+                <MdLock /> {t.surveys.closeSurvey}
               </button>
             ) : (
               <button onClick={() => onReopen(survey.id)}
                 className="text-xs px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1">
-                <MdLockOpen /> פתח מחדש
+                <MdLockOpen /> {t.surveys.reopenSurvey}
               </button>
             )}
             <button onClick={() => onRemind(survey.id)} disabled={reminding}
               className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 flex items-center gap-1 disabled:opacity-50">
-              <MdNotifications /> {reminding ? "שולח..." : `תזכר (${notResponded.length})`}
+              <MdNotifications /> {reminding ? t.surveys.reminding : `${t.surveys.remind} (${notResponded.length})`}
             </button>
             <button onClick={() => onExport(survey)}
               className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 flex items-center gap-1">
-              <MdDownload /> ייצוא
+              <MdDownload /> {t.surveys.export}
             </button>
             <button onClick={() => onDelete(survey.id)}
               className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 flex items-center gap-1">
-              <MdDelete /> מחק
+              <MdDelete /> {t.surveys.deleteSurvey}
             </button>
           </div>
         )}

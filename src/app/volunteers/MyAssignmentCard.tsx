@@ -1,6 +1,7 @@
 "use client";
 
 import { MdSwapHoriz, MdStar, MdEdit } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "./constants";
 import type { VolRequest } from "./types";
 
@@ -18,6 +19,7 @@ export default function MyAssignmentCard({
   req, myUserId, fmtTime, fmtDate,
   onShowReplace, onShowFeedback, onShowDispute,
 }: MyAssignmentCardProps) {
+  const { t } = useLanguage();
   const myAssignment = req.assignments.find(a => a.userId === myUserId && a.status !== "cancelled");
   if (!myAssignment) return null;
 
@@ -39,7 +41,7 @@ export default function MyAssignmentCard({
             </span>
           </div>
           <div className="text-[10px] text-gray-400 mt-0.5">
-            {myAssignment.assignmentType === "self" ? "התנדבתי" : myAssignment.assignmentType === "commander" ? "שובצתי ע\"י מפקד" : "שובצתי ע\"י חבר צוות"}
+            {myAssignment.assignmentType === "self" ? t.volunteers.iVolunteered : myAssignment.assignmentType === "commander" ? t.volunteers.assignedByCommander : t.volunteers.assignedByTeammate}
           </div>
         </div>
       </div>
@@ -47,18 +49,18 @@ export default function MyAssignmentCard({
         {req.status !== "completed" && req.status !== "cancelled" && (
           <button onClick={() => onShowReplace(myAssignment.id)}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition">
-            <MdSwapHoriz className="text-sm" /> צריך מחליף
+            <MdSwapHoriz className="text-sm" /> {t.volunteers.needsReplace}
           </button>
         )}
         {req.status === "completed" && (
           <>
             <button onClick={() => onShowFeedback(req.id)}
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition">
-              <MdStar className="text-sm" /> דרג/י
+              <MdStar className="text-sm" /> {t.volunteers.rateBtn}
             </button>
             <button onClick={() => onShowDispute(req.id)}
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-amber-200 text-amber-700 text-[10px] font-medium hover:bg-amber-50 transition">
-              <MdEdit className="text-xs" /> ערעור שעות
+              <MdEdit className="text-xs" /> {t.volunteers.disputeBtn}
             </button>
           </>
         )}

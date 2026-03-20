@@ -43,8 +43,10 @@ export async function GET() {
     return form;
   });
 
-  // Get all users for completion tracking
+  // Get all users for completion tracking (exclude simulator users)
+  const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
   const allUsers = await prisma.user.findMany({
+    where: { role: { notIn: EXCLUDED_ROLES } },
     select: { id: true, name: true, image: true, team: true },
     orderBy: [{ team: "asc" }, { name: "asc" }],
   });

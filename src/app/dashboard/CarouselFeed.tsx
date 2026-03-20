@@ -10,6 +10,7 @@ import {
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import type { DashboardFeed, SectionKey } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface CarouselCard {
   key: string;
@@ -28,6 +29,7 @@ interface CarouselFeedProps {
 }
 
 export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
+  const { t } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
 
@@ -41,7 +43,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-indigo-500 via-purple-500 to-pink-500",
       iconBg: "bg-white/20",
       icon: <MdAutoAwesome className="text-xl text-white" />,
-      title: "משפט היומי",
+      title: t.dashboard.dailyQuote,
       subtitle: feed.dailyQuote.user.name,
       content: (
         <p className="text-white/90 text-sm leading-relaxed mt-2 line-clamp-3">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
@@ -58,8 +60,8 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: hasNow ? "from-green-500 to-emerald-600" : "from-emerald-500 to-teal-600",
       iconBg: "bg-white/20",
       icon: <MdCalendarMonth className="text-xl text-white" />,
-      title: "לו\"ז היום",
-      subtitle: hasNow ? "עכשיו" : undefined,
+      title: t.dashboard.dailySchedule,
+      subtitle: hasNow ? t.common.now : undefined,
       content: (
         <div className="mt-2 space-y-1">
           {(feed.scheduleItems || []).slice(0, 4).map(ev => (
@@ -70,7 +72,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
               </span>
               <span className="text-xs text-white truncate">{ev.title}</span>
               <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${ev.target === "all" ? "bg-white/15 text-white/80" : "bg-cyan-300/25 text-cyan-100"}`}>
-                {ev.target === "all" ? "פלוגה" : "צוות"}
+                {ev.target === "all" ? t.schedule.platoon : t.common.team}
               </span>
             </div>
           ))}
@@ -106,7 +108,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
               </span>
             ))}
           </div>
-        ) : <p className="text-white/60 text-xs mt-2">אין שיבוצים עבורך</p>,
+        ) : <p className="text-white/60 text-xs mt-2">{t.guardDuty.noAssignment}</p>,
       });
     }
   }
@@ -119,14 +121,14 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-teal-500 to-cyan-600",
       iconBg: "bg-white/20",
       icon: <MdCalendarMonth className="text-xl text-white" />,
-      title: "לו\"ז צוות — עבורך",
-      subtitle: `${feed.myTeamAssignments.length} משימות`,
+      title: `${t.dashboard.sectionTeamSchedule} — ${t.schedule.forYou}`,
+      subtitle: `${feed.myTeamAssignments.length} ${t.dashboard.tasks}`,
       content: (
         <div className="space-y-1 mt-2">
           {feed.myTeamAssignments.slice(0, 3).map(e => (
             <div key={e.id} className="flex items-center gap-2 bg-white/10 rounded-lg px-2 py-1">
               <span className="text-[11px] font-bold text-white/80 tabular-nums w-12 text-center" dir="ltr">
-                {e.allDay ? "כל היום" : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
+                {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
               </span>
               <span className="text-xs text-white truncate">{e.title}</span>
             </div>
@@ -144,16 +146,16 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-purple-500 to-indigo-600",
       iconBg: "bg-white/20",
       icon: <MdAssignment className="text-xl text-white" />,
-      title: `${feed.todayTasks.length} משימות`,
+      title: `${feed.todayTasks.length} ${t.dashboard.tasks}`,
       content: (
         <div className="space-y-1 mt-2">
-          {feed.todayTasks.slice(0, 3).map(t => (
-            <div key={t.id} className="flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.priority === "urgent" ? "bg-red-300" : t.priority === "high" ? "bg-orange-300" : "bg-white/40"}`} />
-              <span className="text-xs text-white/90 truncate">{t.title}</span>
+          {feed.todayTasks.slice(0, 3).map(task => (
+            <div key={task.id} className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.priority === "urgent" ? "bg-red-300" : task.priority === "high" ? "bg-orange-300" : "bg-white/40"}`} />
+              <span className="text-xs text-white/90 truncate">{task.title}</span>
             </div>
           ))}
-          {feed.todayTasks.length > 3 && <span className="text-[10px] text-white/50">+ עוד {feed.todayTasks.length - 3}</span>}
+          {feed.todayTasks.length > 3 && <span className="text-[10px] text-white/50">+ {feed.todayTasks.length - 3}</span>}
         </div>
       ),
     });
@@ -167,7 +169,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-orange-500 to-amber-600",
       iconBg: "bg-white/20",
       icon: <MdDescription className="text-xl text-white" />,
-      title: `${feed.pendingForms.length} טפסים למילוי`,
+      title: `${feed.pendingForms.length} ${t.dashboard.forms}`,
       content: (
         <div className="space-y-0.5 mt-2">
           {feed.pendingForms.slice(0, 3).map(f => (
@@ -186,8 +188,8 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-rose-500 to-pink-600",
       iconBg: "bg-white/20",
       icon: <MdLocalHospital className="text-xl text-white" />,
-      title: "מסדר חופ\"ל",
-      subtitle: "הירשם/י למחר (עד 21:00)",
+      title: t.dashboard.chopal,
+      subtitle: t.chopal.iNeedChopal,
     });
   }
   if (visible.has("chopal") && feed.chopalStatus?.registered) {
@@ -198,8 +200,8 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: ca?.status === "pending" ? "from-amber-500 to-orange-600" : "from-green-500 to-emerald-600",
       iconBg: "bg-white/20",
       icon: ca ? <MdAccessTime className="text-xl text-white" /> : <MdCheckCircle className="text-xl text-white" />,
-      title: ca ? `חופ"ל — ${ca.assignedTime}` : "נרשמת לחופ\"ל",
-      subtitle: ca?.status === "pending" ? "ממתין לאישור" : ca?.status === "accepted" ? "אושר ✓" : ca?.status === "rejected" ? "נדחה" : "ממתין לתור",
+      title: ca ? `${t.dashboard.chopal} — ${ca.assignedTime}` : t.chopal.registeredForChopal,
+      subtitle: ca?.status === "pending" ? t.chopal.waitingForAppointment : ca?.status === "accepted" ? `${t.chopal.appointmentApproved} ✓` : ca?.status === "rejected" ? t.chopal.appointmentRejected : t.chopal.waitingForAppointment,
     });
   }
 
@@ -211,7 +213,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-red-500 to-rose-600",
       iconBg: "bg-white/20",
       icon: <MdVolunteerActivism className="text-xl text-white" />,
-      title: "דרוש/ה מחליף/ה דחוף!",
+      title: `${t.volAlerts.needsReplacement} ${t.volAlerts.urgent}!`,
       subtitle: feed.urgentReplacement.request.title,
     });
   }
@@ -222,7 +224,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-green-500 to-emerald-600",
       iconBg: "bg-white/20",
       icon: <MdVolunteerActivism className="text-xl text-white" />,
-      title: `${feed.activeVolunteerRequests.length} בקשות התנדבות`,
+      title: `${feed.activeVolunteerRequests.length} ${t.volunteers.title}`,
       subtitle: feed.activeVolunteerRequests[0]?.title,
     });
   }
@@ -234,8 +236,8 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: nowV ? "from-emerald-600 to-green-700" : "from-emerald-500 to-teal-600",
       iconBg: "bg-white/20",
       icon: <MdCheckCircle className="text-xl text-white" />,
-      title: nowV ? nowV.request.title : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`,
-      subtitle: nowV ? "בהתנדבות עכשיו" : feed.myVolunteerAssignments[0]?.request.title,
+      title: nowV ? nowV.request.title : `${feed.myVolunteerAssignments.length} ${t.volunteers.title}`,
+      subtitle: nowV ? `${t.common.now}` : feed.myVolunteerAssignments[0]?.request.title,
     });
   }
   if (visible.has("volunteers") && feed.myCreatedRequests?.length > 0) {
@@ -245,8 +247,8 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-teal-500 to-cyan-600",
       iconBg: "bg-white/20",
       icon: <MdVolunteerActivism className="text-xl text-white" />,
-      title: `${feed.myCreatedRequests.length} תורנויות שיצרת`,
-      subtitle: `${feed.myCreatedRequests.reduce((s, r) => s + r._count.assignments, 0)} מתנדבים שובצו`,
+      title: `${feed.myCreatedRequests.length} ${t.dashboard.volunteers}`,
+      subtitle: `${feed.myCreatedRequests.reduce((s, r) => s + r._count.assignments, 0)} ${t.volunteers.volunteersCount}`,
     });
   }
 
@@ -259,7 +261,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-violet-500 to-purple-600",
       iconBg: "bg-white/20",
       icon: <MdPoll className="text-xl text-white" />,
-      title: `${total} סקרים ממתינים`,
+      title: `${total} ${t.dashboard.surveys}`,
     });
   }
 
@@ -271,7 +273,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-pink-500 to-rose-600",
       iconBg: "bg-white/20",
       icon: <MdCake className="text-xl text-white" />,
-      title: "יום הולדת שמח!",
+      title: `${t.birthdays.birthdayToday}!`,
       subtitle: feed.birthdayUsers.map(u => u.name).join(", "),
       content: (
         <div className="flex -space-x-2 mt-2">
@@ -317,7 +319,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-yellow-400 to-orange-500",
       iconBg: "bg-white/20",
       icon: <MdEmojiEvents className="text-xl text-white" />,
-      title: "בחרו את איש/ת השבוע!",
+      title: `${t.personOfWeek.vote} ${t.personOfWeek.title}!`,
     });
   }
 
@@ -329,7 +331,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-rose-500 to-red-600",
       iconBg: "bg-white/20",
       icon: <MdNewReleases className="text-xl text-white" />,
-      title: `${feed.unreadMaterials.length} חומרים חדשים`,
+      title: `${feed.unreadMaterials.length} ${t.dashboard.materials}`,
     });
   }
 
@@ -341,7 +343,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-amber-500 to-yellow-600",
       iconBg: "bg-white/20",
       icon: <MdStickyNote2 className="text-xl text-white" />,
-      title: `${feed.todayNotes.length} הערות להיום`,
+      title: `${feed.todayNotes.length} ${t.dashboard.sectionNotes}`,
     });
   }
 

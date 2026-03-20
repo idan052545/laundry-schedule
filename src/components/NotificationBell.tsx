@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { MdNotifications, MdNotificationsActive, MdNotificationsOff } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -17,6 +18,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export default function NotificationBell() {
   const { data: session } = useSession();
+  const { t } = useLanguage();
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [subscribed, setSubscribed] = useState(false);
@@ -121,9 +123,9 @@ export default function NotificationBell() {
       onClick={subscribed ? unsubscribe : subscribe}
       disabled={loading || permission === "denied"}
       title={
-        permission === "denied" ? "התראות חסומות בדפדפן"
-        : subscribed ? "כבה התראות"
-        : "הפעל התראות"
+        permission === "denied" ? t.notifBell.blocked
+        : subscribed ? t.notifBell.disable
+        : t.notifBell.enable
       }
       className={`p-1.5 rounded-lg transition relative ${
         permission === "denied"

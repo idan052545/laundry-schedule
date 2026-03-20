@@ -8,7 +8,8 @@ import {
   MdAdd, MdPerson, MdPeople,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
-import { CATEGORY_CONFIG, MONTHS_HE } from "./constants";
+import { useLanguage } from "@/i18n";
+import { CATEGORY_CONFIG, getCategoryLabels, getMonthsArray } from "./constants";
 import { TODAY_KEY, toLocalKey, getWeekDates, daysUntil } from "./utils";
 import { Task, TaskFormData } from "./types";
 import TaskAlerts from "./TaskAlerts";
@@ -25,6 +26,7 @@ const EMPTY_FORM: TaskFormData = {
 export default function TasksPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,9 @@ export default function TasksPage() {
   const myUserId = (session?.user as { id?: string })?.id;
 
   const { startStr, endStr } = getWeekDates(weekOffset);
+
+  const categoryLabels = getCategoryLabels(t);
+  const months = getMonthsArray(t);
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -104,7 +109,7 @@ export default function TasksPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("למחוק משימה זו?")) return;
+    if (!confirm(t.tasks.deleteTask)) return;
     const res = await fetch(`/api/tasks?id=${id}`, { method: "DELETE" });
     if (res.ok) setTasks(prev => prev.filter(t => t.id !== id));
   };
@@ -146,7 +151,7 @@ export default function TasksPage() {
   const overdueTasks = openTasks.filter(t => t.dueDate && daysUntil(t.dueDate) < 0);
 
   const { start: weekStart, end: weekEnd } = getWeekDates(weekOffset);
-  const weekLabel = `${weekStart.getDate()} ${MONTHS_HE[weekStart.getMonth()]} - ${weekEnd.getDate()} ${MONTHS_HE[weekEnd.getMonth()]}`;
+  const weekLabel = `${weekStart.getDate()} ${months[weekStart.getMonth()]} - ${weekEnd.getDate()} ${months[weekEnd.getMonth()]}`;
 
   // Group by day for week view
   const tasksByDay: Record<string, Task[]> = {};
@@ -168,7 +173,7 @@ export default function TasksPage() {
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark mb-3 flex items-center gap-3">
         <MdAssignment className="text-dotan-green" />
-        לוח משימות
+        {t.tasks.title}
       </h1>
 
       <TaskAlerts overdueTasks={overdueTasks} dueSoonTasks={dueSoonTasks} />
@@ -177,7 +182,7 @@ export default function TasksPage() {
       {!showForm && (
         <button onClick={() => { setShowForm(true); resetForm(); }}
           className="w-full mb-3 bg-dotan-green-dark text-white py-2.5 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm shadow-sm">
-          <MdAdd /> הוסף משימה
+          <MdAdd /> {t.tasks.addTask}
         </button>
       )}
 
@@ -200,24 +205,24 @@ export default function TasksPage() {
             </button>
             <button onClick={() => setWeekOffset(0)}
               className="px-2.5 py-1 rounded-lg text-xs font-medium bg-dotan-mint-light hover:bg-dotan-mint transition">
-              היום
+              {t.tasks.todayTab}
             </button>
             <button onClick={() => setWeekOffset(w => w+1)} className="p-1.5 rounded-lg hover:bg-gray-100 transition">
               <MdChevronLeft className="text-lg" />
             </button>
-            <span className="font-bold text-gray-700 text-xs sm:text-sm mr-1">{weekLabel}</span>
+            <span className="font-bold text-gray-700 text-xs sm:text-sm me-1">{weekLabel}</span>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Scope toggle */}
             <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
               <button onClick={() => setScope("mine")}
                 className={`px-2 py-1 rounded-md text-[11px] font-medium transition flex items-center gap-1 ${scope==="mine" ? "bg-white shadow-sm text-dotan-green-dark" : "text-gray-500"}`}>
-                <MdPerson className="text-xs" /> שלי
+                <MdPerson className="text-xs" /> {t.tasks.mineTab}
               </button>
               {isAdmin && (
                 <button onClick={() => setScope("all")}
                   className={`px-2 py-1 rounded-md text-[11px] font-medium transition flex items-center gap-1 ${scope==="all" ? "bg-white shadow-sm text-dotan-green-dark" : "text-gray-500"}`}>
-                  <MdPeople className="text-xs" /> הכל
+                  <MdPeople className="text-xs" /> {t.tasks.allTab}
                 </button>
               )}
             </div>
@@ -225,11 +230,11 @@ export default function TasksPage() {
             <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
               <button onClick={() => setView("list")}
                 className={`px-2 py-1 rounded-md text-[11px] font-medium transition ${view==="list" ? "bg-white shadow-sm" : "text-gray-500"}`}>
-                רשימה
+                {t.tasks.listView}
               </button>
               <button onClick={() => setView("week")}
                 className={`px-2 py-1 rounded-md text-[11px] font-medium transition ${view==="week" ? "bg-white shadow-sm" : "text-gray-500"}`}>
-                שבוע
+                {t.tasks.weekView}
               </button>
             </div>
             {/* Category filter */}
@@ -237,8 +242,8 @@ export default function TasksPage() {
               <MdFilterList className="text-gray-400 text-sm" />
               <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
                 className="text-[11px] border border-gray-200 rounded-lg px-1.5 py-1 focus:ring-1 focus:ring-dotan-green">
-                <option value="all">הכל</option>
-                {Object.entries(CATEGORY_CONFIG).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                <option value="all">{t.common.all}</option>
+                {Object.keys(CATEGORY_CONFIG).map(k => <option key={k} value={k}>{categoryLabels[k]}</option>)}
               </select>
             </div>
           </div>
@@ -258,8 +263,8 @@ export default function TasksPage() {
           {tasks.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <MdAssignment className="text-5xl mx-auto mb-4 text-gray-300" />
-              <p>אין משימות בתקופה זו</p>
-              <p className="text-sm mt-1">לחץ &quot;הוסף משימה&quot; כדי להוסיף</p>
+              <p>{t.tasks.noTasks}</p>
+              <p className="text-sm mt-1">{t.tasks.addTaskHint}</p>
             </div>
           )}
           {tasks.map(task => (

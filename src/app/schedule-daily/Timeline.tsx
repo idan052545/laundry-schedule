@@ -2,6 +2,7 @@
 
 import { RefObject } from "react";
 import { MdStickyNote2, MdNotifications, MdEdit, MdDelete } from "react-icons/md";
+import { useLanguage } from "@/i18n";
 import { TYPE_CONFIG } from "./constants";
 import { ScheduleEvent, ScheduleNote } from "./types";
 import { formatTime, formatEndTime, isEventNow, groupTimedEvents, isNameInTitle } from "./utils";
@@ -36,6 +37,7 @@ export default function Timeline({
   onDetail, onEdit, onDelete, onRemind, onRemindAssigned,
   onAssign, onMove, onEditNote, onDeleteNote, onRemindNote,
 }: TimelineProps) {
+  const { t, dateLocale } = useLanguage();
   const timedGroups = groupTimedEvents(timedEvents);
   const timedNotes = notes.filter((n) => n.startTime);
   const untimed = notes.filter((n) => !n.startTime);
@@ -67,8 +69,8 @@ export default function Timeline({
         if (item.kind === "group") {
           const { group } = item;
           const isSingle = group.events.length === 1;
-          const groupStartTime = formatTime(group.startTime);
-          const groupEndTime = formatEndTime(group.startTime, group.endTime);
+          const groupStartTime = formatTime(group.startTime, dateLocale);
+          const groupEndTime = formatEndTime(group.startTime, group.endTime, dateLocale);
           const anyActive = group.events.some(({ event }) => isEventNow(event, isToday));
           const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
           const isTeamGroup = group.events.some(({ event }) => event.target !== "all");
@@ -81,7 +83,7 @@ export default function Timeline({
 
           return (
             <div key={`g-${item.groupIdx}`} ref={isNowGroup ? nowRef : undefined} className="flex gap-2 mb-0 min-w-0">
-              <div className="w-12 shrink-0 text-left pt-3">
+              <div className="w-12 shrink-0 text-end pt-3">
                 <div className={`text-xs font-bold ${isTeamGroup ? "text-cyan-700" : "text-gray-800"}`}>{groupStartTime}</div>
                 <div className={`text-[10px] ${isTeamGroup ? "text-cyan-400" : "text-gray-400"}`}>{groupEndTime}</div>
               </div>
@@ -123,7 +125,7 @@ export default function Timeline({
         const isPersonal = note.visibility === "personal";
         return (
           <div key={`n-${note.id}`} className="flex gap-2 mb-0 min-w-0">
-            <div className="w-12 shrink-0 text-left pt-3">
+            <div className="w-12 shrink-0 text-end pt-3">
               <div className="text-xs font-bold text-amber-600">{note.startTime}</div>
               {note.endTime && <div className="text-[10px] text-amber-400">{note.endTime}</div>}
             </div>
@@ -146,7 +148,7 @@ export default function Timeline({
                         </span>
                       )}
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isPersonal ? "text-amber-600 bg-amber-100" : "text-orange-600 bg-orange-100"}`}>
-                        {isPersonal ? "אישי" : "צוות"}
+                        {isPersonal ? t.common.personal : t.common.team}
                       </span>
                     </div>
                     {note.description && (
@@ -178,7 +180,7 @@ export default function Timeline({
       {untimed.length > 0 && (
         <div className="mt-3 mb-2">
           <div className="text-[10px] text-amber-500 font-bold tracking-wider mb-1.5 flex items-center gap-1">
-            <MdStickyNote2 className="text-xs" /> הערות ללא שעה
+            <MdStickyNote2 className="text-xs" /> {t.schedule.notesNoTime}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {untimed.map((note) => {
@@ -198,7 +200,7 @@ export default function Timeline({
                           </span>
                         )}
                         <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isPersonal ? "text-amber-600 bg-amber-100" : "text-orange-600 bg-orange-100"}`}>
-                          {isPersonal ? "אישי" : "צוות"}
+                          {isPersonal ? t.common.personal : t.common.team}
                         </span>
                       </div>
                       {note.description && (

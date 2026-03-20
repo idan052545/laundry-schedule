@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useLanguage } from "@/i18n";
 import { ScheduleEvent, UserOption, EventFormData } from "./types";
 import { toISO, getDurationMin } from "./utils";
 
 export function useScheduleEvents(status: string, date: string, typeFilter: string) {
+  const { t: dict, dateLocale } = useLanguage();
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userTeam, setUserTeam] = useState<number | null>(null);
@@ -124,13 +126,13 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("למחוק אירוע זה?")) return;
+    if (!confirm(dict.common.delete + "?")) return;
     const res = await fetch(`/api/schedule?id=${id}`, { method: "DELETE" });
     if (res.ok) setEvents((prev) => prev.filter((ev) => ev.id !== id));
   };
 
   const handleSync = async () => {
-    if (!confirm("לסנכרן את הלוז מיומן Google? כל האירועים הקיימים יוחלפו.")) return;
+    if (!confirm(dict.schedule.sync + "?")) return;
     setSyncing(true);
     setSyncDiff(null);
     try {
@@ -140,10 +142,10 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
         if (data.todayDiff) setSyncDiff(data.todayDiff);
         await fetchEvents();
       } else {
-        alert(data.error || "שגיאה בסנכרון");
+        alert(data.error || dict.common.error);
       }
     } catch {
-      alert("שגיאה בסנכרון");
+      alert(dict.common.error);
     }
     setSyncing(false);
   };
@@ -152,9 +154,9 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
     if (!syncDiff || syncDiff.unchanged) return;
     setSyncing(true);
     const lines: string[] = [];
-    if (syncDiff.updated.length > 0) { lines.push("עודכנו:"); syncDiff.updated.forEach(t => lines.push(`  ✏️ ${t}`)); }
-    if (syncDiff.added.length > 0) { lines.push("נוספו:"); syncDiff.added.forEach(t => lines.push(`  ➕ ${t}`)); }
-    if (syncDiff.removed.length > 0) { lines.push("הוסרו:"); syncDiff.removed.forEach(t => lines.push(`  ➖ ${t}`)); }
+    if (syncDiff.updated.length > 0) { lines.push(dict.schedule.updated); syncDiff.updated.forEach(item => lines.push(`  ✏️ ${item}`)); }
+    if (syncDiff.added.length > 0) { lines.push(dict.schedule.added); syncDiff.added.forEach(item => lines.push(`  ➕ ${item}`)); }
+    if (syncDiff.removed.length > 0) { lines.push(dict.schedule.removed); syncDiff.removed.forEach(item => lines.push(`  ➖ ${item}`)); }
     const body = lines.join("\n");
     try {
       await fetch("/api/schedule/sync", {
@@ -162,9 +164,9 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changes: body }),
       });
-      alert("נשלחה התראה לכולם");
+      alert(dict.schedule.sendNotif);
     } catch {
-      alert("שגיאה בשליחה");
+      alert(dict.common.error);
     }
     setSyncing(false);
   };
@@ -172,7 +174,7 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
   const handleTeamSync = async (team?: number) => {
     const t = team || userTeam;
     if (!t) return;
-    if (!confirm(`לסנכרן את הלוז מיומן צוות ${t}? אירועי הצוות הקיימים יוחלפו.`)) return;
+    if (!confirm(dict.schedule.syncTeamScheduleNum.replace("{n}", String(t)) + "?")) return;
     setTeamSyncing(true);
     setTeamSyncDiff(null);
     setTeamSyncTarget(t);
@@ -183,10 +185,10 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
         if (data.todayDiff) setTeamSyncDiff(data.todayDiff);
         await fetchEvents();
       } else {
-        alert(data.error || "שגיאה בסנכרון");
+        alert(data.error || dict.common.error);
       }
     } catch {
-      alert("שגיאה בסנכרון");
+      alert(dict.common.error);
     }
     setTeamSyncing(false);
   };
@@ -196,9 +198,9 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
     const t = teamSyncTarget || userTeam;
     setTeamSyncing(true);
     const lines: string[] = [];
-    if (teamSyncDiff.updated.length > 0) { lines.push("עודכנו:"); teamSyncDiff.updated.forEach(t => lines.push(`  ✏️ ${t}`)); }
-    if (teamSyncDiff.added.length > 0) { lines.push("נוספו:"); teamSyncDiff.added.forEach(t => lines.push(`  ➕ ${t}`)); }
-    if (teamSyncDiff.removed.length > 0) { lines.push("הוסרו:"); teamSyncDiff.removed.forEach(t => lines.push(`  ➖ ${t}`)); }
+    if (teamSyncDiff.updated.length > 0) { lines.push(dict.schedule.updated); teamSyncDiff.updated.forEach(item => lines.push(`  ✏️ ${item}`)); }
+    if (teamSyncDiff.added.length > 0) { lines.push(dict.schedule.added); teamSyncDiff.added.forEach(item => lines.push(`  ➕ ${item}`)); }
+    if (teamSyncDiff.removed.length > 0) { lines.push(dict.schedule.removed); teamSyncDiff.removed.forEach(item => lines.push(`  ➖ ${item}`)); }
     const body = lines.join("\n");
     try {
       await fetch(`/api/schedule/sync-team?team=${t}`, {
@@ -206,9 +208,9 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changes: body }),
       });
-      alert(`נשלחה התראה לצוות ${t}`);
+      alert(dict.schedule.sendTeamNotif + ` ${t}`);
     } catch {
-      alert("שגיאה בשליחה");
+      alert(dict.common.error);
     }
     setTeamSyncing(false);
   };
@@ -217,11 +219,11 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
     const t = team || userTeam;
     if (!t) return;
     const teamEvents = events.filter(e => e.target === `team-${t}`);
-    if (teamEvents.length === 0) { alert(`אין אירועי צוות ${t} להיום`); return; }
+    if (teamEvents.length === 0) { alert(`${dict.common.team} ${t}`); return; }
     const summary = teamEvents.map(e => {
-      if (e.allDay) return `${e.title} (כל היום)`;
-      const st = new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-      const en = new Date(e.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+      if (e.allDay) return `${e.title} (${dict.common.allDay})`;
+      const st = new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+      const en = new Date(e.endTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
       return `${e.title} (${st}–${en})`;
     }).join(" | ");
     setTeamSyncing(true);
@@ -231,9 +233,9 @@ export function useScheduleEvents(status: string, date: string, typeFilter: stri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changes: summary }),
       });
-      alert(`נשלחה תזכורת לצוות ${t}`);
+      alert(dict.schedule.teamReminder + ` ${t}`);
     } catch {
-      alert("שגיאה בשליחה");
+      alert(dict.common.error);
     }
     setTeamSyncing(false);
   };

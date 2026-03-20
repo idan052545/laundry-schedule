@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { MdAdd, MdClose, MdSend, MdPeople, MdGroups } from "react-icons/md";
-import { TYPE_CONFIG } from "./types";
+import { getTypeConfig } from "./types";
+import { useLanguage } from "@/i18n";
 
 interface SurveyFormProps {
   userTeam: number;
@@ -12,6 +13,7 @@ interface SurveyFormProps {
 }
 
 export default function SurveyForm({ userTeam, sending, onCreate, onClose }: SurveyFormProps) {
+  const { t } = useLanguage();
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formType, setFormType] = useState("yes_no");
@@ -32,15 +34,15 @@ export default function SurveyForm({ userTeam, sending, onCreate, onClose }: Sur
     <form onSubmit={handleSubmit} className="bg-white p-4 rounded-xl shadow-sm border border-dotan-mint mb-4 space-y-3">
       <input type="text" value={formTitle} onChange={(e) => setFormTitle(e.target.value)}
         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none"
-        placeholder="שאלה / כותרת *" required />
+        placeholder={t.surveys.questionPlaceholder} required />
 
       <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)}
         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none min-h-[60px]"
-        placeholder="תיאור (אופציונלי)" />
+        placeholder={t.surveys.descriptionOptional} />
 
       {/* Type selector */}
       <div className="flex gap-2">
-        {Object.entries(TYPE_CONFIG).map(([key, { label, icon: Icon }]) => (
+        {Object.entries(getTypeConfig(t)).map(([key, { label, icon: Icon }]) => (
           <button key={key} type="button" onClick={() => setFormType(key)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition ${
               formType === key ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -53,7 +55,7 @@ export default function SurveyForm({ userTeam, sending, onCreate, onClose }: Sur
       {/* Options for single/multi */}
       {formType !== "yes_no" && (
         <div className="space-y-2">
-          <label className="text-xs text-gray-500 font-medium">אפשרויות:</label>
+          <label className="text-xs text-gray-500 font-medium">{t.surveys.optionsLabel}</label>
           {formOptions.map((opt, i) => (
             <div key={i} className="flex gap-2">
               <input type="text" value={opt} onChange={(e) => {
@@ -62,7 +64,7 @@ export default function SurveyForm({ userTeam, sending, onCreate, onClose }: Sur
                 setFormOptions(newOpts);
               }}
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-dotan-green outline-none"
-                placeholder={`אפשרות ${i + 1}`} />
+                placeholder={`${t.surveys.optionN} ${i + 1}`} />
               {formOptions.length > 2 && (
                 <button type="button" onClick={() => setFormOptions(formOptions.filter((_, j) => j !== i))}
                   className="text-red-400 hover:text-red-600 px-2">
@@ -73,7 +75,7 @@ export default function SurveyForm({ userTeam, sending, onCreate, onClose }: Sur
           ))}
           <button type="button" onClick={() => setFormOptions([...formOptions, ""])}
             className="text-xs text-dotan-green hover:underline flex items-center gap-1">
-            <MdAdd /> הוסף אפשרות
+            <MdAdd /> {t.surveys.addOption}
           </button>
         </div>
       )}
@@ -84,20 +86,20 @@ export default function SurveyForm({ userTeam, sending, onCreate, onClose }: Sur
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition ${
             !formPlatoon ? "bg-dotan-green-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}>
-          <MdPeople /> צוות {userTeam}
+          <MdPeople /> {t.surveys.teamN} {userTeam}
         </button>
         <button type="button" onClick={() => setFormPlatoon(true)}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition ${
             formPlatoon ? "bg-violet-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}>
-          <MdGroups /> כל הפלוגה
+          <MdGroups /> {t.surveys.allPlatoon}
         </button>
       </div>
 
       <div className="flex justify-end">
         <button type="submit" disabled={sending}
           className="bg-dotan-green-dark text-white px-5 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 disabled:opacity-50 text-sm">
-          <MdSend /> {sending ? "יוצר..." : "צור סקר"}
+          <MdSend /> {sending ? t.surveys.creating : t.surveys.createSurvey}
         </button>
       </div>
     </form>

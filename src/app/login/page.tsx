@@ -5,9 +5,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useLanguage } from "@/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -52,10 +54,10 @@ export default function LoginPage() {
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md border border-dotan-mint">
         <div className="text-center mb-8">
           <div className="w-[72px] h-[72px] rounded-full shadow overflow-hidden mx-auto mb-4">
-            <Image src="/dotanLogo.png" alt="פלוגת דותן" width={72} height={72} className="w-full h-full object-cover" />
+            <Image src="/dotanLogo.png" alt={t.common.appName} width={72} height={72} className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-3xl font-bold text-dotan-green-dark">התחברות</h1>
-          <p className="text-gray-500 mt-2">היכנס לחשבון שלך</p>
+          <h1 className="text-3xl font-bold text-dotan-green-dark">{t.auth.login}</h1>
+          <p className="text-gray-500 mt-2">{t.auth.loginSubtitle}</p>
         </div>
 
         {error && (
@@ -67,7 +69,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              אימייל
+              {t.auth.email}
             </label>
             <input
               type="email"
@@ -82,7 +84,7 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              סיסמה
+              {t.auth.password}
             </label>
             <input
               type="password"
@@ -100,14 +102,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-dotan-green-dark text-white py-3 rounded-lg hover:bg-dotan-green transition font-medium disabled:opacity-50"
           >
-            {loading ? "מתחבר..." : "התחבר"}
+            {loading ? t.auth.loggingIn : t.auth.loginBtn}
           </button>
         </form>
 
         <p className="text-center mt-6 text-gray-500">
-          אין לך חשבון?{" "}
+          {t.auth.noAccount}{" "}
           <Link href="/register" className="text-dotan-green font-medium hover:underline">
-            הרשם עכשיו
+            {t.auth.registerNow}
           </Link>
         </p>
       </div>

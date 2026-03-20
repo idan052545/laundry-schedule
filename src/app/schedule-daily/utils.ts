@@ -35,8 +35,8 @@ export const isNameInTitle = (title: string, fullName: string): boolean => {
   return false;
 };
 
-export const formatTime = (dt: string) =>
-  new Date(dt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+export const formatTime = (dt: string, locale = "he-IL") =>
+  new Date(dt).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 
 /** Check if two ISO date strings fall on different calendar days (in Israel timezone) */
 export const isCrossDay = (startIso: string, endIso: string): boolean => {
@@ -46,13 +46,13 @@ export const isCrossDay = (startIso: string, endIso: string): boolean => {
 };
 
 /** Format end time with "+1" suffix if event crosses midnight */
-export const formatEndTime = (startIso: string, endIso: string): string => {
-  const time = formatTime(endIso);
+export const formatEndTime = (startIso: string, endIso: string, locale = "he-IL"): string => {
+  const time = formatTime(endIso, locale);
   return isCrossDay(startIso, endIso) ? `${time} (+1)` : time;
 };
 
-export const formatDateDisplay = (d: string) =>
-  new Date(d + "T12:00:00").toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" });
+export const formatDateDisplay = (d: string, locale = "he-IL") =>
+  new Date(d + "T12:00:00").toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" });
 
 export const toISO = (dateStr: string, timeStr: string) =>
   new Date(`${dateStr}T${timeStr}:00`).toISOString();
