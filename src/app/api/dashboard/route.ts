@@ -43,6 +43,7 @@ export async function GET() {
     myTeamAssignments,
     activeVolunteerRequests,
     myVolunteerAssignments,
+    myCreatedRequests,
     urgentReplacement,
     todayNotes,
   ] = await Promise.all([
@@ -233,6 +234,20 @@ export async function GET() {
       },
     }),
 
+    // User's created volunteer requests (open/in-progress)
+    prisma.volunteerRequest.findMany({
+      where: {
+        createdById: userId,
+        status: { in: ["open", "in-progress"] },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true, title: true, category: true, status: true, startTime: true, endTime: true,
+        requiredCount: true, _count: { select: { assignments: true } },
+      },
+    }),
+
     // Urgent replacements needing attention
     prisma.volunteerReplacement.findFirst({
       where: {
@@ -347,6 +362,7 @@ export async function GET() {
     chopalStatus,
     activeVolunteerRequests,
     myVolunteerAssignments,
+    myCreatedRequests,
     urgentReplacement,
     nextDutyTables: (() => {
       if (!upcomingDutyTables || upcomingDutyTables.length === 0) return [];

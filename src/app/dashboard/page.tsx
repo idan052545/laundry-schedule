@@ -57,6 +57,7 @@ interface DashboardFeed {
   chopalStatus: { registered: boolean; isOpen: boolean; date: string; assignment: { id: string; assignedTime: string; status: string } | null };
   activeVolunteerRequests: { id: string; title: string; category: string; priority: string; status: string; target: string; requiredCount: number; startTime: string; endTime: string; isCommanderRequest: boolean; createdBy: { name: string }; _count: { assignments: number } }[];
   myVolunteerAssignments: { id: string; status: string; request: { id: string; title: string; startTime: string; endTime: string; category: string } }[];
+  myCreatedRequests: { id: string; title: string; category: string; status: string; startTime: string; endTime: string; requiredCount: number; _count: { assignments: number } }[];
   urgentReplacement: { id: string; isUrgent: boolean; request: { id: string; title: string } } | null;
 }
 
@@ -593,10 +594,58 @@ export default function DashboardPage() {
             </Link>
           )}
           {visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0 && (
-            <Link href="/volunteers?tab=my" className="flex items-center gap-2.5 bg-emerald-50/60 border border-emerald-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
-              <MdCheckCircle className="text-lg text-emerald-500 shrink-0" />
-              <span className="text-xs font-medium text-emerald-700 flex-1 truncate">יש לך {feed.myVolunteerAssignments.length} שיבוצי התנדבות</span>
-            </Link>
+            <div className="bg-white border border-emerald-200 rounded-xl px-3.5 py-2.5">
+              <Link href="/volunteers?tab=my" className="flex items-center gap-2 mb-1.5">
+                <MdVolunteerActivism className="text-sm text-emerald-500" />
+                <span className="text-[10px] font-bold text-gray-400">ההתנדבויות שלי ({feed.myVolunteerAssignments.length})</span>
+              </Link>
+              <div className="space-y-1.5">
+                {feed.myVolunteerAssignments.slice(0, 3).map((a) => {
+                  const catEmoji: Record<string, string> = { kitchen: "🍳", cleaning: "🧹", guard: "🛡️", logistics: "📦", general: "🤝", other: "📌" };
+                  const start = new Date(a.request.startTime);
+                  const end = new Date(a.request.endTime);
+                  const timeStr = `${start.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}–${end.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}`;
+                  const isNow = new Date() >= start && new Date() <= end;
+                  return (
+                    <Link key={a.id} href="/volunteers?tab=my" className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition ${isNow ? "bg-emerald-50 border border-emerald-100" : "hover:bg-gray-50"}`}>
+                      <span className="text-sm">{catEmoji[a.request.category] || "📌"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium truncate ${isNow ? "text-emerald-700" : "text-gray-700"}`}>{a.request.title}</p>
+                        <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <MdAccessTime className="text-[10px]" /> {timeStr}
+                          {isNow && <span className="text-emerald-500 font-bold mr-1">● עכשיו</span>}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {visible.has("volunteers") && feed.myCreatedRequests?.length > 0 && (
+            <div className="bg-white border border-teal-200 rounded-xl px-3.5 py-2.5">
+              <Link href="/volunteers" className="flex items-center gap-2 mb-1.5">
+                <MdVolunteerActivism className="text-sm text-teal-500" />
+                <span className="text-[10px] font-bold text-gray-400">תורנויות שיצרתי ({feed.myCreatedRequests.length})</span>
+              </Link>
+              <div className="space-y-1.5">
+                {feed.myCreatedRequests.slice(0, 3).map((r) => {
+                  const filled = r._count.assignments;
+                  const pct = Math.min(100, Math.round((filled / r.requiredCount) * 100));
+                  return (
+                    <Link key={r.id} href="/volunteers" className="block rounded-lg px-2 py-1.5 hover:bg-gray-50 transition">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-gray-700 truncate flex-1">{r.title}</p>
+                        <span className={`text-[10px] font-bold ${filled >= r.requiredCount ? "text-green-600" : "text-amber-600"}`}>{filled}/{r.requiredCount}</span>
+                      </div>
+                      <div className="w-full h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${filled >= r.requiredCount ? "bg-green-400" : "bg-amber-400"}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           )}
           {visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0) && (
             <Link href="/surveys" className="flex items-center gap-2.5 bg-violet-50/60 border border-violet-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
@@ -783,8 +832,16 @@ export default function DashboardPage() {
               actionItems.push({ key: "vol-urgent", href: `/volunteers?highlight=${feed.urgentReplacement.request.id}`, icon: MdVolunteerActivism, iconColor: "text-red-500", bg: "from-red-50 to-rose-50", border: "border-red-200", textColor: "text-red-700", label: `🚨 דרוש/ה מחליף/ה — ${feed.urgentReplacement.request.title}` });
             if (visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0)
               actionItems.push({ key: "vol-active", href: "/volunteers", icon: MdVolunteerActivism, iconColor: "text-green-500", bg: "from-green-50 to-emerald-50", border: "border-green-100", textColor: "text-green-700", label: `${feed.activeVolunteerRequests.length} בקשות התנדבות` });
-            if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0)
-              actionItems.push({ key: "vol-my", href: "/volunteers?tab=my", icon: MdCheckCircle, iconColor: "text-emerald-500", bg: "from-emerald-50 to-green-50", border: "border-emerald-100", textColor: "text-emerald-700", label: `${feed.myVolunteerAssignments.length} שיבוצי התנדבות` });
+            if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0) {
+              const nowVol = feed.myVolunteerAssignments.find(a => { const s = new Date(a.request.startTime); const e = new Date(a.request.endTime); const n = new Date(); return n >= s && n <= e; });
+              const volLabel = nowVol ? `● ${nowVol.request.title} — עכשיו` : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`;
+              actionItems.push({ key: "vol-my", href: "/volunteers?tab=my", icon: MdCheckCircle, iconColor: nowVol ? "text-emerald-600" : "text-emerald-500", bg: nowVol ? "from-emerald-100 to-green-100" : "from-emerald-50 to-green-50", border: nowVol ? "border-emerald-300" : "border-emerald-100", textColor: nowVol ? "text-emerald-800" : "text-emerald-700", label: volLabel });
+            }
+            if (visible.has("volunteers") && feed.myCreatedRequests?.length > 0) {
+              const totalFilled = feed.myCreatedRequests.reduce((s, r) => s + r._count.assignments, 0);
+              const totalNeeded = feed.myCreatedRequests.reduce((s, r) => s + r.requiredCount, 0);
+              actionItems.push({ key: "vol-created", href: "/volunteers", icon: MdVolunteerActivism, iconColor: "text-teal-500", bg: "from-teal-50 to-cyan-50", border: "border-teal-100", textColor: "text-teal-700", label: `${feed.myCreatedRequests.length} תורנויות שלי (${totalFilled}/${totalNeeded})` });
+            }
             if (visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0))
               actionItems.push({ key: "surveys", href: "/surveys", icon: MdPoll, iconColor: "text-violet-500", bg: "from-violet-50 to-purple-50", border: "border-violet-100", textColor: "text-violet-700", label: `${(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} סקרים ממתינים` });
             if (visible.has("vote") && feed.hasVotedThisWeek === false)
@@ -1159,14 +1216,26 @@ function CarouselFeed({ feed, visible }: { feed: DashboardFeed; visible: Set<Sec
     });
   }
   if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0) {
+    const nowV = feed.myVolunteerAssignments.find(a => { const s = new Date(a.request.startTime); const e = new Date(a.request.endTime); const n = new Date(); return n >= s && n <= e; });
     cards.push({
       key: "vol-my",
       href: "/volunteers?tab=my",
-      gradient: "from-emerald-500 to-teal-600",
+      gradient: nowV ? "from-emerald-600 to-green-700" : "from-emerald-500 to-teal-600",
       iconBg: "bg-white/20",
       icon: <MdCheckCircle className="text-xl text-white" />,
-      title: `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`,
-      subtitle: feed.myVolunteerAssignments[0]?.request.title,
+      title: nowV ? `● ${nowV.request.title}` : `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`,
+      subtitle: nowV ? "בהתנדבות עכשיו" : feed.myVolunteerAssignments[0]?.request.title,
+    });
+  }
+  if (visible.has("volunteers") && feed.myCreatedRequests?.length > 0) {
+    cards.push({
+      key: "vol-created",
+      href: "/volunteers",
+      gradient: "from-teal-500 to-cyan-600",
+      iconBg: "bg-white/20",
+      icon: <MdVolunteerActivism className="text-xl text-white" />,
+      title: `${feed.myCreatedRequests.length} תורנויות שיצרת`,
+      subtitle: `${feed.myCreatedRequests.reduce((s, r) => s + r._count.assignments, 0)} מתנדבים שובצו`,
     });
   }
 
