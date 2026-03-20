@@ -26,15 +26,17 @@ export async function GET(request: Request) {
     results.platoon = { error: String(err) };
   }
 
-  // Sync team 16 calendar
-  try {
-    const res = await fetch(`${baseUrl}/api/schedule/sync-team?secret=${secret}`, {
-      method: "POST",
-      cache: "no-store",
-    });
-    results.team16 = await res.json();
-  } catch (err) {
-    results.team16 = { error: String(err) };
+  // Sync team calendars
+  for (const team of [14, 16]) {
+    try {
+      const res = await fetch(`${baseUrl}/api/schedule/sync-team?secret=${secret}&team=${team}`, {
+        method: "POST",
+        cache: "no-store",
+      });
+      results[`team${team}`] = await res.json();
+    } catch (err) {
+      results[`team${team}`] = { error: String(err) };
+    }
   }
 
   return NextResponse.json({ success: true, results });

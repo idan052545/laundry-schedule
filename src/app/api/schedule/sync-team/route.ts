@@ -3,11 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-const TEAM16_CALENDAR_ID =
-  "8531cf33e94556ea6180bbd1231262fcc7199e35ca56bbc198545f30439c245e@group.calendar.google.com";
+const TEAM_CALENDARS: Record<number, string> = {
+  14: "30f097925245f0a2a0835cb2309c9370975d62eda1ca54faea63435892dd36b2@group.calendar.google.com",
+  16: "8531cf33e94556ea6180bbd1231262fcc7199e35ca56bbc198545f30439c245e@group.calendar.google.com",
+};
+
 const API_KEY = process.env.GOOGLE_CALENDAR_API_KEY;
-const TEAM_NUMBER = 16;
-const TARGET = `team-${TEAM_NUMBER}`;
 
 interface GCalEvent {
   id: string;
@@ -24,28 +25,46 @@ interface GCalResponse {
   error?: { message: string; code: number };
 }
 
-// POST — sync Team 16 Google Calendar → ScheduleEvent
+function resolveTeam(searchParams: URLSearchParams, userTeam?: number | null): number {
+  const teamParam = searchParams.get("team");
+  if (teamParam) return parseInt(teamParam);
+  // Backward compat: default to user's team, or 16 for cron
+  if (userTeam && TEAM_CALENDARS[userTeam]) return userTeam;
+  return 16;
+}
+
+// POST — sync team Google Calendar → ScheduleEvent
 export async function POST(req: NextRequest) {
-  // Allow cron secret bypass
   const { searchParams } = new URL(req.url);
   const cronSecret = searchParams.get("secret");
   const isCron = cronSecret === process.env.CRON_SECRET;
 
-  if (!isCron) {
+  let teamNumber: number;
+
+  if (isCron) {
+    teamNumber = resolveTeam(searchParams);
+  } else {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
     const userId = (session.user as { id: string }).id;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true, team: true } });
-    if (user?.team !== TEAM_NUMBER && user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
+    teamNumber = resolveTeam(searchParams, user?.team);
+    if (user?.team !== teamNumber && user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
       return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
     }
+  }
+
+  const calendarId = TEAM_CALENDARS[teamNumber];
+  if (!calendarId) {
+    return NextResponse.json({ error: `אין יומן מוגדר לצוות ${teamNumber}` }, { status: 400 });
   }
 
   if (!API_KEY) {
     return NextResponse.json({ error: "חסר מפתח Google API" }, { status: 500 });
   }
 
-  // Run independent queries + Google Calendar fetch in parallel
+  const TARGET = `team-${teamNumber}`;
+
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart);
@@ -55,7 +74,6 @@ export async function POST(req: NextRequest) {
   const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const timeMax = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Fetch Google Calendar events
   const fetchGCal = async (): Promise<GCalEvent[]> => {
     const allEvents: GCalEvent[] = [];
     let pageToken: string | undefined;
@@ -69,7 +87,7 @@ export async function POST(req: NextRequest) {
         maxResults: "2500",
       });
       if (pageToken) params.set("pageToken", pageToken);
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(TEAM16_CALENDAR_ID)}/events?${params}`;
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`;
       const res = await fetch(url, { cache: "no-store" });
       const data: GCalResponse = await res.json();
       if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
@@ -79,7 +97,6 @@ export async function POST(req: NextRequest) {
     return allEvents;
   };
 
-  // Run all independent operations in parallel
   let allGCalEvents: GCalEvent[];
   let beforeEvents: { title: string; startTime: Date; endTime: Date; allDay: boolean }[];
   let teamUsers: { id: string; name: string }[];
@@ -94,7 +111,7 @@ export async function POST(req: NextRequest) {
         orderBy: { startTime: "asc" },
       }),
       prisma.user.findMany({
-        where: { team: TEAM_NUMBER },
+        where: { team: teamNumber },
         select: { id: true, name: true },
       }),
       prisma.scheduleEvent.findMany({
@@ -107,7 +124,7 @@ export async function POST(req: NextRequest) {
     teamUsers = users;
     teamEventIds = ids;
   } catch (err) {
-    console.error("Failed to fetch team 16 calendar:", err);
+    console.error(`Failed to fetch team ${teamNumber} calendar:`, err);
     return NextResponse.json({ error: `שגיאה בטעינת יומן הצוות: ${err}` }, { status: 502 });
   }
 
@@ -116,10 +133,8 @@ export async function POST(req: NextRequest) {
     beforeSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
   }
 
-  // Filter out cancelled events
   const activeEvents = allGCalEvents.filter(e => e.status !== "cancelled");
 
-  // Parse into our format
   const parsed = activeEvents.map(e => {
     const allDay = !e.start.dateTime;
     const startTime = e.start.dateTime
@@ -129,17 +144,13 @@ export async function POST(req: NextRequest) {
       ? new Date(e.end.dateTime)
       : new Date(e.end.date + "T00:00:00+03:00");
 
-    // Find users whose name appears in the event title OR description
-    // Uses tokenized matching: all parts of user's name must appear
     const title = e.summary || "ללא כותרת";
     const titleNorm = title.replace(/[־\-–—]/g, " ");
     const descNorm = (e.description || "").replace(/[־\-–—]/g, " ");
     const searchText = `${titleNorm} ${descNorm}`;
     const matchedUsers = teamUsers.filter(u => {
       if (!u.name) return false;
-      // First try exact match in title or description
       if (searchText.includes(u.name)) return true;
-      // Then try tokenized: all name parts must appear somewhere
       const nameParts = u.name.split(/\s+/).filter(p => p.length > 1);
       if (nameParts.length < 2) return false;
       return nameParts.every(part => searchText.includes(part));
@@ -157,7 +168,6 @@ export async function POST(req: NextRequest) {
     };
   }).filter(e => !isNaN(e.startTime.getTime()) && !isNaN(e.endTime.getTime()));
 
-  // Delete existing team 16 events in one batch (assignees + events)
   if (teamEventIds.length > 0) {
     await prisma.$transaction([
       prisma.scheduleAssignee.deleteMany({
@@ -167,18 +177,15 @@ export async function POST(req: NextRequest) {
     ]);
   }
 
-  // Batch insert: events without assignees via createMany, then handle assignees
   const eventsWithAssignees = parsed.filter(e => e.matchedUserIds.length > 0);
   const eventsWithout = parsed.filter(e => e.matchedUserIds.length === 0);
 
-  // Insert events without assignees in one batch
   if (eventsWithout.length > 0) {
     await prisma.scheduleEvent.createMany({
       data: eventsWithout.map(({ matchedUserIds: _, ...d }) => d),
     });
   }
 
-  // Insert events with assignees — need IDs back, batch in transaction
   let assignedCount = 0;
   if (eventsWithAssignees.length > 0) {
     const creates = eventsWithAssignees.map(({ matchedUserIds: _, ...d }) =>
@@ -208,7 +215,6 @@ export async function POST(req: NextRequest) {
     afterSet.set(`${e.title}|${e.startTime.toISOString()}|${e.allDay}`, e);
   }
 
-  // Collect raw added/removed by key
   const rawAdded: { title: string; startTime: Date; endTime: Date; allDay: boolean }[] = [];
   const rawRemoved: { title: string; startTime: Date; endTime: Date; allDay: boolean }[] = [];
 
@@ -219,7 +225,6 @@ export async function POST(req: NextRequest) {
     if (!afterSet.has(key)) rawRemoved.push(e);
   }
 
-  // Detect updates: same title in both added & removed = time changed
   const added: string[] = [];
   const removed: string[] = [];
   const updated: string[] = [];
@@ -259,7 +264,7 @@ export async function POST(req: NextRequest) {
     success: true,
     synced: parsed.length,
     assigned: assignedCount,
-    message: `סונכרנו ${parsed.length} אירועים מיומן צוות ${TEAM_NUMBER}`,
+    message: `סונכרנו ${parsed.length} אירועים מיומן צוות ${teamNumber}`,
     todayDiff: {
       added,
       removed,
@@ -273,14 +278,18 @@ function formatTime(d: Date): string {
   return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 }
 
-// PUT — notify team 16 users about changes
+// PUT — notify team users about changes
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
 
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true, team: true } });
-  if (user?.team !== TEAM_NUMBER && user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
+
+  const { searchParams } = new URL(req.url);
+  const teamNumber = resolveTeam(searchParams, user?.team);
+
+  if (user?.team !== teamNumber && user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 
@@ -289,15 +298,14 @@ export async function PUT(req: NextRequest) {
 
   const { sendPushToUsers } = await import("@/lib/push");
 
-  // Get all team 16 user IDs
   const teamUsers = await prisma.user.findMany({
-    where: { team: TEAM_NUMBER },
+    where: { team: teamNumber },
     select: { id: true },
   });
 
   if (teamUsers.length > 0) {
     await sendPushToUsers(teamUsers.map(u => u.id), {
-      title: `עדכון לו"ז צוות ${TEAM_NUMBER}`,
+      title: `עדכון לו"ז צוות ${teamNumber}`,
       body: changes,
       url: "/schedule-daily",
     });

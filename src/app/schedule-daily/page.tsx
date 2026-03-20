@@ -547,12 +547,12 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
-      {/* Team 16: Sync + Remind buttons */}
-      {userTeam === 16 && !showAdd && !editingEvent && (
+      {/* Team sync + remind buttons (for teams with linked calendars) */}
+      {(userTeam === 14 || userTeam === 16) && !showAdd && !editingEvent && (
         <div className="flex gap-2 mb-3">
           <button onClick={handleTeamSync} disabled={teamSyncing}
             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-sm font-medium disabled:opacity-50">
-            <MdSync className={teamSyncing ? "animate-spin" : ""} /> {teamSyncing ? "מסנכרן צוות..." : "סנכרון לו\"ז צוות 16"}
+            <MdSync className={teamSyncing ? "animate-spin" : ""} /> {teamSyncing ? "מסנכרן צוות..." : `סנכרון לו"ז צוות ${userTeam}`}
           </button>
           <button onClick={handleTeamRemind} disabled={teamSyncing}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-white text-teal-600 hover:bg-teal-50 transition text-sm font-medium disabled:opacity-50">
@@ -566,7 +566,7 @@ export default function ScheduleDailyPage() {
         <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl border border-teal-200 p-4 mb-3 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-bold text-teal-800 text-sm flex items-center gap-2">
-              <MdSync className="text-teal-500" /> שינויים בלוז צוות 16 היום
+              <MdSync className="text-teal-500" /> שינויים בלוז צוות {userTeam} היום
             </h3>
             <div className="flex gap-2">
               <button onClick={handleTeamNotifyChanges} disabled={teamSyncing}
