@@ -50,6 +50,9 @@ export default function ScheduleDailyPage() {
   const [syncDiff, setSyncDiff] = useState<{ added: string[]; removed: string[]; updated: string[]; unchanged: boolean } | null>(null);
   const [teamSyncing, setTeamSyncing] = useState(false);
   const [teamSyncDiff, setTeamSyncDiff] = useState<{ added: string[]; removed: string[]; updated: string[]; unchanged: boolean } | null>(null);
+  const [teamSyncTarget, setTeamSyncTarget] = useState<number | null>(null);
+  // Admin team visibility: which team calendars to show (default: own team only, פלוגה always shown)
+  const [visibleTeams, setVisibleTeams] = useState<Set<number>>(() => new Set());
   const noteFormRef = useRef<HTMLDivElement>(null);
   const nowRef = useRef<HTMLDivElement>(null);
 
@@ -59,14 +62,29 @@ export default function ScheduleDailyPage() {
   });
 
   const initialLoadDone = useRef(false);
+  const visibleTeamsRef = useRef(visibleTeams);
+  visibleTeamsRef.current = visibleTeams;
+
   const fetchEvents = useCallback(async () => {
     if (initialLoadDone.current) setRefreshing(true);
-    const res = await fetch(`/api/schedule?date=${date}&type=${typeFilter}`);
+    let url = `/api/schedule?date=${date}&type=${typeFilter}`;
+    // Admin: pass visible teams to API
+    const vt = visibleTeamsRef.current;
+    if (vt.size > 0) {
+      url += `&teams=${Array.from(vt).join(",")}`;
+    }
+    const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       setEvents(data.events);
       setIsAdmin(data.isAdmin);
-      if (data.userTeam !== undefined) setUserTeam(data.userTeam);
+      if (data.userTeam !== undefined) {
+        setUserTeam(data.userTeam);
+        // Initialize visible teams on first load: own team
+        if (!initialLoadDone.current && data.userTeam) {
+          setVisibleTeams(prev => prev.size === 0 ? new Set([data.userTeam]) : prev);
+        }
+      }
     }
     setLoading(false);
     setRefreshing(false);
@@ -94,6 +112,25 @@ export default function ScheduleDailyPage() {
       }
     }
   }, [status, router, date, typeFilter, fetchEvents, fetchNotes]);
+
+  // Refetch when admin toggles team visibility
+  const visibleTeamsKey = Array.from(visibleTeams).sort().join(",");
+  useEffect(() => {
+    if (initialLoadDone.current && isAdmin) {
+      fetchEvents();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleTeamsKey]);
+
+  const SYNC_TEAMS = [14, 16] as const;
+
+  const toggleTeamVisibility = (team: number) => {
+    setVisibleTeams(prev => {
+      const next = new Set(prev);
+      if (next.has(team)) next.delete(team); else next.add(team);
+      return next;
+    });
+  };
 
   // Apply target filter
   const filteredEvents = targetFilter === "all"
@@ -218,12 +255,15 @@ export default function ScheduleDailyPage() {
     setSyncing(false);
   };
 
-  const handleTeamSync = async () => {
-    if (!confirm("לסנכרן את הלוז מיומן הצוות? אירועי הצוות הקיימים יוחלפו.")) return;
+  const handleTeamSync = async (team?: number) => {
+    const t = team || userTeam;
+    if (!t) return;
+    if (!confirm(`לסנכרן את הלוז מיומן צוות ${t}? אירועי הצוות הקיימים יוחלפו.`)) return;
     setTeamSyncing(true);
     setTeamSyncDiff(null);
+    setTeamSyncTarget(t);
     try {
-      const res = await fetch("/api/schedule/sync-team", { method: "POST" });
+      const res = await fetch(`/api/schedule/sync-team?team=${t}`, { method: "POST" });
       const data = await res.json();
       if (res.ok) {
         if (data.todayDiff) setTeamSyncDiff(data.todayDiff);
@@ -239,6 +279,7 @@ export default function ScheduleDailyPage() {
 
   const handleTeamNotifyChanges = async () => {
     if (!teamSyncDiff || teamSyncDiff.unchanged) return;
+    const t = teamSyncTarget || userTeam;
     setTeamSyncing(true);
     const lines: string[] = [];
     if (teamSyncDiff.updated.length > 0) { lines.push("עודכנו:"); teamSyncDiff.updated.forEach(t => lines.push(`  ✏️ ${t}`)); }
@@ -246,21 +287,23 @@ export default function ScheduleDailyPage() {
     if (teamSyncDiff.removed.length > 0) { lines.push("הוסרו:"); teamSyncDiff.removed.forEach(t => lines.push(`  ➖ ${t}`)); }
     const body = lines.join("\n");
     try {
-      await fetch("/api/schedule/sync-team", {
+      await fetch(`/api/schedule/sync-team?team=${t}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changes: body }),
       });
-      alert("נשלחה התראה לצוות");
+      alert(`נשלחה התראה לצוות ${t}`);
     } catch {
       alert("שגיאה בשליחה");
     }
     setTeamSyncing(false);
   };
 
-  const handleTeamRemind = async () => {
-    const teamEvents = events.filter(e => e.target === `team-${userTeam}`);
-    if (teamEvents.length === 0) { alert("אין אירועי צוות להיום"); return; }
+  const handleTeamRemind = async (team?: number) => {
+    const t = team || userTeam;
+    if (!t) return;
+    const teamEvents = events.filter(e => e.target === `team-${t}`);
+    if (teamEvents.length === 0) { alert(`אין אירועי צוות ${t} להיום`); return; }
     const summary = teamEvents.map(e => {
       if (e.allDay) return `${e.title} (כל היום)`;
       const st = new Date(e.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
@@ -269,12 +312,12 @@ export default function ScheduleDailyPage() {
     }).join(" | ");
     setTeamSyncing(true);
     try {
-      await fetch("/api/schedule/sync-team", {
+      await fetch(`/api/schedule/sync-team?team=${t}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ changes: summary }),
       });
-      alert("נשלחה תזכורת לצוות");
+      alert(`נשלחה תזכורת לצוות ${t}`);
     } catch {
       alert("שגיאה בשליחה");
     }
@@ -547,14 +590,49 @@ export default function ScheduleDailyPage() {
         </div>
       )}
 
-      {/* Team sync + remind buttons (for teams with linked calendars) */}
-      {(userTeam === 14 || userTeam === 16) && !showAdd && !editingEvent && (
+      {/* Admin: team visibility toggles + per-team sync */}
+      {isAdmin && !showAdd && !editingEvent && (
+        <div className="mb-3 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-bold text-gray-400">הצג צוותים:</span>
+            {SYNC_TEAMS.map(t => (
+              <button key={t} onClick={() => toggleTeamVisibility(t)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                  visibleTeams.has(t)
+                    ? "bg-teal-600 text-white border-teal-600"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-teal-300"
+                }`}>
+                צוות {t}
+              </button>
+            ))}
+            <button onClick={() => setVisibleTeams(new Set(SYNC_TEAMS))}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                visibleTeams.size === SYNC_TEAMS.length
+                  ? "bg-teal-600 text-white border-teal-600"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-teal-300"
+              }`}>
+              הכל
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {SYNC_TEAMS.map(t => (
+              <button key={t} onClick={() => handleTeamSync(t)} disabled={teamSyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-xs font-medium disabled:opacity-50">
+                <MdSync className={teamSyncing && teamSyncTarget === t ? "animate-spin" : ""} /> סנכרון צוות {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Non-admin team sync + remind (for own team only) */}
+      {!isAdmin && (userTeam === 14 || userTeam === 16) && !showAdd && !editingEvent && (
         <div className="flex gap-2 mb-3">
-          <button onClick={handleTeamSync} disabled={teamSyncing}
+          <button onClick={() => handleTeamSync()} disabled={teamSyncing}
             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-sm font-medium disabled:opacity-50">
             <MdSync className={teamSyncing ? "animate-spin" : ""} /> {teamSyncing ? "מסנכרן צוות..." : `סנכרון לו"ז צוות ${userTeam}`}
           </button>
-          <button onClick={handleTeamRemind} disabled={teamSyncing}
+          <button onClick={() => handleTeamRemind()} disabled={teamSyncing}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-white text-teal-600 hover:bg-teal-50 transition text-sm font-medium disabled:opacity-50">
             <MdNotifications /> תזכורת לצוות
           </button>
@@ -566,7 +644,7 @@ export default function ScheduleDailyPage() {
         <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl border border-teal-200 p-4 mb-3 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-bold text-teal-800 text-sm flex items-center gap-2">
-              <MdSync className="text-teal-500" /> שינויים בלוז צוות {userTeam} היום
+              <MdSync className="text-teal-500" /> שינויים בלוז צוות {teamSyncTarget || userTeam} היום
             </h3>
             <div className="flex gap-2">
               <button onClick={handleTeamNotifyChanges} disabled={teamSyncing}

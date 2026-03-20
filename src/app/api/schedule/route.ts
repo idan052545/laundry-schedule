@@ -52,12 +52,24 @@ export async function GET(request: Request) {
   const isAdmin = user?.email === "ohad@dotan.com" || user?.role === "admin" || user?.role === "commander";
   const userTeam = user?.team ? `team-${user.team}` : null;
 
+  // Admin can request specific teams via ?teams=14,16 or ?teams=all
+  const teamsParam = searchParams.get("teams");
+  let visibleTeams: Set<string> | null = null;
+  if (isAdmin && teamsParam) {
+    if (teamsParam === "all") {
+      visibleTeams = new Set(["all"]); // special: show everything
+    } else {
+      visibleTeams = new Set(teamsParam.split(",").map(t => `team-${t.trim()}`));
+    }
+  }
+
   const filtered = events.filter((e) => {
     if (e.target === "all") return true;
     if (userTeam && e.target === userTeam) return true;
     if (e.assignees.some((a) => a.userId === userId)) return true;
-    // Admins see platoon events but not other teams' events
-    if (isAdmin && e.target === "all") return true;
+    // Admin with explicit team filter
+    if (visibleTeams?.has("all")) return true;
+    if (visibleTeams?.has(e.target)) return true;
     return false;
   });
 
