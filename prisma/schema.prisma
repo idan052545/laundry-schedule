@@ -58,6 +58,14 @@ model User {
   chopalRequests    ChopalRequest[]  @relation("chopalRequests")
   chopalAssignments ChopalAssignment[] @relation("chopalAssignments")
   notifications     Notification[]   @relation("userNotifications")
+  volRequestsCreated   VolunteerRequest[]     @relation("volRequestCreator")
+  volAssignments       VolunteerAssignment[]  @relation("volAssignments")
+  volAssignedOthers    VolunteerAssignment[]  @relation("volAssigner")
+  volReplacedFrom      VolunteerReplacement[] @relation("volReplacedUser")
+  volReplacedTo        VolunteerReplacement[] @relation("volReplacer")
+  volDisputes          VolunteerDispute[]     @relation("volDisputes")
+  volDisputeReviews    VolunteerDispute[]     @relation("volDisputeReviewer")
+  volFeedback          VolunteerFeedback[]    @relation("volFeedback")
 }
 
 model Machine {
@@ -529,4 +537,106 @@ model Notification {
   user      User     @relation("userNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// ─── תורנויות (Volunteer Duties) ───
+
+model VolunteerRequest {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  createdById     String
+  createdBy       User     @relation("volRequestCreator", fields: [createdById], references: [id])
+  target          String   @default("all") // "all", "team-14", or "mixed"
+  targetDetails   String?  // JSON: [{"team":14,"count":2},{"team":16,"count":2}]
+  requiredCount   Int      @default(1)
+  startTime       DateTime
+  endTime         DateTime
+  category        String   @default("other") // "kitchen","cleaning","guard","logistics","other"
+  priority        String   @default("normal") // "normal", "urgent"
+  status          String   @default("open") // "open","filled","in-progress","completed","cancelled"
+  isCommanderRequest Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  assignments     VolunteerAssignment[]
+  replacements    VolunteerReplacement[]
+  disputes        VolunteerDispute[]
+  feedback        VolunteerFeedback[]
+
+  @@index([status, startTime])
+}
+
+model VolunteerAssignment {
+  id              String   @id @default(uuid())
+  requestId       String
+  request         VolunteerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation("volAssignments", fields: [userId], references: [id])
+  assignedById    String?
+  assignedBy      User?    @relation("volAssigner", fields: [assignedById], references: [id])
+  assignmentType  String   @default("self") // "self","commander","team-member"
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  status          String   @default("assigned") // "assigned","active","completed","replaced","cancelled"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  replacedBy      VolunteerReplacement[] @relation("replacedAssignment")
+
+  @@unique([requestId, userId])
+}
+
+model VolunteerReplacement {
+  id                   String   @id @default(uuid())
+  requestId            String
+  request              VolunteerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  originalAssignmentId String
+  originalAssignment   VolunteerAssignment @relation("replacedAssignment", fields: [originalAssignmentId], references: [id])
+  originalUserId       String
+  originalUser         User     @relation("volReplacedUser", fields: [originalUserId], references: [id])
+  replacementUserId    String?
+  replacementUser      User?    @relation("volReplacer", fields: [replacementUserId], references: [id])
+  reason               String?
+  isUrgent             Boolean  @default(false)
+  status               String   @default("seeking") // "seeking","found","cancelled"
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model VolunteerDispute {
+  id               String   @id @default(uuid())
+  requestId        String
+  request          VolunteerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation("volDisputes", fields: [userId], references: [id])
+  claimedStartTime DateTime
+  claimedEndTime   DateTime
+  reason           String?
+  status           String   @default("pending") // "pending","approved","rejected"
+  reviewedById     String?
+  reviewedBy       User?    @relation("volDisputeReviewer", fields: [reviewedById], references: [id])
+  reviewNote       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model VolunteerFeedback {
+  id        String   @id @default(uuid())
+  requestId String
+  request   VolunteerRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("volFeedback", fields: [userId], references: [id])
+  rating    Int      // 1-5
+  type      String   // "improvement","preserve","vent"
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([requestId, userId])
+}
+
+model VolunteerTitleHistory {
+  id         String   @id @default(uuid())
+  title      String   @unique
+  category   String
+  usageCount Int      @default(1)
+  lastUsed   DateTime @default(now())
 }

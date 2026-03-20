@@ -41,6 +41,9 @@ export async function GET() {
     dailyQuote,
     upcomingDutyTables,
     myTeamAssignments,
+    activeVolunteerRequests,
+    myVolunteerAssignments,
+    urgentReplacement,
     todayNotes,
   ] = await Promise.all([
     // Latest message
@@ -196,6 +199,59 @@ export async function GET() {
       },
     }),
 
+    // Active volunteer requests (open or in-progress, relevant to user)
+    prisma.volunteerRequest.findMany({
+      where: {
+        status: { in: ["open", "in-progress"] },
+        OR: [
+          { target: "all" },
+          ...(userTeam ? [{ target: userTeam }] : []),
+          { target: "mixed" },
+        ],
+      },
+      orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+      take: 5,
+      select: {
+        id: true, title: true, category: true, priority: true, status: true,
+        target: true, requiredCount: true, startTime: true, endTime: true,
+        isCommanderRequest: true, createdBy: { select: { name: true } },
+        _count: { select: { assignments: true } },
+      },
+    }),
+
+    // User's active volunteer assignments
+    prisma.volunteerAssignment.findMany({
+      where: {
+        userId,
+        status: { in: ["assigned", "active"] },
+        request: { status: { in: ["open", "in-progress"] } },
+      },
+      take: 5,
+      select: {
+        id: true, status: true,
+        request: { select: { id: true, title: true, startTime: true, endTime: true, category: true } },
+      },
+    }),
+
+    // Urgent replacements needing attention
+    prisma.volunteerReplacement.findFirst({
+      where: {
+        isUrgent: true, status: "seeking",
+        request: {
+          status: { in: ["open", "in-progress"] },
+          OR: [
+            { target: "all" },
+            ...(userTeam ? [{ target: userTeam }] : []),
+            { target: "mixed" },
+          ],
+        },
+      },
+      select: {
+        id: true, isUrgent: true,
+        request: { select: { id: true, title: true } },
+      },
+    }),
+
     // Today's schedule notes (personal + team)
     prisma.scheduleNote.findMany({
       where: {
@@ -289,6 +345,9 @@ export async function GET() {
     dailyQuote,
     todayNotes,
     chopalStatus,
+    activeVolunteerRequests,
+    myVolunteerAssignments,
+    urgentReplacement,
     nextDutyTables: (() => {
       if (!upcomingDutyTables || upcomingDutyTables.length === 0) return [];
       const firstDate = upcomingDutyTables[0].date;

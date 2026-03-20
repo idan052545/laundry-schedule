@@ -11,7 +11,7 @@ import {
   MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook,
   MdFolder, MdNotifications, MdNewspaper, MdMoreHoriz, MdBuild,
   MdPoll, MdEmojiEvents, MdFavorite, MdAutoAwesome, MdSecurity,
-  MdSmartToy,
+  MdSmartToy, MdVolunteerActivism,
 } from "react-icons/md";
 import NotificationBell from "./NotificationBell";
 
@@ -74,6 +74,7 @@ export default function Navbar() {
     { href: "/formats", label: "פורמטים", icon: MdFolder },
     { href: "/aktualia", label: "אקטואליה", icon: MdNewspaper },
     { href: "/birthdays", label: "ימי הולדת", icon: MdCake },
+    { href: "/volunteers", label: "התנדבויות", icon: MdVolunteerActivism },
     { href: "/guard-duty", label: "שיבוץ תורנויות", icon: MdSecurity },
     { href: "/daily-quote", label: "משפט היומי", icon: MdAutoAwesome },
     { href: "/amana", label: "אמנה צוותית", icon: MdFavorite },

@@ -13,6 +13,7 @@ import {
   MdPushPin, MdNewReleases, MdNewspaper, MdPoll, MdEmojiEvents,
   MdNotifications, MdStickyNote2, MdRefresh, MdAutoAwesome, MdSecurity, MdAccessTime,
   MdVisibility, MdVisibilityOff, MdTune, MdLocalHospital, MdExpandMore, MdExpandLess, MdDoneAll, MdChevronLeft, MdClose,
+  MdVolunteerActivism,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 
@@ -54,10 +55,13 @@ interface DashboardFeed {
     myAssignments: { role: string; timeSlot: string; partners: string[] }[];
   }[];
   chopalStatus: { registered: boolean; isOpen: boolean; date: string; assignment: { id: string; assignedTime: string; status: string } | null };
+  activeVolunteerRequests: { id: string; title: string; category: string; priority: string; status: string; target: string; requiredCount: number; startTime: string; endTime: string; isCommanderRequest: boolean; createdBy: { name: string }; _count: { assignments: number } }[];
+  myVolunteerAssignments: { id: string; status: string; request: { id: string; title: string; startTime: string; endTime: string; category: string } }[];
+  urgentReplacement: { id: string; isUrgent: boolean; request: { id: string; title: string } } | null;
 }
 
 // Section keys for visibility toggle
-type SectionKey = "quote" | "schedule" | "duty" | "teamSchedule" | "notes" | "tasks" | "forms" | "surveys" | "birthdays" | "messages" | "materials" | "commander" | "vote" | "machines" | "chopal";
+type SectionKey = "quote" | "schedule" | "duty" | "teamSchedule" | "notes" | "tasks" | "forms" | "surveys" | "birthdays" | "messages" | "materials" | "commander" | "vote" | "machines" | "chopal" | "volunteers";
 
 const SECTION_LABELS: Record<SectionKey, string> = {
   quote: "משפט היומי",
@@ -75,6 +79,7 @@ const SECTION_LABELS: Record<SectionKey, string> = {
   vote: "איש השבוע",
   machines: "מכונות",
   chopal: 'חופ"ל',
+  volunteers: "התנדבויות",
 };
 
 const DEFAULT_VISIBLE: SectionKey[] = Object.keys(SECTION_LABELS) as SectionKey[];
@@ -575,6 +580,24 @@ export default function DashboardPage() {
               )}
             </Link>
           )}
+          {visible.has("volunteers") && feed.urgentReplacement && (
+            <Link href={`/volunteers?highlight=${feed.urgentReplacement.request.id}`} className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2 hover:shadow-sm transition animate-pulse">
+              <MdVolunteerActivism className="text-lg text-red-500 shrink-0" />
+              <span className="text-xs font-bold text-red-700 flex-1 truncate">🚨 דרוש/ה מחליף/ה דחוף — {feed.urgentReplacement.request.title}</span>
+            </Link>
+          )}
+          {visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0 && (
+            <Link href="/volunteers" className="flex items-center gap-2.5 bg-green-50/60 border border-green-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdVolunteerActivism className="text-lg text-green-500 shrink-0" />
+              <span className="text-xs font-medium text-green-700 flex-1 truncate">{feed.activeVolunteerRequests.length} בקשות התנדבות פעילות</span>
+            </Link>
+          )}
+          {visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0 && (
+            <Link href="/volunteers?tab=my" className="flex items-center gap-2.5 bg-emerald-50/60 border border-emerald-200 rounded-xl px-3 py-2 hover:shadow-sm transition">
+              <MdCheckCircle className="text-lg text-emerald-500 shrink-0" />
+              <span className="text-xs font-medium text-emerald-700 flex-1 truncate">יש לך {feed.myVolunteerAssignments.length} שיבוצי התנדבות</span>
+            </Link>
+          )}
           {visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0) && (
             <Link href="/surveys" className="flex items-center gap-2.5 bg-violet-50/60 border border-violet-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
               <MdPoll className="text-lg text-violet-500 shrink-0" />
@@ -756,6 +779,12 @@ export default function DashboardPage() {
               const chopalText = ca?.status === "pending" ? "text-amber-700" : "text-green-700";
               actionItems.push({ key: "chopal-done", href: "/chopal", icon: chopalIcon, iconColor: chopalColor, bg: chopalBg, border: chopalBorder, textColor: chopalText, label: chopalLabel });
             }
+            if (visible.has("volunteers") && feed.urgentReplacement)
+              actionItems.push({ key: "vol-urgent", href: `/volunteers?highlight=${feed.urgentReplacement.request.id}`, icon: MdVolunteerActivism, iconColor: "text-red-500", bg: "from-red-50 to-rose-50", border: "border-red-200", textColor: "text-red-700", label: `🚨 דרוש/ה מחליף/ה — ${feed.urgentReplacement.request.title}` });
+            if (visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0)
+              actionItems.push({ key: "vol-active", href: "/volunteers", icon: MdVolunteerActivism, iconColor: "text-green-500", bg: "from-green-50 to-emerald-50", border: "border-green-100", textColor: "text-green-700", label: `${feed.activeVolunteerRequests.length} בקשות התנדבות` });
+            if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0)
+              actionItems.push({ key: "vol-my", href: "/volunteers?tab=my", icon: MdCheckCircle, iconColor: "text-emerald-500", bg: "from-emerald-50 to-green-50", border: "border-emerald-100", textColor: "text-emerald-700", label: `${feed.myVolunteerAssignments.length} שיבוצי התנדבות` });
             if (visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0))
               actionItems.push({ key: "surveys", href: "/surveys", icon: MdPoll, iconColor: "text-violet-500", bg: "from-violet-50 to-purple-50", border: "border-violet-100", textColor: "text-violet-700", label: `${(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} סקרים ממתינים` });
             if (visible.has("vote") && feed.hasVotedThisWeek === false)
@@ -1103,6 +1132,41 @@ function CarouselFeed({ feed, visible }: { feed: DashboardFeed; visible: Set<Sec
       icon: ca ? <MdAccessTime className="text-xl text-white" /> : <MdCheckCircle className="text-xl text-white" />,
       title: ca ? `חופ"ל — ${ca.assignedTime}` : "נרשמת לחופ\"ל",
       subtitle: ca?.status === "pending" ? "ממתין לאישור" : ca?.status === "accepted" ? "אושר ✓" : ca?.status === "rejected" ? "נדחה" : "ממתין לתור",
+    });
+  }
+
+  // Volunteers
+  if (visible.has("volunteers") && feed.urgentReplacement) {
+    cards.push({
+      key: "vol-urgent",
+      href: `/volunteers?highlight=${feed.urgentReplacement.request.id}`,
+      gradient: "from-red-500 to-rose-600",
+      iconBg: "bg-white/20",
+      icon: <MdVolunteerActivism className="text-xl text-white" />,
+      title: "דרוש/ה מחליף/ה דחוף!",
+      subtitle: feed.urgentReplacement.request.title,
+    });
+  }
+  if (visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0) {
+    cards.push({
+      key: "vol-active",
+      href: "/volunteers",
+      gradient: "from-green-500 to-emerald-600",
+      iconBg: "bg-white/20",
+      icon: <MdVolunteerActivism className="text-xl text-white" />,
+      title: `${feed.activeVolunteerRequests.length} בקשות התנדבות`,
+      subtitle: feed.activeVolunteerRequests[0]?.title,
+    });
+  }
+  if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0) {
+    cards.push({
+      key: "vol-my",
+      href: "/volunteers?tab=my",
+      gradient: "from-emerald-500 to-teal-600",
+      iconBg: "bg-white/20",
+      icon: <MdCheckCircle className="text-xl text-white" />,
+      title: `${feed.myVolunteerAssignments.length} שיבוצי התנדבות`,
+      subtitle: feed.myVolunteerAssignments[0]?.request.title,
     });
   }
 
