@@ -1,0 +1,58 @@
+import {
+  MdFiberNew, MdBuild, MdWarning, MdCheckCircle,
+} from "react-icons/md";
+
+export interface User {
+  id: string;
+  name: string;
+  image: string | null;
+  roomNumber?: string | null;
+  phone?: string | null;
+}
+
+export interface IssueComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: User;
+}
+
+export interface IssueAssignee {
+  id: string;
+  user: User;
+}
+
+export interface Issue {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  location: string | null;
+  imageUrl: string | null;
+  companion: string | null;
+  companionPhone: string | null;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: User;
+  assignees: IssueAssignee[];
+  comments: IssueComment[];
+}
+
+export interface Summary {
+  total: number;
+  new: number;
+  open: number;
+  urgent: number;
+  closed: number;
+}
+
+export const STATUS_CONFIG: Record<string, { label: string; icon: typeof MdFiberNew; color: string; bg: string; border: string }> = {
+  new: { label: "חדשה", icon: MdFiberNew, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+  open: { label: "פתוחה", icon: MdBuild, color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
+  urgent: { label: "דחופה", icon: MdWarning, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
+  closed: { label: "סגורה", icon: MdCheckCircle, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
+};
+
+export const formatDate = (d: string) =>
+  new Date(d).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });

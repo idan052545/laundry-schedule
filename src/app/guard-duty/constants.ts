@@ -1,0 +1,85 @@
+export interface UserMin { id: string; name: string; team: number | null; image: string | null; }
+
+export interface Assignment {
+  id: string;
+  userId: string;
+  timeSlot: string;
+  role: string;
+  note: string | null;
+  user: UserMin;
+}
+
+export interface DutyTable {
+  id: string;
+  title: string;
+  date: string;
+  type: string;
+  roles: string;
+  timeSlots: string;
+  metadata: string | null;
+  assignments: Assignment[];
+}
+
+export interface Appeal {
+  id: string;
+  assignmentId: string;
+  userId: string;
+  user: UserMin;
+  reason: string;
+  suggestedUserId: string | null;
+  suggestedUser: UserMin | null;
+  status: string;
+  createdAt: string;
+}
+
+export const ROLE_COLORS: Record<string, string> = {
+  "שג רכוב קדמי": "bg-purple-800 text-white",
+  "שג רכוב אחורי": "bg-purple-600 text-white",
+  "שג רגלי": "bg-gray-800 text-white",
+  "פטל": "bg-red-600 text-white",
+  "ימ\"ח": "bg-blue-700 text-white",
+  "בונקר": "bg-red-700 text-white",
+  "נשקייה": "bg-green-700 text-white",
+  "תצפיתן": "bg-yellow-600 text-white",
+  "עתודה": "bg-gray-600 text-white",
+  "כ\"כא": "bg-teal-700 text-white",
+  "כ\"כב": "bg-teal-500 text-white",
+};
+
+export const ROLE_NOTES: Record<string, string> = {
+  "שג רכוב קדמי": "תמיד 2",
+  "שג רכוב אחורי": "1 רק 5-17",
+  "שג רגלי": "7:00-19:00",
+};
+
+export const DEFAULT_GUARD_ROLES = [
+  "שג רכוב קדמי", "שג רכוב אחורי", "שג רגלי", "פטל",
+  "ימ\"ח", "בונקר", "נשקייה", "תצפיתן", "עתודה", "כ\"כא", "כ\"כב",
+];
+
+export const DEFAULT_GUARD_SLOTS = [
+  "08:00-12:00", "12:00-16:00", "16:00-20:00", "20:00-00:00", "00:00-04:00", "04:00-08:00",
+];
+
+export const DEFAULT_OBS_ROLES = ["08:30-11:30", "13:30-17:30", "18:30-20:00"];
+export const DEFAULT_OBS_SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"];
+
+export const DAY_ROLES = ['כ"כא', 'כ"כב'];
+
+export function toDateStr(d: Date) {
+  return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
+}
+
+export function parseTimeRange(range: string) {
+  const parts = range.split("-");
+  if (parts.length !== 2) return 0;
+  const [s, e] = parts;
+  const sp = s.split(":").map(Number);
+  const ep = e.split(":").map(Number);
+  if (sp.length < 2 || ep.length < 2 || sp.some(isNaN) || ep.some(isNaN)) return 0;
+  let h = (ep[0] * 60 + ep[1] - sp[0] * 60 - sp[1]) / 60;
+  if (h < 0) h += 24;
+  return h;
+}
+
+export type Overlap = { type: "same-slot" | "cross-table"; userId: string; userName: string; details: string };
