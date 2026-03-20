@@ -156,6 +156,13 @@ export default function DashboardPage() {
     if (status === "authenticated") fetchData();
   }, [status, router, fetchData]);
 
+  // Auto-refetch every 30s for live volunteer awareness
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [status, fetchData]);
+
   const isMachineAvailable = (machine: Machine) => {
     if (machine.status === "maintenance") return false;
     return !machine.bookings.find((b) => b.date === today && b.timeSlot === currentSlot);
@@ -231,6 +238,37 @@ export default function DashboardPage() {
   const urgentCount = (feed?.pendingForms.length || 0)
     + (feed?.todayTasks.filter(t => t.priority === "urgent" || (t.dueDate && new Date(t.dueDate) < new Date())).length || 0);
 
+  // Volunteer alerts: urgent, happening now, or starting within the hour
+  const volAlerts = (() => {
+    if (!feed) return { urgent: [], now: [], soon: [], myCreatedAlerts: [] };
+    const nowMs = Date.now();
+    const hourFromNow = nowMs + 60 * 60 * 1000;
+    const reqs = feed.activeVolunteerRequests || [];
+    const urgent = reqs.filter(r => r.priority === "urgent");
+    const now = reqs.filter(r => {
+      const s = new Date(r.startTime).getTime();
+      const e = new Date(r.endTime).getTime();
+      return nowMs >= s && nowMs <= e && r.priority !== "urgent";
+    });
+    const soon = reqs.filter(r => {
+      const s = new Date(r.startTime).getTime();
+      return s > nowMs && s <= hourFromNow && r.priority !== "urgent";
+    });
+    // Creator's requests: show unfilled or active
+    const myCreatedAlerts = (feed.myCreatedRequests || []).map(r => {
+      const filled = r._count.assignments;
+      const s = new Date(r.startTime).getTime();
+      const e = new Date(r.endTime).getTime();
+      const isNow = nowMs >= s && nowMs <= e;
+      const isSoon = s > nowMs && s <= hourFromNow;
+      const needsMore = filled < r.requiredCount;
+      return { ...r, filled, isNow, isSoon, needsMore };
+    });
+    return { urgent, now, soon, myCreatedAlerts };
+  })();
+  const hasVolAlerts = volAlerts.urgent.length > 0 || volAlerts.now.length > 0 || volAlerts.soon.length > 0 || feed?.urgentReplacement;
+  const hasMyCreatedAlerts = volAlerts.myCreatedAlerts.some(r => r.needsMore || r.isNow || r.isSoon);
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header — compact, elegant */}
@@ -299,6 +337,149 @@ export default function DashboardPage() {
             <Link href="/forms" className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold hover:bg-red-200 transition">
               {feed?.pendingForms.length} טפסים
             </Link>
+          )}
+        </div>
+      )}
+
+      {/* === VOLUNTEER ALERTS BANNER — wide, unmissable === */}
+      {visible.has("volunteers") && (hasVolAlerts || hasMyCreatedAlerts) && (
+        <div className="mb-3 space-y-2">
+          {/* Urgent replacement */}
+          {feed?.urgentReplacement && (
+            <Link href={`/volunteers?highlight=${feed.urgentReplacement.request.id}`}
+              className="block w-full rounded-2xl bg-gradient-to-l from-red-600 to-rose-500 text-white p-4 shadow-lg animate-pulse">
+              <div className="flex items-center gap-3">
+                <MdWarning className="text-2xl shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black">דרוש/ה מחליף/ה דחוף</p>
+                  <p className="text-xs opacity-90">{feed.urgentReplacement.request.title}</p>
+                </div>
+                <MdChevronLeft className="text-2xl shrink-0 opacity-70" />
+              </div>
+            </Link>
+          )}
+
+          {/* Urgent volunteer requests */}
+          {volAlerts.urgent.map(r => {
+            const filled = r._count.assignments;
+            const slotsLeft = r.requiredCount - filled;
+            const timeStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+            return (
+              <Link key={r.id} href="/volunteers"
+                className="block w-full rounded-2xl bg-gradient-to-l from-red-500 to-orange-500 text-white p-4 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <MdVolunteerActivism className="text-2xl shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black truncate">{r.title}</p>
+                      <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded font-bold shrink-0">דחוף</span>
+                    </div>
+                    <p className="text-xs opacity-90 flex items-center gap-2 mt-0.5">
+                      <span><MdAccessTime className="inline text-xs" /> {timeStr}</span>
+                      <span>דרושים עוד {slotsLeft} מתנדבים</span>
+                    </p>
+                  </div>
+                  <MdChevronLeft className="text-2xl shrink-0 opacity-70" />
+                </div>
+              </Link>
+            );
+          })}
+
+          {/* Happening NOW */}
+          {volAlerts.now.map(r => {
+            const filled = r._count.assignments;
+            const slotsLeft = Math.max(0, r.requiredCount - filled);
+            const endStr = new Date(r.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+            return (
+              <Link key={r.id} href="/volunteers"
+                className="block w-full rounded-2xl bg-gradient-to-l from-emerald-600 to-green-500 text-white p-4 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <MdVolunteerActivism className="text-2xl" />
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-ping" />
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black truncate">{r.title}</p>
+                      <span className="text-[10px] bg-white/25 px-1.5 py-0.5 rounded font-bold shrink-0">עכשיו</span>
+                    </div>
+                    <p className="text-xs opacity-90 flex items-center gap-2 mt-0.5">
+                      <span>עד {endStr}</span>
+                      {slotsLeft > 0 && <span>דרושים עוד {slotsLeft}</span>}
+                      <span>{filled}/{r.requiredCount} משובצים</span>
+                    </p>
+                  </div>
+                  <MdChevronLeft className="text-2xl shrink-0 opacity-70" />
+                </div>
+              </Link>
+            );
+          })}
+
+          {/* Starting soon (within the hour) */}
+          {volAlerts.soon.length > 0 && (
+            <div className="w-full rounded-2xl bg-gradient-to-l from-amber-500 to-yellow-400 text-white p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <MdSchedule className="text-xl shrink-0" />
+                <p className="text-sm font-black">מתחיל בקרוב</p>
+              </div>
+              <div className="space-y-2">
+                {volAlerts.soon.map(r => {
+                  const filled = r._count.assignments;
+                  const slotsLeft = Math.max(0, r.requiredCount - filled);
+                  const startStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+                  const minsUntil = Math.round((new Date(r.startTime).getTime() - Date.now()) / 60000);
+                  return (
+                    <Link key={r.id} href="/volunteers" className="flex items-center gap-3 bg-white/15 rounded-xl px-3 py-2 hover:bg-white/25 transition">
+                      <MdVolunteerActivism className="text-lg shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate">{r.title}</p>
+                        <p className="text-[10px] opacity-90 flex items-center gap-2">
+                          <span>{startStr} (עוד {minsUntil} דק׳)</span>
+                          {slotsLeft > 0 && <span className="font-bold">דרושים {slotsLeft}</span>}
+                        </p>
+                      </div>
+                      <MdChevronLeft className="text-lg shrink-0 opacity-70" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Creator's requests status */}
+          {hasMyCreatedAlerts && (
+            <div className="w-full rounded-2xl bg-gradient-to-l from-teal-600 to-cyan-500 text-white p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <MdPeople className="text-xl shrink-0" />
+                <p className="text-sm font-black">תורנויות שיצרתי</p>
+              </div>
+              <div className="space-y-2">
+                {volAlerts.myCreatedAlerts.filter(r => r.needsMore || r.isNow || r.isSoon).map(r => {
+                  const startStr = new Date(r.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+                  const endStr = new Date(r.endTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+                  const pct = Math.min(100, Math.round((r.filled / r.requiredCount) * 100));
+                  const statusLabel = r.isNow ? "פעיל עכשיו" : r.isSoon ? "מתחיל בקרוב" : r.needsMore ? "חסרים מתנדבים" : "";
+                  const statusColor = r.isNow ? "bg-white/30" : r.needsMore && !r.isSoon ? "bg-red-400/40" : "bg-white/20";
+                  return (
+                    <Link key={r.id} href="/volunteers" className="block bg-white/15 rounded-xl px-3 py-2.5 hover:bg-white/25 transition">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-bold truncate flex-1">{r.title}</p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 mr-2 ${statusColor}`}>{statusLabel}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] opacity-90 mb-1.5">
+                        <span><MdAccessTime className="inline text-xs" /> {startStr}–{endStr}</span>
+                        <span className="font-bold">{r.filled}/{r.requiredCount} משובצים</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${pct >= 100 ? "bg-green-300" : pct >= 50 ? "bg-yellow-300" : "bg-red-300"}`}
+                          style={{ width: `${pct}%` }} />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}

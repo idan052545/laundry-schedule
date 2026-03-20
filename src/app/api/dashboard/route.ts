@@ -234,14 +234,14 @@ export async function GET() {
       },
     }),
 
-    // User's created volunteer requests (open/in-progress)
+    // User's created volunteer requests (open/in-progress/filled)
     prisma.volunteerRequest.findMany({
       where: {
         createdById: userId,
-        status: { in: ["open", "in-progress"] },
+        status: { in: ["open", "in-progress", "filled"] },
       },
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 10,
       select: {
         id: true, title: true, category: true, status: true, startTime: true, endTime: true,
         requiredCount: true, _count: { select: { assignments: true } },

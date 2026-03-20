@@ -97,6 +97,13 @@ export default function VolunteersPage() {
     }
   }, [status, router, fetchRequests]);
 
+  // Auto-refetch every 30s for urgent/live awareness
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const interval = setInterval(() => { fetchRequests(); }, 30000);
+    return () => clearInterval(interval);
+  }, [status, fetchRequests]);
+
   useEffect(() => {
     if (tab === "stats") fetchStats();
   }, [tab, fetchStats]);
