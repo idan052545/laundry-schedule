@@ -16,7 +16,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export default function NotificationBell() {
+  console.log("[DEBUG] NotificationBell rendering");
   const { data: session } = useSession();
+  console.log("[DEBUG] NotificationBell session:", JSON.stringify(session));
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [subscribed, setSubscribed] = useState(false);

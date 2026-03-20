@@ -8,7 +8,9 @@ import Image from "next/image";
 import { MdLogin, MdPersonAdd } from "react-icons/md";
 
 export default function Home() {
+  console.log("[DEBUG] Home page rendering");
   const { data: session, status } = useSession();
+  console.log("[DEBUG] Home session:", JSON.stringify(session), "status:", status);
   const router = useRouter();
   useEffect(() => {
     if (status === "authenticated") {
