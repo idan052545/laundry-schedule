@@ -18,6 +18,7 @@ interface EventCardProps {
   timedEventsLength: number;
   reminding: string | null;
   currentUserId?: string;
+  currentUserFirstName?: string;
   onDetail: (event: ScheduleEvent) => void;
   onEdit: (event: ScheduleEvent) => void;
   onDelete: (id: string) => void;
@@ -29,13 +30,13 @@ interface EventCardProps {
 
 export default function EventCard({
   event, idx, compact, isAdmin, isToday, timedEventsLength,
-  reminding, currentUserId, onDetail, onEdit, onDelete, onRemind, onRemindAssigned, onAssign, onMove,
+  reminding, currentUserId, currentUserFirstName, onDetail, onEdit, onDelete, onRemind, onRemindAssigned, onAssign, onMove,
 }: EventCardProps) {
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
   const Icon = config.icon;
   const active = isEventNow(event, isToday);
   const duration = getDurationMin(event);
-  const isAssignedToMe = currentUserId ? event.assignees.some(a => a.userId === currentUserId) : false;
+  const isAssignedToMe = (currentUserId ? event.assignees.some(a => a.userId === currentUserId) : false) || (currentUserFirstName && currentUserFirstName.length >= 2 && event.title.includes(currentUserFirstName));
   const isTeamEvent = event.target !== "all";
 
   // Visual priority: assigned > team > default
