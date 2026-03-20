@@ -201,10 +201,10 @@ export default function ScheduleDailyPage() {
     if (!syncDiff || syncDiff.unchanged) return;
     setSyncing(true);
     const lines: string[] = [];
-    if (syncDiff.updated.length > 0) lines.push(`עודכנו: ${syncDiff.updated.join(", ")}`);
-    if (syncDiff.added.length > 0) lines.push(`נוספו: ${syncDiff.added.join(", ")}`);
-    if (syncDiff.removed.length > 0) lines.push(`הוסרו: ${syncDiff.removed.join(", ")}`);
-    const body = lines.join(" | ");
+    if (syncDiff.updated.length > 0) { lines.push("עודכנו:"); syncDiff.updated.forEach(t => lines.push(`  ✏️ ${t}`)); }
+    if (syncDiff.added.length > 0) { lines.push("נוספו:"); syncDiff.added.forEach(t => lines.push(`  ➕ ${t}`)); }
+    if (syncDiff.removed.length > 0) { lines.push("הוסרו:"); syncDiff.removed.forEach(t => lines.push(`  ➖ ${t}`)); }
+    const body = lines.join("\n");
     try {
       await fetch("/api/schedule/sync", {
         method: "PUT",
@@ -241,10 +241,10 @@ export default function ScheduleDailyPage() {
     if (!teamSyncDiff || teamSyncDiff.unchanged) return;
     setTeamSyncing(true);
     const lines: string[] = [];
-    if (teamSyncDiff.updated.length > 0) lines.push(`עודכנו: ${teamSyncDiff.updated.join(", ")}`);
-    if (teamSyncDiff.added.length > 0) lines.push(`נוספו: ${teamSyncDiff.added.join(", ")}`);
-    if (teamSyncDiff.removed.length > 0) lines.push(`הוסרו: ${teamSyncDiff.removed.join(", ")}`);
-    const body = lines.join(" | ");
+    if (teamSyncDiff.updated.length > 0) { lines.push("עודכנו:"); teamSyncDiff.updated.forEach(t => lines.push(`  ✏️ ${t}`)); }
+    if (teamSyncDiff.added.length > 0) { lines.push("נוספו:"); teamSyncDiff.added.forEach(t => lines.push(`  ➕ ${t}`)); }
+    if (teamSyncDiff.removed.length > 0) { lines.push("הוסרו:"); teamSyncDiff.removed.forEach(t => lines.push(`  ➖ ${t}`)); }
+    const body = lines.join("\n");
     try {
       await fetch("/api/schedule/sync-team", {
         method: "PUT",
