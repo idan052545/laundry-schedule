@@ -666,7 +666,7 @@ export default function VolunteersPage() {
               <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600"><MdClose className="text-xl" /></button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Title with suggestions */}
               <div className="relative">
                 <label className="text-xs font-medium text-gray-600 mb-1 block">שם התורנות *</label>
@@ -758,18 +758,18 @@ export default function VolunteersPage() {
               )}
 
               {/* Count + Priority */}
-              <div className="flex gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {form.target !== "mixed" && (
-                  <div className="flex-1">
+                  <div>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">כמה מתנדבים?</label>
                     <input type="number" min={1} max={50} value={form.requiredCount}
                       onChange={e => setForm(f => ({ ...f, requiredCount: parseInt(e.target.value) || 1 }))}
                       className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
                   </div>
                 )}
-                <div className="flex-1">
+                <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">עדיפות</label>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <button onClick={() => setForm(f => ({ ...f, priority: "normal" }))}
                       className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${form.priority === "normal" ? "bg-gray-700 text-white" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
                       רגיל
@@ -783,7 +783,7 @@ export default function VolunteersPage() {
               </div>
 
               {/* Times (same day — time only) */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה *</label>
                   <input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
@@ -958,7 +958,7 @@ export default function VolunteersPage() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setEditingRequest(null)}>
           <div className="bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
             <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2"><MdEdit className="text-blue-500" /> עריכת תורנות</h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">שם</label>
                 <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
@@ -969,7 +969,7 @@ export default function VolunteersPage() {
                 <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                   rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm resize-none" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה</label>
                   <input type="time" value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))}
