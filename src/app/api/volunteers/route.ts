@@ -128,7 +128,7 @@ export async function PUT(request: Request) {
 
   const userId = (session.user as { id: string }).id;
   const body = await request.json();
-  const { id, status, title, description, startTime, endTime, requiredCount } = body;
+  const { id, status, title, description, startTime, endTime, requiredCount, notify, notifyBody } = body;
 
   if (!id) return NextResponse.json({ error: "חסר מזהה" }, { status: 400 });
 
@@ -169,6 +169,37 @@ export async function PUT(request: Request) {
         where: { requestId: id, status: { in: ["assigned", "active"] } },
         data: { status: "completed" },
       });
+    }
+  }
+
+  // Send push notification about this request
+  if (notify && notifyBody) {
+    const target = updated.target || req.target;
+    if (target === "all") {
+      await sendPushToAll({
+        title: "תורנות דורשת מתנדבים",
+        body: notifyBody,
+        url: "/volunteers",
+        tag: `volunteer-notify-${id}`,
+      }, userId);
+    } else {
+      const teams: number[] = [];
+      if (target.startsWith("team-")) teams.push(parseInt(target.replace("team-", "")));
+      else if (target === "mixed" && req.targetDetails) {
+        try { JSON.parse(req.targetDetails as string).forEach((d: { team: number }) => teams.push(d.team)); } catch { /* ignore */ }
+      }
+      if (teams.length > 0) {
+        const targetUsers = await prisma.user.findMany({ where: { team: { in: teams } }, select: { id: true } });
+        const ids = targetUsers.map(u => u.id).filter(uid => uid !== userId);
+        if (ids.length > 0) {
+          await sendPushToUsers(ids, {
+            title: "תורנות דורשת מתנדבים",
+            body: notifyBody,
+            url: "/volunteers",
+            tag: `volunteer-notify-${id}`,
+          });
+        }
+      }
     }
   }
 

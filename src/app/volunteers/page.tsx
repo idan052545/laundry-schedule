@@ -9,7 +9,7 @@ import {
   MdClose, MdCheck, MdSwapHoriz, MdStar, MdStarBorder, MdStarHalf,
   MdWarning, MdBarChart, MdFilterList, MdSearch, MdSend,
   MdThumbUp, MdEdit, MdDelete, MdExpandMore, MdExpandLess,
-  MdFileDownload, MdRefresh,
+  MdFileDownload, MdRefresh, MdNotifications,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
@@ -42,6 +42,16 @@ export default function VolunteersPage() {
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const isCommander = myRole === "admin" || myRole === "commander";
 
+  // Helper: get HH:MM string for Israel timezone
+  const nowTimeStr = () => {
+    const d = new Date();
+    return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+  };
+  const plus15 = () => {
+    const d = new Date(Date.now() + 15 * 60000);
+    return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+  };
+
   // Create form
   const [form, setForm] = useState({
     title: "", description: "", target: "all", requiredCount: 1,
@@ -58,6 +68,10 @@ export default function VolunteersPage() {
 
   // Replace form
   const [replaceForm, setReplaceForm] = useState({ reason: "", isUrgent: false });
+
+  // Edit state
+  const [editingRequest, setEditingRequest] = useState<VolRequest | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", description: "", startTime: "", endTime: "", requiredCount: 1 });
 
   const fetchRequests = useCallback(async () => {
     const res = await fetch(`/api/volunteers?status=${statusFilter}`);
@@ -104,11 +118,14 @@ export default function VolunteersPage() {
   const handleCreate = async () => {
     if (!form.title || !form.startTime || !form.endTime) return;
     setSubmitting(true);
+    const todayDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }); // YYYY-MM-DD
     const res = await fetch("/api/volunteers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        startTime: `${todayDate}T${form.startTime}:00`,
+        endTime: `${todayDate}T${form.endTime}:00`,
         targetDetails: form.target === "mixed" ? form.targetDetails : undefined,
       }),
     });
@@ -212,6 +229,61 @@ export default function VolunteersPage() {
     setSubmitting(false);
   };
 
+  const startEditingRequest = (req: VolRequest) => {
+    const toTimeStr = (iso: string) => {
+      const d = new Date(iso);
+      return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+    };
+    setEditForm({
+      title: req.title,
+      description: req.description || "",
+      startTime: toTimeStr(req.startTime),
+      endTime: toTimeStr(req.endTime),
+      requiredCount: req.requiredCount,
+    });
+    setEditingRequest(req);
+  };
+
+  const handleEdit = async () => {
+    if (!editingRequest) return;
+    setSubmitting(true);
+    // Build full datetime from the request's date + edited time
+    const dateStr = new Date(editingRequest.startTime).toISOString().split("T")[0];
+    const res = await fetch("/api/volunteers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: editingRequest.id,
+        title: editForm.title,
+        description: editForm.description || null,
+        startTime: `${dateStr}T${editForm.startTime}:00`,
+        endTime: `${dateStr}T${editForm.endTime}:00`,
+        requiredCount: editForm.requiredCount,
+      }),
+    });
+    if (res.ok) {
+      setEditingRequest(null);
+      await fetchRequests();
+    } else {
+      const err = await res.json();
+      alert(err.error || "שגיאה");
+    }
+    setSubmitting(false);
+  };
+
+  const handleNotify = async (req: VolRequest) => {
+    const slotsLeft = req.requiredCount - req.assignments.filter(a => a.status !== "cancelled" && a.status !== "replaced").length;
+    const body = `${req.title} — דרושים עוד ${slotsLeft} מתנדבים! ${fmtTime(req.startTime)}–${fmtTime(req.endTime)}`;
+    setSubmitting(true);
+    await fetch("/api/volunteers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: req.id, notify: true, notifyBody: body }),
+    });
+    alert("נשלחה התראה");
+    setSubmitting(false);
+  };
+
   const exportStats = () => {
     if (!stats) return;
     const wb = XLSX.utils.book_new();
@@ -248,7 +320,7 @@ export default function VolunteersPage() {
           תורנויות
         </h1>
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={() => { setForm(f => ({ ...f, startTime: nowTimeStr(), endTime: plus15() })); setShowCreate(true); }}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-bold shadow hover:bg-green-700 transition"
         >
           <MdAdd /> יצירת תורנות
@@ -394,7 +466,19 @@ export default function VolunteersPage() {
                         </button>
                       )
                     ))}
-                    {req.status === "open" && req.createdById === myUserId && (
+                    {req.status === "open" && (req.createdById === myUserId || isCommander) && (
+                      <button onClick={() => startEditingRequest(req)}
+                        className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-blue-200 text-blue-600 text-[10px] font-medium hover:bg-blue-50 transition">
+                        <MdEdit className="text-xs" /> עריכה
+                      </button>
+                    )}
+                    {req.status === "open" && (req.createdById === myUserId || isCommander) && (
+                      <button onClick={() => handleNotify(req)} disabled={submitting}
+                        className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-green-200 text-green-600 text-[10px] font-medium hover:bg-green-50 transition disabled:opacity-50">
+                        <MdNotifications className="text-xs" /> התראה
+                      </button>
+                    )}
+                    {req.status === "open" && (req.createdById === myUserId || isCommander) && (
                       <button onClick={() => handleStatusChange(req.id, "cancelled")}
                         className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-[10px] font-medium hover:bg-gray-50 transition">
                         <MdDelete className="text-xs" /> ביטול
@@ -698,17 +782,17 @@ export default function VolunteersPage() {
                 </div>
               </div>
 
-              {/* Times */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Times (same day — time only) */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה *</label>
-                  <input type="datetime-local" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-green-300 transition" />
+                  <input type="time" value={form.startTime} onChange={e => setForm(f => ({ ...f, startTime: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">סיום *</label>
-                  <input type="datetime-local" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:ring-2 focus:ring-green-300 transition" />
+                  <input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
                 </div>
               </div>
 
@@ -865,6 +949,51 @@ export default function VolunteersPage() {
                 {submitting ? "שולח..." : "שלח ערעור"}
               </button>
               <button onClick={() => setShowDispute(null)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600">ביטול</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit modal */}
+      {editingRequest && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setEditingRequest(null)}>
+          <div className="bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2"><MdEdit className="text-blue-500" /> עריכת תורנות</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">שם</label>
+                <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">תיאור</label>
+                <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                  rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">התחלה</label>
+                  <input type="time" value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-center" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">סיום</label>
+                  <input type="time" value={editForm.endTime} onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-center" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">כמות מתנדבים</label>
+                <input type="number" min={1} max={50} value={editForm.requiredCount}
+                  onChange={e => setEditForm(f => ({ ...f, requiredCount: parseInt(e.target.value) || 1 }))}
+                  className="w-24 rounded-xl border border-gray-200 px-3 py-2 text-sm text-center" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={handleEdit} disabled={submitting || !editForm.title}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition disabled:opacity-50">
+                {submitting ? "שומר..." : "שמור"}
+              </button>
+              <button onClick={() => setEditingRequest(null)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600">ביטול</button>
             </div>
           </div>
         </div>
