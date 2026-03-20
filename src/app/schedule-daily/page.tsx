@@ -12,7 +12,7 @@ import {
 import { InlineLoading } from "@/components/LoadingScreen";
 import { TYPE_CONFIG } from "./constants";
 import { ScheduleEvent, UserOption, EventFormData, ScheduleNote } from "./types";
-import { formatTime, formatEndTime, formatDateDisplay, toISO, getDurationMin, isEventNow, groupTimedEvents } from "./utils";
+import { formatTime, formatEndTime, formatDateDisplay, toISO, getDurationMin, isEventNow, groupTimedEvents, isNameInTitle } from "./utils";
 import EventForm from "./EventForm";
 import EventCard from "./EventCard";
 import EventDetailModal from "./EventDetailModal";
@@ -508,7 +508,6 @@ export default function ScheduleDailyPage() {
 
   const myUserId = (session?.user as { id?: string })?.id;
   const myName = session?.user?.name || "";
-  const myFirstName = myName.split(" ")[0] || "";
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const isSagal = myRole === "sagal";
   const canEdit = isAdmin && !isSagal;
@@ -769,7 +768,7 @@ export default function ScheduleDailyPage() {
               const Icon = config.icon;
               const active = isEventNow(event, isToday);
               const isTeam = event.target !== "all";
-              const isMine = (myUserId ? event.assignees.some(a => a.userId === myUserId) : false) || (myFirstName.length >= 2 && event.title.includes(myFirstName));
+              const isMine = (myUserId ? event.assignees.some(a => a.userId === myUserId) : false) || isNameInTitle(event.title, myName);
               return (
                 <div key={event.id} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
                   isMine ? "bg-teal-50 border-teal-300" : isTeam ? "bg-cyan-50 border-cyan-200" : `${config.bg} ${config.border}`
@@ -904,7 +903,7 @@ export default function ScheduleDailyPage() {
                   const anyActive = group.events.some(({ event }) => isEventNow(event, isToday));
                   const firstConfig = TYPE_CONFIG[group.events[0].event.type] || TYPE_CONFIG.general;
                   const isTeamGroup = group.events.some(({ event }) => event.target !== "all");
-                  const hasMyAssignment = (myUserId ? group.events.some(({ event }) => event.assignees.some(a => a.userId === myUserId)) : false) || (myFirstName.length >= 2 && group.events.some(({ event }) => event.title.includes(myFirstName)));
+                  const hasMyAssignment = (myUserId ? group.events.some(({ event }) => event.assignees.some(a => a.userId === myUserId)) : false) || group.events.some(({ event }) => isNameInTitle(event.title, myName));
 
                   // Mark the current (active) or first upcoming group for "scroll to now"
                   const now = Date.now();
@@ -929,7 +928,7 @@ export default function ScheduleDailyPage() {
                           <EventCard
                             event={group.events[0].event} idx={group.events[0].idx} compact={false}
                             isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
-                            reminding={reminding} currentUserId={myUserId} currentUserFirstName={myFirstName} onDetail={setDetailEvent} onEdit={openEdit}
+                            reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={setDetailEvent} onEdit={openEdit}
                             onDelete={handleDelete} onRemind={handleRemind} onRemindAssigned={handleRemindAssigned} onAssign={openAssign} onMove={moveEvent}
                           />
                         </div>
@@ -940,7 +939,7 @@ export default function ScheduleDailyPage() {
                               key={evItem.event.id}
                               event={evItem.event} idx={evItem.idx} compact={true}
                               isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
-                              reminding={reminding} currentUserId={myUserId} currentUserFirstName={myFirstName} onDetail={setDetailEvent} onEdit={openEdit}
+                              reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={setDetailEvent} onEdit={openEdit}
                               onDelete={handleDelete} onRemind={handleRemind} onRemindAssigned={handleRemindAssigned} onAssign={openAssign} onMove={moveEvent}
                             />
                           ))}

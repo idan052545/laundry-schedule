@@ -1,5 +1,40 @@
 import { ScheduleEvent, TimedGroup } from "./types";
 
+/**
+ * Check if a user's name appears in an event title.
+ * Handles Hebrew naming conventions where titles contain comma-separated names.
+ * For "עידן חן סימנטוב" matches: "עידן", "עידן סימנטוב", "עידן ס", "עידן ח", etc.
+ * Only matches first name alone if it's unique enough (no ambiguity needed).
+ */
+export const isNameInTitle = (title: string, fullName: string): boolean => {
+  if (!fullName || fullName.length < 2) return false;
+  const parts = fullName.split(/\s+/).filter(p => p.length > 0);
+  if (parts.length === 0) return false;
+
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+  // For names like "עידן חן סימנטוב", middle names exist
+  const lastInitial = lastName[0];
+
+  // Check combinations from most specific to least:
+  // 1. Full name
+  if (parts.length > 1 && title.includes(fullName)) return true;
+  // 2. First + last name (skip middle): "עידן סימנטוב"
+  if (parts.length > 2 && title.includes(`${firstName} ${lastName}`)) return true;
+  // 3. First name + last initial: "עידן ס"
+  if (parts.length > 1 && title.includes(`${firstName} ${lastInitial}`)) return true;
+  // 4. First name + middle name initial (for 3+ part names): "עידן ח"
+  if (parts.length > 2) {
+    for (let i = 1; i < parts.length; i++) {
+      if (title.includes(`${firstName} ${parts[i][0]}`)) return true;
+    }
+  }
+  // 5. First name alone — but only if >= 2 chars
+  if (firstName.length >= 2 && title.includes(firstName)) return true;
+
+  return false;
+};
+
 export const formatTime = (dt: string) =>
   new Date(dt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
 
