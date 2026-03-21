@@ -89,7 +89,8 @@ export async function GET(req: NextRequest) {
     distinct: ["date"],
   });
 
-  return NextResponse.json({ table, allUsers, isRoni: roni, appeals, hoursMap, availableDates: availableDates.map(d => d.date) });
+  const isCreator = table?.createdById === userId;
+  return NextResponse.json({ table, allUsers, isRoni: roni, isCreator, appeals, hoursMap, availableDates: availableDates.map(d => d.date) });
 }
 
 // POST — create or update entire duty table (Roni only)
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
   const table = await prisma.dutyTable.upsert({
     where: { date_type: { date, type } },
     update: { title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots), updatedAt: new Date() },
-    create: { date, type, title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots) },
+    create: { date, type, title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots), createdById: userId },
   });
 
   // Delete old assignments and recreate
@@ -329,17 +330,23 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ error: "פעולה לא תקינה" }, { status: 400 });
 }
 
-// DELETE — delete entire table (Roni only)
+// DELETE — delete entire table (creator or admin only)
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
 
   const userId = (session.user as { id: string }).id;
-  if (!(await isRoni(userId))) return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
-
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "חסר מזהה" }, { status: 400 });
+
+  const table = await prisma.dutyTable.findUnique({ where: { id }, select: { createdById: true } });
+  if (!table) return NextResponse.json({ error: "לא נמצא" }, { status: 404 });
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const isCreator = table.createdById === userId;
+  const isAdmin = user?.role === "admin";
+  if (!isCreator && !isAdmin) return NextResponse.json({ error: "רק היוצר יכול לבטל" }, { status: 403 });
 
   await prisma.dutyAppeal.deleteMany({ where: { tableId: id } });
   await prisma.dutyTable.delete({ where: { id } });

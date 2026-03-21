@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  MdSecurity, MdAdd, MdClose, MdDownload, MdDelete,
+  MdSecurity, MdAdd, MdClose, MdDownload, MdDelete, MdRefresh,
   MdChevronRight, MdChevronLeft, MdBarChart, MdNotifications,
   MdErrorOutline, MdGavel, MdPerson,
 } from "react-icons/md";
@@ -31,26 +31,30 @@ export default function GuardDutyPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-dotan-green-dark flex items-center gap-2 shrink-0">
           <MdSecurity className="text-amber-600" /> {t.guardDuty.title}
         </h1>
-        {g.isRoni && (
-          <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-end">
-            {g.table && (
-              <>
-                <button onClick={g.handleExportXlsx}
-                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium">
-                  <MdDownload className="text-green-600" /> <span className="hidden sm:inline">XLSX</span>
-                </button>
-                <button onClick={g.handleDeleteTable}
-                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-500 hover:bg-red-50 text-xs font-medium">
-                  <MdDelete />
-                </button>
-              </>
-            )}
+        <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-end">
+          <button onClick={() => g.fetchData()}
+            className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-dotan-green hover:bg-gray-50 text-xs font-medium">
+            <MdRefresh className={g.loading ? "animate-spin" : ""} />
+          </button>
+          {g.isRoni && g.table && (
+            <button onClick={g.handleExportXlsx}
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-medium">
+              <MdDownload className="text-green-600" /> <span className="hidden sm:inline">XLSX</span>
+            </button>
+          )}
+          {(g.isCreator || g.isRoni) && g.table && (
+            <button onClick={g.handleDeleteTable}
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg bg-white border border-red-200 text-red-500 hover:bg-red-50 text-xs font-medium">
+              <MdDelete />
+            </button>
+          )}
+          {g.isRoni && (
             <button onClick={() => g.showCreate ? g.setShowCreate(false) : g.initCreateForm()}
               className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg bg-dotan-green-dark text-white text-xs sm:text-sm font-medium hover:bg-dotan-green transition">
               {g.showCreate ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.guardDuty.newTable}</>}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Type tabs + date nav */}

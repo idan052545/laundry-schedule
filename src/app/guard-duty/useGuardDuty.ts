@@ -21,6 +21,7 @@ export function useGuardDuty() {
   const [table, setTable] = useState<DutyTable | null>(null);
   const [allUsers, setAllUsers] = useState<UserMin[]>([]);
   const [isRoni, setIsRoni] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
   const [appeals, setAppeals] = useState<Appeal[]>([]);
   const [hoursMap, setHoursMap] = useState<Record<string, number>>({});
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -54,6 +55,7 @@ export function useGuardDuty() {
       setTable(data.table);
       setAllUsers(data.allUsers);
       setIsRoni(data.isRoni);
+      setIsCreator(data.isCreator || false);
       setAppeals(data.appeals);
       setHoursMap(data.hoursMap);
       if (data.availableDates) setAvailableDates(data.availableDates);
@@ -379,7 +381,7 @@ export function useGuardDuty() {
     // Auth
     authStatus, userId,
     // Data
-    table, allUsers, isRoni, appeals, hoursMap, availableDates,
+    table, allUsers, isRoni, isCreator, appeals, hoursMap, availableDates,
     roles, slots, dayRoleAssignments, squads, obsGdudi, overlaps,
     fairnessData, avgHours, assignedPeople, myAssignments,
     // UI state
@@ -396,6 +398,6 @@ export function useGuardDuty() {
     initCreateForm, setAssignment, handleCreate,
     handleExportXlsx, handleDeleteTable, handleNotifyAll,
     // Helpers
-    dateDisplay, getPersonAssignments, getPersonHours, otherTable, setDate,
+    dateDisplay, getPersonAssignments, getPersonHours, otherTable, setDate, fetchData,
   };
 }

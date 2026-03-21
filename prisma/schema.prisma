@@ -54,6 +54,7 @@ model User {
   tasks             Task[]         @relation("userTasks")
   taskResponses     TaskResponse[] @relation("taskResponses")
   dailyQuotes       DailyQuote[]   @relation("dailyQuotes")
+  dutyTablesCreated DutyTable[]      @relation("dutyTablesCreated")
   dutyAssignments   DutyAssignment[] @relation("dutyAssignments")
   dutyAppeals       DutyAppeal[]     @relation("dutyAppeals")
   dutySuggested     DutyAppeal[]     @relation("dutySuggested")
@@ -417,6 +418,8 @@ model DutyTable {
   timeSlots   String
   // Optional JSON metadata (e.g. squads/חולייות)
   metadata    String?
+  createdById String?
+  createdBy   User?    @relation("dutyTablesCreated", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   assignments DutyAssignment[]

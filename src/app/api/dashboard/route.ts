@@ -369,9 +369,7 @@ export async function GET() {
     urgentReplacement,
     nextDutyTables: (() => {
       if (!upcomingDutyTables || upcomingDutyTables.length === 0) return [];
-      const firstDate = upcomingDutyTables[0].date;
       return upcomingDutyTables
-        .filter((t: { date: string }) => t.date === firstDate)
         .map((t: { id: string; title: string; date: string; type: string; assignments: { userId: string; role: string; timeSlot: string; user: { id: string; name: string } }[] }) => {
           const myAssignments = t.assignments.filter(a => a.userId === userId);
           return {
