@@ -280,10 +280,10 @@ const he = {
 
   // Dashboard - Notifications
   dashNotifications: {
-    lastHour: "התראות בשעה האחרונה",
+    lastDay: "התראות ביום האחרון",
     noNew: "אין התראות חדשות",
     showAll: "הצג את כל ההתראות",
-    oneHour: "שעה אחרונה",
+    last24h: "24 שעות אחרונות",
     markAll: "סמן הכל",
     updated: "עודכנו",
     added: "נוספו",

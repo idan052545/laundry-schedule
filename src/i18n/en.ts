@@ -267,10 +267,10 @@ const en: Dictionary = {
   },
 
   dashNotifications: {
-    lastHour: "Notifications in the last hour",
+    lastDay: "Notifications in the last 24 hours",
     noNew: "No new notifications",
     showAll: "Show all notifications",
-    oneHour: "Last hour",
+    last24h: "Last 24 hours",
     markAll: "Mark all",
     updated: "Updated",
     added: "Added",

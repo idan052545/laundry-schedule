@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MdNotifications, MdExpandMore, MdExpandLess, MdChevronLeft,
   MdDoneAll, MdClose,
 } from "react-icons/md";
+import TranslateButton, { useTranslation } from "@/components/TranslateButton";
 import type { Notification } from "./types";
 import { getNotificationHref, getTimeAgo } from "./constants";
 import { useLanguage } from "@/i18n";
@@ -17,9 +18,16 @@ interface NotificationCenterProps {
 
 export default function NotificationCenter({ notifications, setNotifications }: NotificationCenterProps) {
   const { t } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    if (isEnglish && notifications.length > 0) {
+      translateTexts(notifications.flatMap(n => [n.title, n.body]));
+    }
+  }, [isEnglish, notifications]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -37,7 +45,7 @@ export default function NotificationCenter({ notifications, setNotifications }: 
             )}
           </div>
           <span className="text-xs font-bold text-gray-700 flex-1 text-start">
-            {notifications.length > 0 ? `${notifications.length} ${t.dashNotifications.lastHour}` : t.dashNotifications.noNew}
+            {notifications.length > 0 ? `${notifications.length} ${t.dashNotifications.lastDay}` : t.dashNotifications.noNew}
           </span>
           {notifications.length > 0 && (showNotifications ? <MdExpandLess className="text-gray-400" /> : <MdExpandMore className="text-gray-400" />)}
         </button>
@@ -53,10 +61,10 @@ export default function NotificationCenter({ notifications, setNotifications }: 
                     <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-gray-800 truncate">{n.title}</span>
+                        <span className="text-xs font-bold text-gray-800 truncate">{getTranslation(n.title)}</span>
                         <span className="text-[10px] text-gray-400 shrink-0">{timeAgo}</span>
                       </div>
-                      <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed mt-0.5">{n.body.replace(/\n/g, " · ")}</p>
+                      <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed mt-0.5">{getTranslation(n.body).replace(/\n/g, " · ")}</p>
                     </div>
                     <MdChevronLeft className="text-gray-300 mt-1.5 shrink-0" />
                   </Link>
@@ -84,7 +92,14 @@ export default function NotificationCenter({ notifications, setNotifications }: 
               <div className="flex items-center gap-2">
                 <MdNotifications className="text-lg text-blue-500" />
                 <span className="text-sm font-bold text-gray-800">{t.dashboard.notifications}</span>
-                <span className="text-[10px] text-gray-400">{t.dashNotifications.oneHour}</span>
+                <span className="text-[10px] text-gray-400">{t.dashNotifications.last24h}</span>
+                {isEnglish && notifications.length > 0 && (
+                  <TranslateButton
+                    size="sm"
+                    texts={notifications.flatMap(n => [n.title, n.body])}
+                    onTranslated={() => translateTexts(notifications.flatMap(n => [n.title, n.body]))}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {notifications.some(n => !n.read) && (
@@ -116,7 +131,7 @@ export default function NotificationCenter({ notifications, setNotifications }: 
                       <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-blue-500" : "bg-gray-200"}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-gray-800">{n.title}</span>
+                          <span className="text-xs font-bold text-gray-800">{getTranslation(n.title)}</span>
                           <span className="text-[10px] text-gray-400 shrink-0">{timeAgo}</span>
                         </div>
 
@@ -168,7 +183,7 @@ export default function NotificationCenter({ notifications, setNotifications }: 
                             })}
                           </div>
                         ) : (
-                          <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed whitespace-pre-wrap">{n.body}</p>
+                          <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed whitespace-pre-wrap">{getTranslation(n.body)}</p>
                         )}
 
                         <Link
