@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { MdLocalLaundryService, MdDry, MdDelete, MdAccessTime } from "react-icons/md";
 import { useLanguage } from "@/i18n";
+import { useTranslation } from "@/components/TranslateButton";
 
 interface Machine {
   id: string;
@@ -33,6 +34,7 @@ export default function SchedulePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t, dateLocale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedDate, setSelectedDate] = useState(
@@ -65,6 +67,12 @@ export default function SchedulePage() {
       fetchData();
     }
   }, [status, router, fetchData]);
+
+  useEffect(() => {
+    if (isEnglish && machines.length > 0) {
+      translateTexts(machines.map((m) => m.name));
+    }
+  }, [isEnglish, machines, translateTexts]);
 
   const handleBook = async (machineId: string, timeSlot: string) => {
     setBookingLoading(`${machineId}-${timeSlot}`);
@@ -185,7 +193,7 @@ export default function SchedulePage() {
                     key={machine.id}
                     className="p-3 text-center font-medium text-dotan-green-dark min-w-[150px]"
                   >
-                    {machine.name}
+                    {getTranslation(machine.name)}
                   </th>
                 ))}
               </tr>
@@ -264,7 +272,7 @@ export default function SchedulePage() {
                   </div>
                   <div>
                     <div className="font-bold text-gray-800">
-                      {booking.machine.name}
+                      {getTranslation(booking.machine.name)}
                     </div>
                     <div className="text-sm text-gray-500 flex items-center gap-1">
                       <MdAccessTime />

@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   const assignments = await prisma.volunteerAssignment.findMany({
     where,
     include: {
-      user: { select: { id: true, name: true, team: true, image: true } },
+      user: { select: { id: true, name: true, nameEn: true, team: true, image: true } },
       request: { select: { title: true, startTime: true, endTime: true, category: true } },
     },
     orderBy: { createdAt: "desc" },

@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   const notes = await prisma.scheduleNote.findMany({
     where,
     include: {
-      user: { select: { id: true, name: true, image: true, team: true } },
+      user: { select: { id: true, name: true, nameEn: true, image: true, team: true } },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       userId,
     },
     include: {
-      user: { select: { id: true, name: true, image: true, team: true } },
+      user: { select: { id: true, name: true, nameEn: true, image: true, team: true } },
     },
   });
 
@@ -146,7 +146,7 @@ export async function PUT(request: Request) {
     where: { id },
     data,
     include: {
-      user: { select: { id: true, name: true, image: true, team: true } },
+      user: { select: { id: true, name: true, nameEn: true, image: true, team: true } },
     },
   });
 

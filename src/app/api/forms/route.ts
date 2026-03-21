@@ -5,9 +5,9 @@ import prisma from "@/lib/prisma";
 import { sendPushToAll } from "@/lib/push";
 
 const formInclude = {
-  author: { select: { id: true, name: true, image: true } },
+  author: { select: { id: true, name: true, nameEn: true, image: true } },
   submissions: {
-    include: { user: { select: { id: true, name: true, image: true, team: true } } },
+    include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
     orderBy: { createdAt: "desc" as const },
   },
 };
@@ -23,9 +23,9 @@ export async function GET() {
 
   const forms = await prisma.formLink.findMany({
     include: {
-      author: { select: { id: true, name: true, image: true } },
+      author: { select: { id: true, name: true, nameEn: true, image: true } },
       submissions: {
-        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
         orderBy: { createdAt: "desc" as const },
       },
     },
@@ -47,7 +47,7 @@ export async function GET() {
   const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
   const allUsers = await prisma.user.findMany({
     where: { role: { notIn: EXCLUDED_ROLES } },
-    select: { id: true, name: true, image: true, team: true },
+    select: { id: true, name: true, nameEn: true, image: true, team: true },
     orderBy: [{ team: "asc" }, { name: "asc" }],
   });
 

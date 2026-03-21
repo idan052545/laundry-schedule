@@ -14,7 +14,7 @@ export async function GET() {
       bookings: {
         where: { status: "active" },
         include: {
-          user: { select: { id: true, name: true, image: true } },
+          user: { select: { id: true, name: true, nameEn: true, image: true } },
         },
       },
     },

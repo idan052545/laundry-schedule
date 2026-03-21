@@ -3,7 +3,9 @@
 import { MdPerson, MdSwapHoriz } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { Assignment, UserMin, ROLE_COLORS, DAY_ROLES } from "./constants";
+import { useEffect } from "react";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface PersonSummaryProps {
   assignedPeople: UserMin[];
@@ -20,8 +22,7 @@ export default function PersonSummary({
   assignedPeople, hoursMap, getPersonAssignments, getPersonHours,
   showPersonSummary, setShowPersonSummary, isRoni, onSwap,
 }: PersonSummaryProps) {
-  const { t } = useLanguage();
-  return (
+  const { t, locale } = useLanguage();  return (
     <div className="mb-6">
       <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
         <MdPerson /> {t.guardDuty.personSummary} ({assignedPeople.length})
@@ -40,7 +41,7 @@ export default function PersonSummary({
                 className={`w-full text-start bg-white rounded-xl p-3 border-2 transition hover:shadow-sm ${isOpen ? "border-dotan-green shadow-sm" : "border-gray-100"}`}>
                 <div className="flex items-center gap-2 mb-1">
                   <Avatar name={p.name} image={p.image} size="xs" />
-                  <span className="font-bold text-xs text-gray-800 truncate">{p.name}</span>
+                  <span className="font-bold text-xs text-gray-800 truncate">{displayName(p, locale)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-gray-500">
                   <span>{localHrs.toFixed(1)} {t.guardDuty.hoursTable}</span>

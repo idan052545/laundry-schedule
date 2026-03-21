@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { MdCalendarMonth, MdStickyNote2, MdMyLocation } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import TranslateButton, { useTranslation } from "@/components/TranslateButton";
 import { useLanguage } from "@/i18n";
 import { ScheduleEvent, EventFormData } from "./types";
 import EventForm from "./EventForm";
@@ -24,6 +25,7 @@ export default function ScheduleDailyPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [typeFilter, setTypeFilter] = useState("all");
   const [targetFilter, setTargetFilter] = useState("all");
@@ -117,11 +119,25 @@ export default function ScheduleDailyPage() {
         {ev.refreshing && <span className="text-xs font-normal text-gray-400">{t.schedule.updating}</span>}
       </h1>
 
-      <DateNavigation
-        date={date} isToday={isToday}
-        onChangeDate={changeDate}
-        onGoToToday={() => setDate(new Date().toISOString().split("T")[0])}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <DateNavigation
+            date={date} isToday={isToday}
+            onChangeDate={changeDate}
+            onGoToToday={() => setDate(new Date().toISOString().split("T")[0])}
+          />
+        </div>
+        {isEnglish && filteredEvents.length > 0 && (
+          <TranslateButton
+            size="md"
+            texts={filteredEvents.flatMap(e => [e.title, ...(e.description ? [e.description] : [])])}
+            onTranslated={() => {
+              // Sync session cache into the hook's state so components re-render
+              translateTexts(filteredEvents.flatMap(e => [e.title, ...(e.description ? [e.description] : [])]));
+            }}
+          />
+        )}
+      </div>
 
       <TypeFilter
         typeFilter={typeFilter} setTypeFilter={setTypeFilter}
@@ -187,6 +203,7 @@ export default function ScheduleDailyPage() {
         events={allDayEvents} isToday={isToday} canEdit={canEdit}
         myUserId={myUserId} myName={myName}
         onEdit={openEdit} onDelete={ev.handleDelete}
+        getTranslation={getTranslation}
       />
 
       {/* Add note button */}
@@ -222,6 +239,7 @@ export default function ScheduleDailyPage() {
         onEditNote={nt.openEditNote}
         onDeleteNote={nt.handleDeleteNote}
         onRemindNote={nt.handleRemindNote}
+        getTranslation={getTranslation}
       />
 
       {ev.events.length === 0 && nt.notes.length === 0 && !nt.showNoteForm && (
@@ -237,6 +255,7 @@ export default function ScheduleDailyPage() {
           event={detailEvent} isAdmin={canEdit}
           onClose={() => setDetailEvent(null)} onEdit={openEdit}
           onAssign={ev.openAssign} onDelete={ev.handleDelete}
+          getTranslation={getTranslation}
         />
       )}
 

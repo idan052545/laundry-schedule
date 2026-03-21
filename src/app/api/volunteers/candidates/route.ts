@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   const [users, scheduleConflicts, volunteerConflicts, dutyConflicts, existingAssignments] = await Promise.all([
     prisma.user.findMany({
       where: { ...teamFilter, role: { not: "simulator" } },
-      select: { id: true, name: true, image: true, team: true, role: true },
+      select: { id: true, name: true, nameEn: true, image: true, team: true, role: true },
       orderBy: [{ team: "asc" }, { name: "asc" }],
     }),
     // Schedule conflicts

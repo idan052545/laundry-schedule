@@ -12,6 +12,7 @@ import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
 import * as XLSX from "xlsx";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface ChopalUser {
   id: string;
@@ -58,7 +59,7 @@ const TEAM_COLORS: Record<number, string> = {
 export default function ChopalAdminPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
 
   const TEAM_NAMES: Record<number, string> = {
     14: t.teams.team14,
@@ -108,9 +109,7 @@ export default function ChopalAdminPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchData();
-  }, [status, router, fetchData]);
-
-  const changeDate = (delta: number) => {
+  }, [status, router, fetchData]);  const changeDate = (delta: number) => {
     const d = new Date(date + "T12:00:00");
     d.setDate(d.getDate() + delta);
     setDate(`${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`);
@@ -345,7 +344,7 @@ export default function ChopalAdminPage() {
                       <div className="flex items-center gap-3">
                         <Avatar name={req.user.name} image={req.user.image} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-800 truncate">{req.user.name}</p>
+                          <p className="text-sm font-bold text-gray-800 truncate">{displayName(req.user, locale)}</p>
                           <div className="flex items-center gap-3 mt-0.5">
                             {req.user.phone && (
                               <a href={`tel:${req.user.phone}`} className="flex items-center gap-0.5 text-[10px] text-blue-500 hover:underline">

@@ -12,7 +12,7 @@ export async function GET() {
   }
 
   const formats = await prisma.taskFormat.findMany({
-    include: { author: { select: { id: true, name: true, image: true } } },
+    include: { author: { select: { id: true, name: true, nameEn: true, image: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       fileType: fileType || "application/octet-stream",
       authorId: userId,
     },
-    include: { author: { select: { id: true, name: true, image: true } } },
+    include: { author: { select: { id: true, name: true, nameEn: true, image: true } } },
   });
 
   const { fileData: _, ...result } = format;

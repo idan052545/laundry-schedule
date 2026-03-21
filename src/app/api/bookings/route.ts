@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const bookings = await prisma.booking.findMany({
     where: { ...where, status: "active" },
     include: {
-      user: { select: { id: true, name: true, image: true, roomNumber: true } },
+      user: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true } },
       machine: true,
     },
     orderBy: { timeSlot: "asc" },
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const booking = await prisma.booking.create({
       data: { userId, machineId, date, timeSlot },
       include: {
-        user: { select: { id: true, name: true, image: true } },
+        user: { select: { id: true, name: true, nameEn: true, image: true } },
         machine: true,
       },
     });

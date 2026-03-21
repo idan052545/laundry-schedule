@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   MdAdd, MdClose, MdSend, MdDelete, MdDownload,
   MdNotifications, MdCheckCircle, MdLock, MdLockOpen, MdPerson,
@@ -9,6 +10,8 @@ import Avatar from "@/components/Avatar";
 import MultiSelect from "./MultiSelect";
 import { Survey, User, formatDate } from "./types";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
+import { useTranslation } from "@/components/TranslateButton";
 
 interface SurveyDetailProps {
   survey: Survey;
@@ -41,7 +44,8 @@ export default function SurveyDetail({
   editing, editTitle, editDesc, editOptions, setEditing, setEditTitle, setEditDesc, setEditOptions,
   onBack, onRespond, onClose, onReopen, onRemind, onDelete, onExport, onStartEdit, onSaveEdit,
 }: SurveyDetailProps) {
-  const { t, dateLocale } = useLanguage();
+  const { t, locale, dateLocale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const options: string[] = survey.options ? JSON.parse(survey.options) : [];
   const myResponse = survey.responses.find((r) => r.user.id === userId);
   const myAnswer = myResponse ? JSON.parse(myResponse.answer) : null;
@@ -51,6 +55,19 @@ export default function SurveyDetail({
     ? teamMembers
     : teamMembers.filter((m) => m.team === survey.team);
   const notResponded = relevantMembers.filter((m) => !respondedIds.has(m.id));
+
+  useEffect(() => {
+    if (!isEnglish) return;
+    const texts = [
+      survey.title,
+      ...(survey.description ? [survey.description] : []),
+      ...options,
+      survey.createdBy.name,
+      ...survey.responses.map(r => r.user.name),
+      ...notResponded.map(m => m.name),
+    ];
+    if (texts.length > 0) translateTexts(texts);
+  }, [isEnglish, survey.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate results
   const resultMap = new Map<string, number>();
@@ -126,16 +143,16 @@ export default function SurveyDetail({
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-800">{survey.title}</h1>
+                <h1 className="text-xl font-bold text-gray-800">{getTranslation(survey.title)}</h1>
                 {isCreator && (
                   <button onClick={() => onStartEdit(survey)} className="text-gray-400 hover:text-gray-600 transition">
                     <MdEdit className="text-lg" />
                   </button>
                 )}
               </div>
-              {survey.description && <p className="text-sm text-gray-500 mt-1">{survey.description}</p>}
+              {survey.description && <p className="text-sm text-gray-500 mt-1">{getTranslation(survey.description)}</p>}
               <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                <span>{survey.createdBy.name}</span>
+                <span>{displayName(survey.createdBy, locale)}</span>
                 <span>•</span>
                 <span>{formatDate(survey.createdAt, dateLocale)}</span>
                 <span>•</span>
@@ -182,14 +199,14 @@ export default function SurveyDetail({
                       myAnswer === i ? "bg-dotan-green-dark text-white" : "bg-gray-50 hover:bg-gray-100 border border-gray-200"
                     }`}>
                     <MdRadioButtonChecked className={myAnswer === i ? "text-white" : "text-gray-300"} />
-                    {opt}
+                    {getTranslation(opt)}
                   </button>
                 ))}
               </div>
             )}
 
             {survey.type === "multi" && (
-              <MultiSelect options={options} selected={myAnswer || []} onSubmit={(selected) => onRespond(survey.id, selected)} />
+              <MultiSelect options={options.map(o => getTranslation(o))} selected={myAnswer || []} onSubmit={(selected) => onRespond(survey.id, selected)} />
             )}
           </div>
         )}
@@ -225,7 +242,7 @@ export default function SurveyDetail({
                 const pct = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600 flex-shrink-0 max-w-[120px] truncate">{opt}</span>
+                    <span className="text-sm text-gray-600 flex-shrink-0 max-w-[120px] truncate">{getTranslation(opt)}</span>
                     <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
                       <div className="h-full bg-dotan-green rounded-full transition-all flex items-center justify-end px-2" style={{ width: `${Math.max(pct, 5)}%` }}>
                         <span className="text-xs text-white font-bold">{pct}%</span>
@@ -247,7 +264,7 @@ export default function SurveyDetail({
               {survey.responses.map((r) => (
                 <div key={r.id} className="flex items-center gap-1.5 text-xs">
                   <Avatar name={r.user.name} image={r.user.image} size="xs" />
-                  <span className="truncate">{r.user.name}</span>
+                  <span className="truncate">{displayName(r.user, locale)}</span>
                 </div>
               ))}
             </div>
@@ -258,7 +275,7 @@ export default function SurveyDetail({
               {notResponded.map((m) => (
                 <div key={m.id} className="flex items-center gap-1.5 text-xs text-gray-400">
                   <Avatar name={m.name} image={m.image} size="xs" />
-                  <span className="truncate">{m.name}</span>
+                  <span className="truncate">{displayName(m, locale)}</span>
                 </div>
               ))}
             </div>

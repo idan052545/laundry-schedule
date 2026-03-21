@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { MdTranslate } from "react-icons/md";
 import { useLanguage } from "@/i18n";
 
@@ -95,23 +95,35 @@ export default function TranslateButton({ texts, onTranslated, className, size =
 export function useTranslation() {
   const { locale } = useLanguage();
   const [translations, setTranslations] = useState<Map<string, string>>(new Map());
+  const pendingRef = useRef<Set<string>>(new Set());
 
   const translateTexts = useCallback(async (texts: string[]) => {
     if (locale === "he" || texts.length === 0) return;
 
-    // Filter out already translated
-    const needed = texts.filter(t => !translations.has(t) && !sessionCache.has(`en:${t}`));
+    // Filter out already translated or in-flight
+    const needed = texts.filter(t =>
+      !sessionCache.has(`en:${t}`) && !pendingRef.current.has(t)
+    );
+
     if (needed.length === 0) {
-      // All cached — update state from session cache
-      const newMap = new Map(translations);
-      for (const text of texts) {
-        if (sessionCache.has(`en:${text}`)) {
-          newMap.set(text, sessionCache.get(`en:${text}`)!);
+      // All cached — update state from session cache (only if new entries)
+      setTranslations(prev => {
+        let changed = false;
+        const newMap = new Map(prev);
+        for (const text of texts) {
+          const cached = sessionCache.get(`en:${text}`);
+          if (cached && !prev.has(text)) {
+            newMap.set(text, cached);
+            changed = true;
+          }
         }
-      }
-      setTranslations(newMap);
+        return changed ? newMap : prev;
+      });
       return;
     }
+
+    // Mark as pending to prevent duplicate requests
+    for (const t of needed) pendingRef.current.add(t);
 
     try {
       const res = await fetch("/api/translate", {
@@ -121,24 +133,26 @@ export function useTranslation() {
       });
       if (res.ok) {
         const data = await res.json();
-        const newMap = new Map(translations);
         for (let i = 0; i < needed.length; i++) {
           const translated = data.translations[i] || needed[i];
-          newMap.set(needed[i], translated);
           sessionCache.set(`en:${needed[i]}`, translated);
         }
-        // Also add previously session-cached
-        for (const text of texts) {
-          if (sessionCache.has(`en:${text}`) && !newMap.has(text)) {
-            newMap.set(text, sessionCache.get(`en:${text}`)!);
+        // Update state in one batch
+        setTranslations(prev => {
+          const newMap = new Map(prev);
+          for (const text of texts) {
+            const cached = sessionCache.get(`en:${text}`);
+            if (cached) newMap.set(text, cached);
           }
-        }
-        setTranslations(newMap);
+          return newMap;
+        });
       }
     } catch {
       // Silently fail
+    } finally {
+      for (const t of needed) pendingRef.current.delete(t);
     }
-  }, [locale, translations]);
+  }, [locale]); // stable — no dependency on translations
 
   const getTranslation = useCallback((text: string) => {
     if (locale === "he") return text;

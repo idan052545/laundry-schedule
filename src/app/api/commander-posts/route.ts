@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     where,
     include: {
       author: {
-        select: { id: true, name: true, image: true, roleTitle: true },
+        select: { id: true, name: true, nameEn: true, image: true, roleTitle: true },
       },
     },
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     },
     include: {
       author: {
-        select: { id: true, name: true, image: true, roleTitle: true },
+        select: { id: true, name: true, nameEn: true, image: true, roleTitle: true },
       },
     },
   });

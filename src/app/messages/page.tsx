@@ -7,6 +7,7 @@ import { MdPushPin, MdDelete, MdAdd, MdClose, MdSend, MdImage, MdPerson, MdInbox
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { useTranslation } from "@/components/TranslateButton";
 
 interface Assignee {
   id: string;
@@ -35,6 +36,7 @@ export default function MessagesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t, dateLocale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [allUsers, setAllUsers] = useState<UserOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,13 @@ export default function MessagesPage() {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") { fetchMessages(); fetchUsers(); }
   }, [status, router, fetchMessages, fetchUsers]);
+
+  useEffect(() => {
+    if (isEnglish && messages.length > 0) {
+      const textsToTranslate = messages.flatMap((m) => [m.title, m.content]);
+      translateTexts(textsToTranslate);
+    }
+  }, [isEnglish, messages, translateTexts]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -232,7 +241,7 @@ export default function MessagesPage() {
                 <div className="min-w-0">
                   <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm sm:text-base">
                     {msg.pinned && <MdPushPin className="text-dotan-gold shrink-0" />}
-                    <span className="truncate">{msg.title}</span>
+                    <span className="truncate">{getTranslation(msg.title)}</span>
                   </h3>
                   <p className="text-xs text-gray-500">
                     {msg.author.name} | {formatDate(msg.createdAt)}
@@ -245,7 +254,7 @@ export default function MessagesPage() {
                 </button>
               )}
             </div>
-            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{msg.content}</p>
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{getTranslation(msg.content)}</p>
 
             {msg.imageData && (
               <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">

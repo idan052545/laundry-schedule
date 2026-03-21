@@ -1,9 +1,11 @@
 "use client";
 
 import { MdFileDownload } from "react-icons/md";
+import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 import { TEAM_COLORS } from "./constants";
 import type { StatsData } from "./types";
 
@@ -15,8 +17,7 @@ interface StatsTabProps {
 }
 
 export default function StatsTab({ stats, statsPeriod, setStatsPeriod, exportStats }: StatsTabProps) {
-  const { t } = useLanguage();
-  return (
+  const { t, locale } = useLanguage();  return (
     <div>
       <div className="flex items-center gap-2 mb-4">
         {["day", "week", "month"].map(p => (
@@ -80,7 +81,7 @@ export default function StatsTab({ stats, statsPeriod, setStatsPeriod, exportSta
                   </span>
                   <Avatar name={u.name} image={u.image} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-gray-800 truncate">{u.name}</div>
+                    <div className="text-xs font-bold text-gray-800 truncate">{displayName(u, locale)}</div>
                     <div className="text-[10px] text-gray-400">{u.count} {t.volunteers.duties} · {(u.totalMinutes / 60).toFixed(1)} {t.volunteers.hoursLabel}</div>
                   </div>
                   {u.team && (

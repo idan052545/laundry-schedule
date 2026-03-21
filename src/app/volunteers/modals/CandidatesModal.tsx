@@ -1,9 +1,11 @@
 "use client";
 
 import { MdClose, MdCheck, MdStar } from "react-icons/md";
+import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 import { TEAM_COLORS } from "../constants";
 import type { VolRequest, Candidate } from "../types";
 
@@ -20,8 +22,7 @@ export default function CandidatesModal({
   selectedRequest, candidates, loadingCandidates, submitting,
   onClose, onAssign,
 }: CandidatesModalProps) {
-  const { t } = useLanguage();
-  return (
+  const { t, locale } = useLanguage();  return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="bg-white w-full max-w-lg max-h-[85vh] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -38,7 +39,7 @@ export default function CandidatesModal({
                   <Avatar name={c.name} image={c.image} size="sm" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-gray-800">{c.name}</span>
+                      <span className="text-xs font-bold text-gray-800">{displayName(c, locale)}</span>
                       {c.team && <span className={`text-[8px] font-bold px-1 py-0.5 rounded border ${TEAM_COLORS[c.team] || TEAM_COLORS[0]}`}>{c.team}</span>}
                       {c.isAssigned && <span className="text-[8px] font-bold px-1 py-0.5 bg-green-200 text-green-800 rounded">{t.volunteers.alreadyAssigned}</span>}
                     </div>

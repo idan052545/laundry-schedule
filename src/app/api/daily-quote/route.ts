@@ -22,11 +22,11 @@ export async function GET() {
   const [todayQuote, yesterdayQuote] = await Promise.all([
     prisma.dailyQuote.findUnique({
       where: { date: todayStr },
-      include: { user: { select: { name: true, team: true } } },
+      include: { user: { select: { name: true, nameEn: true, team: true } } },
     }),
     prisma.dailyQuote.findUnique({
       where: { date: yesterdayStr },
-      include: { user: { select: { name: true, team: true } } },
+      include: { user: { select: { name: true, nameEn: true, team: true } } },
     }),
   ]);
 

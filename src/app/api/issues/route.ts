@@ -32,12 +32,12 @@ export async function GET(request: Request) {
   const issues = await prisma.issue.findMany({
     where,
     include: {
-      createdBy: { select: { id: true, name: true, image: true, roomNumber: true, phone: true } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true, phone: true } },
       assignees: {
-        include: { user: { select: { id: true, name: true, image: true, roomNumber: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true } } },
       },
       comments: {
-        include: { user: { select: { id: true, name: true, image: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true } } },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -84,12 +84,12 @@ export async function POST(request: Request) {
         : undefined,
     },
     include: {
-      createdBy: { select: { id: true, name: true, image: true, roomNumber: true, phone: true } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true, phone: true } },
       assignees: {
-        include: { user: { select: { id: true, name: true, image: true, roomNumber: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true } } },
       },
       comments: {
-        include: { user: { select: { id: true, name: true, image: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true } } },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -227,12 +227,12 @@ export async function PUT(request: Request) {
   const updated = await prisma.issue.findUnique({
     where: { id },
     include: {
-      createdBy: { select: { id: true, name: true, image: true, roomNumber: true, phone: true } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true, phone: true } },
       assignees: {
-        include: { user: { select: { id: true, name: true, image: true, roomNumber: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true } } },
       },
       comments: {
-        include: { user: { select: { id: true, name: true, image: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true } } },
         orderBy: { createdAt: "asc" },
       },
     },

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     where: { date_type: { date, type } },
     include: {
       assignments: {
-        include: { user: { select: { id: true, name: true, team: true, image: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, team: true, image: true } } },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   // Get all users for replacement suggestions
   const allUsers = await prisma.user.findMany({
     where: { role: { not: "admin" } },
-    select: { id: true, name: true, team: true, image: true },
+    select: { id: true, name: true, nameEn: true, team: true, image: true },
     orderBy: { name: "asc" },
   });
 
@@ -47,8 +47,8 @@ export async function GET(req: NextRequest) {
   const appeals = table ? await prisma.dutyAppeal.findMany({
     where: { tableId: table.id },
     include: {
-      user: { select: { id: true, name: true, image: true } },
-      suggestedUser: { select: { id: true, name: true, image: true } },
+      user: { select: { id: true, name: true, nameEn: true, image: true } },
+      suggestedUser: { select: { id: true, name: true, nameEn: true, image: true } },
     },
     orderBy: { createdAt: "desc" },
   }) : [];
@@ -213,8 +213,8 @@ export async function PUT(req: NextRequest) {
         status: "pending",
       },
       include: {
-        user: { select: { id: true, name: true } },
-        suggestedUser: { select: { id: true, name: true } },
+        user: { select: { id: true, name: true, nameEn: true } },
+        suggestedUser: { select: { id: true, name: true, nameEn: true } },
       },
     });
 
@@ -238,7 +238,7 @@ export async function PUT(req: NextRequest) {
     const { appealId, approved } = body;
     const appeal = await prisma.dutyAppeal.findUnique({
       where: { id: appealId },
-      include: { user: { select: { id: true, name: true } } },
+      include: { user: { select: { id: true, name: true, nameEn: true } } },
     });
     if (!appeal) return NextResponse.json({ error: "ערעור לא נמצא" }, { status: 404 });
 
@@ -290,7 +290,7 @@ export async function PUT(req: NextRequest) {
       where: { id: tableId },
       include: {
         assignments: {
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, nameEn: true } } },
         },
       },
     });

@@ -7,9 +7,11 @@ import {
   MdLocalHospital, MdAccessTime, MdPushPin, MdStickyNote2,
   MdAutoAwesome, MdEmojiEvents, MdVolunteerActivism,
 } from "react-icons/md";
+import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
 import type { DashboardFeed, SectionKey } from "./types";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface NewFeedProps {
   feed: DashboardFeed;
@@ -17,16 +19,14 @@ interface NewFeedProps {
 }
 
 export default function NewFeed({ feed, visible }: NewFeedProps) {
-  const { t, dateLocale } = useLanguage();
-
-  return (
+  const { t, locale, dateLocale } = useLanguage();  return (
     <div className="space-y-3 mb-5">
       {/* Daily quote — elegant */}
       {visible.has("quote") && feed.dailyQuote && (
         <Link href="/daily-quote" className="block bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-purple-100/60 rounded-2xl px-4 py-3.5 hover:shadow-md transition relative overflow-hidden">
           <div className="absolute top-1 left-2 text-6xl text-purple-100 font-serif leading-none select-none">&ldquo;</div>
           <p className="text-[13px] font-medium text-gray-700 leading-relaxed relative z-10">{feed.dailyQuote.text}</p>
-          <span className="text-[10px] text-purple-400 mt-1.5 block relative z-10">— {feed.dailyQuote.user.name}</span>
+          <span className="text-[10px] text-purple-400 mt-1.5 block relative z-10">— {displayName(feed.dailyQuote.user, locale)}</span>
         </Link>
       )}
 
@@ -201,7 +201,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[10px] text-pink-400 font-bold block">{t.birthdays.birthdayToday}!</span>
-            <span className="text-xs font-semibold text-pink-700 truncate block">{feed.birthdayUsers.map((u) => u.name).join(", ")}</span>
+            <span className="text-xs font-semibold text-pink-700 truncate block">{feed.birthdayUsers.map((u) => displayName(u, locale)).join(", ")}</span>
           </div>
           <div className="flex -space-x-1.5 shrink-0">
             {feed.birthdayUsers.slice(0, 3).map((u) => (
@@ -249,7 +249,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-semibold text-gray-800 truncate block">{post.title}</span>
                 <span className="text-[10px] text-yellow-600">
-                  {post.author.name}
+                  {displayName(post.author, locale)}
                   {post.dueDate && <> · {new Date(post.dueDate + "T12:00:00").toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}</>}
                 </span>
               </div>
@@ -266,7 +266,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-xs font-semibold text-gray-800 truncate block">{feed.latestMessage.title}</span>
-            <span className="text-[10px] text-blue-500">{feed.latestMessage.author.name}</span>
+            <span className="text-[10px] text-blue-500">{displayName(feed.latestMessage.author, locale)}</span>
           </div>
         </Link>
       )}

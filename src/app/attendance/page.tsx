@@ -7,6 +7,7 @@ import { MdCheckCircle, MdCancel, MdGroup, MdAdd, MdDelete, MdLock, MdFactCheck 
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface UserWithAttendance {
   id: string;
@@ -33,7 +34,7 @@ const TEAM_COLORS: Record<number, string> = {
 export default function AttendancePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [users, setUsers] = useState<UserWithAttendance[]>([]);
   const [sessions, setSessions] = useState<AttSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,9 +93,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (selectedSession) fetchData();
-  }, [selectedSession, fetchData]);
-
-  const createSession = async () => {
+  }, [selectedSession, fetchData]);  const createSession = async () => {
     if (!newSessionName.trim()) return;
     const res = await fetch("/api/attendance-sessions", {
       method: "POST",
@@ -271,7 +270,7 @@ export default function AttendancePage() {
                         } ${isUpdating ? "opacity-50" : ""} ${!isAuthorized ? "cursor-default" : ""}`}>
                         <Avatar name={user.name} image={user.image} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-800 text-sm truncate">{user.name}</div>
+                          <div className="font-medium text-gray-800 text-sm truncate">{displayName(user, locale)}</div>
                           {user.roomNumber && <div className="text-xs text-gray-500">{t.common.room} {user.roomNumber}</div>}
                         </div>
                         <div className="text-xl">

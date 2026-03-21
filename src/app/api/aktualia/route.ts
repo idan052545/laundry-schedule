@@ -24,7 +24,7 @@ export async function GET() {
 
   const entries = await prisma.aktualiaEntry.findMany({
     where: { date },
-    include: { user: { select: { id: true, name: true, image: true, roomNumber: true } } },
+    include: { user: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true } } },
     orderBy: { roomNumber: "asc" },
   });
 
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       date,
       userId,
     },
-    include: { user: { select: { id: true, name: true, image: true, roomNumber: true } } },
+    include: { user: { select: { id: true, name: true, nameEn: true, image: true, roomNumber: true } } },
   });
 
   sendPushToAll({

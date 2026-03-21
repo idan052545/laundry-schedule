@@ -17,6 +17,7 @@ import {
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface UserProfile {
   id: string;
@@ -56,7 +57,7 @@ const LEADER_COLORS = [
 export default function UsersWallPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [teamFilter, setTeamFilter] = useState("all");
@@ -80,9 +81,7 @@ export default function UsersWallPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchUsers();
-  }, [status, router, fetchUsers]);
-
-  if (status === "loading" || loading) {
+  }, [status, router, fetchUsers]);  if (status === "loading" || loading) {
     return <InlineLoading />;
   }
 
@@ -122,7 +121,7 @@ export default function UsersWallPage() {
             <div className="flex flex-wrap gap-2">
               {leaders.map((leader, i) => (
                 <div key={leader.id} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium ${LEADER_COLORS[i % LEADER_COLORS.length]}`}>
-                  <span className="font-bold">{leader.name}</span>
+                  <span className="font-bold">{displayName(leader, locale)}</span>
                   {leader.roleTitle && <span className="opacity-80 me-1">| {leader.roleTitle}</span>}
                 </div>
               ))}
@@ -186,7 +185,7 @@ export default function UsersWallPage() {
               <div className="flex items-center gap-3">
                 <Avatar name={user.name} image={user.image} size="md" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-gray-800 text-sm sm:text-base truncate">{user.name}</div>
+                  <div className="font-bold text-gray-800 text-sm sm:text-base truncate">{displayName(user, locale)}</div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 flex-wrap">
                     {user.team && (
                       <span className={`px-1.5 py-0.5 rounded ${teamColor?.bg} ${teamColor?.text} font-medium`}>
@@ -232,7 +231,7 @@ export default function UsersWallPage() {
               <div className="flex items-center gap-4">
                 <Avatar name={selectedUser.name} image={selectedUser.image} size="lg" />
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{selectedUser.name}</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{displayName(selectedUser, locale)}</h2>
                   {selectedUser.role === "admin" && (
                     <span className="text-xs bg-dotan-gold text-dotan-green-dark px-2 py-0.5 rounded-full font-bold mt-1 inline-block">{t.profile.sysAdmin}</span>
                   )}

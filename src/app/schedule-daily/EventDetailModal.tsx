@@ -14,10 +14,12 @@ interface EventDetailModalProps {
   onEdit: (event: ScheduleEvent) => void;
   onAssign: (event: ScheduleEvent) => void;
   onDelete: (id: string) => void;
+  getTranslation?: (text: string) => string;
 }
 
-export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAssign, onDelete }: EventDetailModalProps) {
+export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAssign, onDelete, getTranslation }: EventDetailModalProps) {
   const { t, dateLocale } = useLanguage();
+  const tr = getTranslation || ((text: string) => text);
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
   const typeLabels = getTypeLabels(t);
   const targetLabels = getTargetLabels(t);
@@ -32,7 +34,7 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
         <div className={`p-4 border-b flex items-center justify-between shrink-0 ${config.bg}`}>
           <div className="flex items-center gap-2 min-w-0">
             <Icon className={`text-xl ${config.color} shrink-0`} />
-            <h3 className="font-bold text-gray-800 text-base">{event.title}</h3>
+            <h3 className="font-bold text-gray-800 text-base">{tr(event.title)}</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0">
             <MdClose />
@@ -65,7 +67,7 @@ export default function EventDetailModal({ event, isAdmin, onClose, onEdit, onAs
 
           {event.description && (
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{event.description}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{tr(event.description!)}</p>
             </div>
           )}
 

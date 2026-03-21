@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { MdPoll, MdCheckCircle } from "react-icons/md";
 import { Survey, User, getTypeConfig, formatDate } from "./types";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
+import { useTranslation } from "@/components/TranslateButton";
 
 interface SurveyListProps {
   surveys: Survey[];
@@ -13,8 +16,15 @@ interface SurveyListProps {
 }
 
 export default function SurveyList({ surveys, teamMembers, userId, viewScope, onSelect }: SurveyListProps) {
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const filtered = surveys.filter((s) => viewScope === "platoon" ? s.team === 0 : s.team !== 0);
+
+  useEffect(() => {
+    if (!isEnglish || filtered.length === 0) return;
+    const texts = [...filtered.map(s => s.title), ...filtered.map(s => s.createdBy.name)].filter(Boolean);
+    translateTexts(texts);
+  }, [isEnglish, filtered.map(s => s.id).join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (filtered.length === 0) {
     return (
@@ -47,7 +57,7 @@ export default function SurveyList({ surveys, teamMembers, userId, viewScope, on
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-gray-800 text-sm truncate">{survey.title}</h3>
+                  <h3 className="font-bold text-gray-800 text-sm truncate">{getTranslation(survey.title)}</h3>
                   {isPlatoon && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-200 shrink-0 font-medium">{t.surveys.platoon}</span>
                   )}
@@ -56,7 +66,7 @@ export default function SurveyList({ surveys, teamMembers, userId, viewScope, on
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <span>{survey.createdBy.name}</span>
+                  <span>{displayName(survey.createdBy, locale)}</span>
                   <span>•</span>
                   <span>{formatDate(survey.createdAt, dateLocale)}</span>
                   <span>•</span>

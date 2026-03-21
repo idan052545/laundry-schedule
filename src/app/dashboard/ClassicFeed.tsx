@@ -7,9 +7,11 @@ import {
   MdMessage, MdNewReleases, MdSecurity, MdLocalHospital,
   MdAccessTime, MdVolunteerActivism, MdMoreHoriz,
 } from "react-icons/md";
+import { useEffect } from "react";
 import type { DashboardFeed, SectionKey } from "./types";
 import { CAT_ICONS, CAT_COLORS } from "./types";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface ClassicFeedProps {
   feed: DashboardFeed;
@@ -17,14 +19,12 @@ interface ClassicFeedProps {
 }
 
 export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
-  const { t, dateLocale } = useLanguage();
-
-  return (
+  const { t, locale, dateLocale } = useLanguage();  return (
     <div className="space-y-2 mb-5">
       {visible.has("quote") && feed.dailyQuote && (
         <Link href="/daily-quote" className="block bg-gradient-to-l from-purple-50/80 to-indigo-50/80 border border-purple-100 rounded-xl px-3.5 py-3 hover:shadow-sm transition">
           <p className="text-[13px] font-medium text-gray-700 leading-relaxed">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
-          <span className="text-[10px] text-purple-400 mt-1 block">{feed.dailyQuote.user.name} — {t.dashboard.dailyQuote}</span>
+          <span className="text-[10px] text-purple-400 mt-1 block">{displayName(feed.dailyQuote.user, locale)} — {t.dashboard.dailyQuote}</span>
         </Link>
       )}
       {visible.has("schedule") && (feed.currentSchedule || feed.allDaySchedule.length > 0) && (
@@ -255,7 +255,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("birthdays") && feed.birthdayUsers.length > 0 && (
         <Link href="/birthdays" className="flex items-center gap-2.5 bg-pink-50/60 border border-pink-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdCake className="text-lg text-pink-500 shrink-0" />
-          <span className="text-xs font-medium text-pink-700 flex-1 truncate">{t.birthdays.birthdayToday}: {feed.birthdayUsers.map((u) => u.name).join(", ")}</span>
+          <span className="text-xs font-medium text-pink-700 flex-1 truncate">{t.birthdays.birthdayToday}: {feed.birthdayUsers.map((u) => displayName(u, locale)).join(", ")}</span>
         </Link>
       )}
       {visible.has("materials") && feed.unreadMaterials.length > 0 && (

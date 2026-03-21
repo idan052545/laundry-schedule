@@ -25,9 +25,9 @@ export async function GET(request: Request) {
   const requests = await prisma.volunteerRequest.findMany({
     where,
     include: {
-      createdBy: { select: { id: true, name: true, image: true, team: true, role: true } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true, team: true, role: true } },
       assignments: {
-        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
       },
       replacements: { where: { status: "seeking" }, select: { id: true, isUrgent: true, originalUserId: true } },
       _count: { select: { feedback: true } },
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       allowPartial: !!allowPartial,
     },
     include: {
-      createdBy: { select: { id: true, name: true, image: true, team: true, role: true } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true, team: true, role: true } },
       assignments: true,
     },
   });

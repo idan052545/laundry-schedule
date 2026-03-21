@@ -10,6 +10,7 @@ import {
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface User {
   id: string;
@@ -43,7 +44,7 @@ const MEDAL_BG = ["bg-yellow-50 border-yellow-300", "bg-gray-50 border-gray-300"
 export default function PersonOfWeekPage() {
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
 
   const [data, setData] = useState<WeeklyVoteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,9 +77,7 @@ export default function PersonOfWeekPage() {
   useEffect(() => {
     if (authStatus === "unauthenticated") { router.push("/login"); return; }
     if (authStatus === "authenticated") fetchData(weekOffset);
-  }, [authStatus, router, fetchData, weekOffset]);
-
-  const handleVote = async () => {
+  }, [authStatus, router, fetchData, weekOffset]);  const handleVote = async () => {
     if (!selectedUser) return;
     setSending(true);
     const res = await fetch("/api/weekly-vote", {
@@ -164,7 +163,7 @@ export default function PersonOfWeekPage() {
                 <div key={entry.user.id} className={`text-center p-3 rounded-xl border-2 ${MEDAL_BG[entry.rank - 1]} ${podiumIdx === 0 ? "mt-4" : podiumIdx === 1 ? "" : "mt-6"}`}>
                   <div className="text-2xl mb-1">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</div>
                   <Avatar name={entry.user.name} image={entry.user.image} size="md" />
-                  <h3 className={`font-bold text-sm mt-2 truncate ${isMe ? "text-dotan-green-dark" : "text-gray-800"}`}>{entry.user.name}</h3>
+                  <h3 className={`font-bold text-sm mt-2 truncate ${isMe ? "text-dotan-green-dark" : "text-gray-800"}`}>{displayName(entry.user, locale)}</h3>
                   <div className={`text-lg font-bold ${MEDAL_COLORS[entry.rank - 1]}`}>{entry.votes}</div>
                   <div className="text-[10px] text-gray-400">{t.personOfWeek.votes}</div>
                   {isMe && entry.reasons.length > 0 && (
@@ -185,7 +184,7 @@ export default function PersonOfWeekPage() {
               <div key={entry.user.id} className={`flex items-center gap-3 py-2.5 px-3 rounded-lg mb-1 ${isMe ? "bg-dotan-mint-light" : ""}`}>
                 <span className="text-sm text-gray-400 w-6 text-center font-bold">{entry.rank}</span>
                 <Avatar name={entry.user.name} image={entry.user.image} size="sm" />
-                <span className={`flex-1 text-sm truncate ${isMe ? "font-bold text-dotan-green-dark" : "text-gray-700"}`}>{entry.user.name}</span>
+                <span className={`flex-1 text-sm truncate ${isMe ? "font-bold text-dotan-green-dark" : "text-gray-700"}`}>{displayName(entry.user, locale)}</span>
                 <span className="text-sm font-bold text-gray-500">{entry.votes}</span>
                 {isMe && entry.reasons.length > 0 && (
                   <button onClick={() => handleExportReasons(entry)} className="text-blue-500 hover:text-blue-700">
@@ -199,7 +198,7 @@ export default function PersonOfWeekPage() {
           {/* Show reasons for past weeks */}
           {data.showDetails && data.leaderboard.length > 0 && data.leaderboard[0].reasons.length > 0 && (
             <div className="mt-4 p-3 bg-yellow-50 rounded-xl border border-yellow-200">
-              <h4 className="text-xs font-medium text-yellow-700 mb-2">{t.personOfWeek.why} {data.leaderboard[0].user.name}?</h4>
+              <h4 className="text-xs font-medium text-yellow-700 mb-2">{t.personOfWeek.why} {displayName(data.leaderboard[0].user, locale)}?</h4>
               <div className="space-y-1">
                 {data.leaderboard[0].reasons.map((r, i) => (
                   <p key={i} className="text-xs text-yellow-800">{r}</p>
@@ -240,7 +239,7 @@ export default function PersonOfWeekPage() {
                   selectedUser === u.id ? "bg-dotan-mint-light border-2 border-dotan-green" : "hover:bg-gray-50 border-2 border-transparent"
                 }`}>
                 <Avatar name={u.name} image={u.image} size="sm" />
-                <span className="flex-1 truncate">{u.name}</span>
+                <span className="flex-1 truncate">{displayName(u, locale)}</span>
                 {selectedUser === u.id && <MdCheckCircle className="text-dotan-green text-lg shrink-0" />}
               </button>
             ))}

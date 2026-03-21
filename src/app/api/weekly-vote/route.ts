@@ -45,8 +45,8 @@ export async function GET(request: Request) {
   const votes = await prisma.weeklyVote.findMany({
     where: { week },
     include: {
-      voter: { select: { id: true, name: true, image: true } },
-      nominee: { select: { id: true, name: true, image: true } },
+      voter: { select: { id: true, name: true, nameEn: true, image: true } },
+      nominee: { select: { id: true, name: true, nameEn: true, image: true } },
     },
   });
 
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
   const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
   const allUsers = await prisma.user.findMany({
     where: { role: { notIn: EXCLUDED_ROLES } },
-    select: { id: true, name: true, image: true },
+    select: { id: true, name: true, nameEn: true, image: true },
     orderBy: { name: "asc" },
   });
 
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
     create: { week, voterId: userId, nomineeId, reason: reason || null },
     update: { nomineeId, reason: reason || null },
     include: {
-      nominee: { select: { id: true, name: true, image: true } },
+      nominee: { select: { id: true, name: true, nameEn: true, image: true } },
     },
   });
 

@@ -10,10 +10,12 @@ import {
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface UserOption {
   id: string;
   name: string;
+  nameEn?: string | null;
   image: string | null;
   team: number | null;
 }
@@ -29,7 +31,7 @@ type SendTarget = "all" | "team" | "users";
 export default function NotificationsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [stats, setStats] = useState<PushStats | null>(null);
@@ -63,7 +65,7 @@ export default function NotificationsPage() {
 
     if (usersRes.ok) {
       const data = await usersRes.json();
-      setAllUsers(data.map((u: UserOption) => ({ id: u.id, name: u.name, image: u.image, team: u.team })));
+      setAllUsers(data.map((u: UserOption) => ({ id: u.id, name: u.name, nameEn: u.nameEn, image: u.image, team: u.team })));
     }
     setLoading(false);
   }, []);
@@ -71,9 +73,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchData();
-  }, [status, router, fetchData]);
-
-  const handleSend = async (e: React.FormEvent) => {
+  }, [status, router, fetchData]);  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !body) return;
 
@@ -107,9 +107,10 @@ export default function NotificationsPage() {
     );
   };
 
-  const filteredUsers = allUsers.filter((u) =>
-    u.name.includes(userSearch)
-  );
+  const filteredUsers = allUsers.filter((u) => {
+    const dn = displayName(u, locale);
+    return dn.toLowerCase().includes(userSearch.toLowerCase()) || u.name.includes(userSearch);
+  });
 
   if (status === "loading" || loading) {
     return <InlineLoading />;
@@ -217,7 +218,7 @@ export default function NotificationsPage() {
                   const u = allUsers.find((x) => x.id === uid);
                   return u ? (
                     <span key={uid} className="text-xs bg-dotan-mint-light text-dotan-green-dark px-2 py-1 rounded-full flex items-center gap-1">
-                      {u.name}
+                      {displayName(u, locale)}
                       <button type="button" onClick={() => toggleUser(uid)} className="hover:text-red-500"><MdClose /></button>
                     </span>
                   ) : null;
@@ -242,7 +243,7 @@ export default function NotificationsPage() {
                         selectedUsers.includes(u.id) ? "bg-dotan-mint-light" : "hover:bg-gray-100"
                       }`}>
                       <Avatar name={u.name} image={u.image} size="xs" />
-                      <span className="flex-1">{u.name}</span>
+                      <span className="flex-1">{displayName(u, locale)}</span>
                       {u.team && <span className="text-xs text-gray-400">{t.common.team} {u.team}</span>}
                       {selectedUsers.includes(u.id) && <MdCheckCircle className="text-dotan-green text-sm" />}
                     </button>

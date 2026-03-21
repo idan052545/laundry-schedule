@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   MdAccessTime, MdDownload, MdSecurity, MdSwapHoriz, MdGroups,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { Assignment, DutyTable as DutyTableType, ROLE_COLORS, ROLE_NOTES, DAY_ROLES } from "./constants";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface DutyTableProps {
   table: DutyTableType;
@@ -26,7 +28,7 @@ export default function DutyTableView({
   table, roles, slots, dayRoleAssignments, squads, obsGdudi,
   dateDisplay, userId, isRoni, onSwap, onAppeal, onExport,
 }: DutyTableProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   return (
     <>
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-6">
@@ -71,9 +73,9 @@ export default function DutyTableView({
                                   ? "bg-dotan-green-dark text-white ring-2 ring-dotan-gold/50"
                                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                               }`}
-                              title={isRoni ? t.guardDuty.swapSoldierTooltip : a.userId === userId ? t.guardDuty.appealTooltip : a.user.name}>
+                              title={isRoni ? t.guardDuty.swapSoldierTooltip : a.userId === userId ? t.guardDuty.appealTooltip : displayName(a.user, locale)}>
                               {a.note && <span className="text-[8px] sm:text-[9px] opacity-60 block leading-none mb-0.5">{a.note}</span>}
-                              {a.user.name}
+                              {displayName(a.user, locale)}
                             </button>
                           </div>
                         ))}
@@ -101,7 +103,7 @@ export default function DutyTableView({
                 {people.map(a => (
                   <div key={a.id} className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-teal-100">
                     <Avatar name={a.user.name} image={a.user.image} size="xs" />
-                    <span className="text-xs font-medium text-gray-700">{a.user.name}</span>
+                    <span className="text-xs font-medium text-gray-700">{displayName(a.user, locale)}</span>
                     <span className="text-[10px] text-gray-400">{a.timeSlot}</span>
                     {isRoni && (
                       <button onClick={() => onSwap(a)}

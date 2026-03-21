@@ -9,6 +9,7 @@ import {
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { useTranslation } from "@/components/TranslateButton";
 
 interface UserInfo {
   team: number | null;
@@ -69,6 +70,7 @@ export default function AmanaPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState(0);
@@ -89,6 +91,11 @@ export default function AmanaPage() {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchUser();
   }, [status, router, fetchUser]);
+
+  useEffect(() => {
+    if (!isEnglish) return;
+    translateTexts(TEAM_MEMBERS);
+  }, [isEnglish]);
 
   useEffect(() => {
     if (!loading && userInfo?.team === 16) {
@@ -386,7 +393,7 @@ export default function AmanaPage() {
                       className={`${NAME_LAYOUTS[i]} animate-pop`}
                       style={{ animationDelay: `${i * 100}ms`, opacity: 0 }}>
                       <div className={`bg-gradient-to-l ${NAME_COLORS[i]} px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl shadow-lg hover:scale-110 hover:shadow-2xl transition-all duration-300 cursor-default border border-white/10`}>
-                        <span className="text-white font-black text-xs sm:text-sm drop-shadow-md whitespace-nowrap">{name}</span>
+                        <span className="text-white font-black text-xs sm:text-sm drop-shadow-md whitespace-nowrap">{getTranslation(name)}</span>
                       </div>
                     </div>
                   ))}

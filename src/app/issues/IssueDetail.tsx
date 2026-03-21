@@ -4,8 +4,10 @@ import {
   MdLocationOn, MdPhone, MdPerson, MdComment,
   MdSend, MdDelete, MdAssignmentInd, MdArrowBack,
 } from "react-icons/md";
+import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 import { Issue, User, STATUS_CONFIG, getStatusConfig, formatDate } from "./types";
 import AssignModal from "./AssignModal";
 
@@ -38,11 +40,9 @@ export default function IssueDetail({
   showAssign, setShowAssign, allUsers,
   assignSearch, setAssignSearch, assignSelected, setAssignSelected, onAssign,
 }: IssueDetailProps) {
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
   const statusConfig = getStatusConfig(t);
-  const sc = statusConfig[issue.status] || statusConfig.new;
-
-  return (
+  const sc = statusConfig[issue.status] || statusConfig.new;  return (
     <div className="max-w-2xl mx-auto">
       <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 text-sm">
         <MdArrowBack /> {t.issues.backToList}
@@ -68,7 +68,7 @@ export default function IssueDetail({
             {issue.location && (
               <span className="flex items-center gap-1"><MdLocationOn className="text-red-400" /> {issue.location}</span>
             )}
-            <span className="flex items-center gap-1"><MdPerson className="text-gray-400" /> {issue.createdBy.name}</span>
+            <span className="flex items-center gap-1"><MdPerson className="text-gray-400" /> {displayName(issue.createdBy, locale)}</span>
             <span>{formatDate(issue.createdAt, dateLocale)}</span>
           </div>
 
@@ -104,7 +104,7 @@ export default function IssueDetail({
                 {issue.assignees.map((a) => (
                   <div key={a.id} className="flex items-center gap-1.5 bg-gray-50 rounded-full px-3 py-1 text-sm">
                     <Avatar name={a.user.name} image={a.user.image} size="xs" />
-                    <span>{a.user.name}</span>
+                    <span>{displayName(a.user, locale)}</span>
                   </div>
                 ))}
               </div>
@@ -153,7 +153,7 @@ export default function IssueDetail({
                   <Avatar name={c.user.name} image={c.user.image} size="xs" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="font-medium text-gray-700">{c.user.name}</span>
+                      <span className="font-medium text-gray-700">{displayName(c.user, locale)}</span>
                       <span className="text-gray-400">{formatDate(c.createdAt, dateLocale)}</span>
                     </div>
                     <p className="text-sm text-gray-600 mt-0.5">{c.content}</p>

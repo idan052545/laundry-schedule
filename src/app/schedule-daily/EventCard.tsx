@@ -27,13 +27,16 @@ interface EventCardProps {
   onRemindAssigned: (id: string) => void;
   onAssign: (event: ScheduleEvent) => void;
   onMove: (idx: number, direction: "up" | "down") => void;
+  getTranslation?: (text: string) => string;
 }
 
 export default function EventCard({
   event, idx, compact, isAdmin, isToday, timedEventsLength,
   reminding, currentUserId, currentUserName, onDetail, onEdit, onDelete, onRemind, onRemindAssigned, onAssign, onMove,
+  getTranslation,
 }: EventCardProps) {
   const { t, dateLocale } = useLanguage();
+  const tr = getTranslation || ((text: string) => text);
   const config = TYPE_CONFIG[event.type] || TYPE_CONFIG.general;
   const targetLabels = getTargetLabels(t);
   const Icon = config.icon;
@@ -82,7 +85,7 @@ export default function EventCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 flex-wrap">
             <Icon className={`${compact ? "text-sm" : "text-base"} ${config.color} shrink-0`} />
-            <h3 className={`font-bold text-gray-800 ${compact ? "text-xs" : "text-sm"} leading-tight truncate`}>{event.title}</h3>
+            <h3 className={`font-bold text-gray-800 ${compact ? "text-xs" : "text-sm"} leading-tight truncate`}>{tr(event.title)}</h3>
             {active && (
               <span className="px-1 py-0.5 bg-dotan-green text-white rounded text-[8px] font-bold animate-pulse">
                 {t.common.now}
@@ -113,7 +116,7 @@ export default function EventCard({
           )}
 
           {!compact && event.description && (
-            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{event.description}</p>
+            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{tr(event.description!)}</p>
           )}
 
           {!compact && event.assignees.length > 0 && (

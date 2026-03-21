@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     },
     include: {
       scenario: { select: { title: true, conflictCharacter: true, machineName: true, difficulty: true } },
-      user: { select: { name: true, image: true, team: true } },
+      user: { select: { name: true, nameEn: true, image: true, team: true } },
     },
     orderBy: { startedAt: "desc" },
   });

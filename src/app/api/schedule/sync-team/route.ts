@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       }),
       prisma.user.findMany({
         where: { team: teamNumber },
-        select: { id: true, name: true },
+        select: { id: true, name: true, nameEn: true },
       }),
       prisma.scheduleEvent.findMany({
         where: { target: TARGET },

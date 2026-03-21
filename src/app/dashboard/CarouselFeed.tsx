@@ -11,6 +11,7 @@ import {
 import Avatar from "@/components/Avatar";
 import type { DashboardFeed, SectionKey } from "./types";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface CarouselCard {
   key: string;
@@ -29,11 +30,9 @@ interface CarouselFeedProps {
 }
 
 export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
-  const { t, dateLocale } = useLanguage();
+  const { t, locale, dateLocale } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  const cards: CarouselCard[] = [];
+  const [activeIdx, setActiveIdx] = useState(0);  const cards: CarouselCard[] = [];
 
   // Quote
   if (visible.has("quote") && feed.dailyQuote) {
@@ -44,7 +43,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       iconBg: "bg-white/20",
       icon: <MdAutoAwesome className="text-xl text-white" />,
       title: t.dashboard.dailyQuote,
-      subtitle: feed.dailyQuote.user.name,
+      subtitle: displayName(feed.dailyQuote.user, locale),
       content: (
         <p className="text-white/90 text-sm leading-relaxed mt-2 line-clamp-3">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
       ),
@@ -274,7 +273,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       iconBg: "bg-white/20",
       icon: <MdCake className="text-xl text-white" />,
       title: `${t.birthdays.birthdayToday}!`,
-      subtitle: feed.birthdayUsers.map(u => u.name).join(", "),
+      subtitle: feed.birthdayUsers.map(u => displayName(u, locale)).join(", "),
       content: (
         <div className="flex -space-x-2 mt-2">
           {feed.birthdayUsers.slice(0, 4).map(u => (
@@ -294,7 +293,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       iconBg: "bg-white/20",
       icon: <MdMessage className="text-xl text-white" />,
       title: feed.latestMessage.title,
-      subtitle: feed.latestMessage.author.name,
+      subtitle: displayName(feed.latestMessage.author, locale),
     });
   }
 
@@ -307,7 +306,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       iconBg: "bg-white/20",
       icon: <MdPushPin className="text-xl text-white" />,
       title: feed.pinnedPosts[0].title,
-      subtitle: feed.pinnedPosts[0].author.name,
+      subtitle: displayName(feed.pinnedPosts[0].author, locale),
     });
   }
 

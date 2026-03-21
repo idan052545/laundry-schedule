@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 const userSelect = {
   id: true,
   name: true,
+  nameEn: true,
   email: true,
   image: true,
   roomNumber: true,
@@ -48,6 +49,7 @@ export async function PUT(request: Request) {
     where: { id: userId },
     data: {
       ...(body.name !== undefined && { name: body.name }),
+      ...(body.nameEn !== undefined && { nameEn: body.nameEn || null }),
       ...(body.roomNumber !== undefined && { roomNumber: body.roomNumber || null }),
       ...(body.team !== undefined && { team: body.team ? parseInt(body.team) : null }),
       ...(body.phone !== undefined && { phone: body.phone || null }),

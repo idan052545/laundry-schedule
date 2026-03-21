@@ -5,9 +5,9 @@ import prisma from "@/lib/prisma";
 import { sendPushToUsers, sendPushToAll } from "@/lib/push";
 
 const messageInclude = {
-  author: { select: { id: true, name: true, image: true, role: true } },
+  author: { select: { id: true, name: true, nameEn: true, image: true, role: true } },
   assignees: {
-    include: { user: { select: { id: true, name: true, image: true } } },
+    include: { user: { select: { id: true, name: true, nameEn: true, image: true } } },
   },
 };
 

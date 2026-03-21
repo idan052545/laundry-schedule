@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   const chopalRequest = await prisma.chopalRequest.findUnique({
     where: { id: chopalRequestId },
-    include: { user: { select: { id: true, name: true } }, assignment: true },
+    include: { user: { select: { id: true, name: true, nameEn: true } }, assignment: true },
   });
 
   if (!chopalRequest) {
@@ -126,7 +126,7 @@ export async function PUT(request: Request) {
 
   const assignment = await prisma.chopalAssignment.findUnique({
     where: { id: assignmentId },
-    include: { user: { select: { name: true } } },
+    include: { user: { select: { name: true, nameEn: true } } },
   });
 
   if (!assignment) return NextResponse.json({ error: "שיבוץ לא נמצא" }, { status: 404 });

@@ -41,9 +41,9 @@ export async function GET(request: Request) {
   const surveys = await prisma.survey.findMany({
     where,
     include: {
-      createdBy: { select: { id: true, name: true, image: true } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true } },
       responses: {
-        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -55,14 +55,14 @@ export async function GET(request: Request) {
     // Only team members for team-scoped view
     teamMembers = await prisma.user.findMany({
       where: { team: user.team, role: { notIn: EXCLUDED_ROLES } },
-      select: { id: true, name: true, image: true, team: true },
+      select: { id: true, name: true, nameEn: true, image: true, team: true },
       orderBy: { name: "asc" },
     });
   } else {
     // All users for platoon or mixed views
     teamMembers = await prisma.user.findMany({
       where: { role: { notIn: EXCLUDED_ROLES } },
-      select: { id: true, name: true, image: true, team: true },
+      select: { id: true, name: true, nameEn: true, image: true, team: true },
       orderBy: { name: "asc" },
     });
   }
@@ -106,8 +106,8 @@ export async function POST(request: Request) {
       createdById: userId,
     },
     include: {
-      createdBy: { select: { id: true, name: true, image: true } },
-      responses: { include: { user: { select: { id: true, name: true, image: true, team: true } } } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true } },
+      responses: { include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } } },
     },
   });
 
@@ -238,8 +238,8 @@ export async function PUT(request: Request) {
   const updated = await prisma.survey.findUnique({
     where: { id },
     include: {
-      createdBy: { select: { id: true, name: true, image: true } },
-      responses: { include: { user: { select: { id: true, name: true, image: true, team: true } } } },
+      createdBy: { select: { id: true, name: true, nameEn: true, image: true } },
+      responses: { include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } } },
     },
   });
 

@@ -179,6 +179,8 @@ const he = {
     uploadPhoto: "העלה תמונה",
     email: "אימייל",
     fullName: "שם מלא",
+    englishName: "שם באנגלית",
+    englishNamePlaceholder: "Israel Israeli",
     roomNumber: "מספר חדר",
     roomPlaceholder: "למשל: 205",
     team: "צוות",

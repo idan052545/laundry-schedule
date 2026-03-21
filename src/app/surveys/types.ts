@@ -4,6 +4,7 @@ import type { Dictionary } from "@/i18n";
 export interface User {
   id: string;
   name: string;
+  nameEn?: string | null;
   image: string | null;
   team?: number | null;
 }

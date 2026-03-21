@@ -50,7 +50,7 @@ export async function GET() {
     // Latest message
     prisma.message.findFirst({
       orderBy: { createdAt: "desc" },
-      select: { id: true, title: true, createdAt: true, author: { select: { name: true } } },
+      select: { id: true, title: true, createdAt: true, author: { select: { name: true, nameEn: true } } },
     }),
 
     // Pinned commander posts
@@ -58,7 +58,7 @@ export async function GET() {
       where: { pinned: true },
       orderBy: { createdAt: "desc" },
       take: 3,
-      select: { id: true, title: true, type: true, dueDate: true, author: { select: { name: true } } },
+      select: { id: true, title: true, type: true, dueDate: true, author: { select: { name: true, nameEn: true } } },
     }),
 
     // Today's tasks (user's own + global)
@@ -106,7 +106,7 @@ export async function GET() {
       where: {
         birthDate: { endsWith: todayMonthDay },
       },
-      select: { id: true, name: true, image: true },
+      select: { id: true, name: true, nameEn: true, image: true },
     }),
 
     // Unread professional materials
@@ -116,7 +116,7 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
       take: 5,
-      select: { id: true, title: true, createdAt: true, author: { select: { name: true } } },
+      select: { id: true, title: true, createdAt: true, author: { select: { name: true, nameEn: true } } },
     }),
 
     // Today's timed schedule events (not all-day) that haven't ended yet
@@ -171,7 +171,7 @@ export async function GET() {
     // Today's daily quote
     prisma.dailyQuote.findUnique({
       where: { date: todayStr },
-      include: { user: { select: { name: true, team: true } } },
+      include: { user: { select: { name: true, nameEn: true, team: true } } },
     }),
 
     // Next upcoming duty tables (today or future) with ALL assignments (to show partners)
@@ -181,7 +181,7 @@ export async function GET() {
       take: 10,
       include: {
         assignments: {
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, nameEn: true } } },
         },
       },
     }),
@@ -217,7 +217,7 @@ export async function GET() {
         id: true, title: true, category: true, priority: true, status: true,
         target: true, requiredCount: true, startTime: true, endTime: true,
         isCommanderRequest: true,
-        createdBy: { select: { name: true, phone: true } },
+        createdBy: { select: { name: true, nameEn: true, phone: true } },
         _count: { select: { assignments: true } },
       },
     }),

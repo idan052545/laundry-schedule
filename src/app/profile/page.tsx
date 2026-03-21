@@ -11,6 +11,7 @@ import { useLanguage } from "@/i18n";
 interface UserProfile {
   id: string;
   name: string;
+  nameEn: string | null;
   email: string;
   image: string | null;
   roomNumber: string | null;
@@ -29,6 +30,7 @@ export default function ProfilePage() {
   const { t, locale, setLocale } = useLanguage();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [team, setTeam] = useState("");
   const [phone, setPhone] = useState("");
@@ -48,6 +50,7 @@ export default function ProfilePage() {
       const data = await res.json();
       setUser(data);
       setName(data.name);
+      setNameEn(data.nameEn || "");
       setRoomNumber(data.roomNumber || "");
       setTeam(data.team?.toString() || "");
       setPhone(data.phone || "");
@@ -74,7 +77,7 @@ export default function ProfilePage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name, roomNumber, team, phone, birthDate,
+        name, nameEn, roomNumber, team, phone, birthDate,
         foodPreference, allergies, medicalExemptions, otherExemptions,
       }),
     });
@@ -154,6 +157,16 @@ export default function ProfilePage() {
             </label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm" required />
+          </div>
+
+          {/* English Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <MdPerson className="text-gray-400" /> {t.profile.englishName}
+            </label>
+            <input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dotan-green focus:border-transparent outline-none text-sm"
+              placeholder={t.profile.englishNamePlaceholder} dir="ltr" />
           </div>
 
           {/* Room & Team row */}

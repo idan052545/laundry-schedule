@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   const assignment = await prisma.volunteerAssignment.findUnique({
     where: { id: assignmentId },
-    include: { request: { include: { createdBy: { select: { name: true } } } }, user: { select: { name: true, team: true } } },
+    include: { request: { include: { createdBy: { select: { name: true, nameEn: true } } } }, user: { select: { name: true, nameEn: true, team: true } } },
   });
 
   if (!assignment) return NextResponse.json({ error: "שיבוץ לא נמצא" }, { status: 404 });
@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
 
   const replacement = await prisma.volunteerReplacement.findUnique({
     where: { id: replacementId },
-    include: { request: true, originalUser: { select: { name: true } } },
+    include: { request: true, originalUser: { select: { name: true, nameEn: true } } },
   });
 
   if (!replacement) return NextResponse.json({ error: "לא נמצא" }, { status: 404 });

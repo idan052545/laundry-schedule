@@ -15,7 +15,7 @@ export async function GET() {
 
   const materials = await prisma.professionalMaterial.findMany({
     include: {
-      author: { select: { id: true, name: true, image: true } },
+      author: { select: { id: true, name: true, nameEn: true, image: true } },
       reads: { where: { userId }, select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       fileType: fileType || "application/octet-stream",
       authorId: userId,
     },
-    include: { author: { select: { id: true, name: true, image: true } } },
+    include: { author: { select: { id: true, name: true, nameEn: true, image: true } } },
   });
 
   const { fileData: _, ...result } = material;
@@ -118,7 +118,7 @@ export async function PUT(request: Request) {
   const updated = await prisma.professionalMaterial.update({
     where: { id },
     data,
-    include: { author: { select: { id: true, name: true, image: true } } },
+    include: { author: { select: { id: true, name: true, nameEn: true, image: true } } },
   });
 
   const { fileData: _, ...result } = updated;

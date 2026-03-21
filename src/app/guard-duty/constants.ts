@@ -1,4 +1,4 @@
-export interface UserMin { id: string; name: string; team: number | null; image: string | null; }
+export interface UserMin { id: string; name: string; nameEn?: string | null; team: number | null; image: string | null; }
 
 export interface Assignment {
   id: string;

@@ -11,6 +11,7 @@ datasource db {
 model User {
   id                String    @id @default(uuid())
   name              String
+  nameEn            String?   // English name
   email             String    @unique
   password          String
   image             String?

@@ -11,6 +11,7 @@ import {
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface UserBasic {
   id: string;
@@ -55,7 +56,7 @@ function isDueSoon(deadline: string | null): boolean {
 export default function FormsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
   const [forms, setForms] = useState<FormLink[]>([]);
   const [allUsers, setAllUsers] = useState<UserBasic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,9 +95,7 @@ export default function FormsPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchForms();
-  }, [status, router, fetchForms]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  }, [status, router, fetchForms]);  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
     const res = await fetch("/api/forms", {
@@ -308,7 +307,7 @@ export default function FormsPage() {
                         {t.forms.submittedCount.replace("{n}", String(submittedCount)).replace("{total}", String(allUsers.length))}
                       </span>
                       <span className="text-gray-400">
-                        <Avatar name={form.author.name} image={form.author.image} size="xs" /> {form.author.name}
+                        <Avatar name={form.author.name} image={form.author.image} size="xs" /> {displayName(form.author, locale)}
                       </span>
                     </div>
 
@@ -364,7 +363,7 @@ export default function FormsPage() {
                         {form.submissions.map((s) => (
                           <div key={s.id} className="flex items-center gap-2 text-xs bg-green-50 px-2 py-1.5 rounded-lg">
                             <Avatar name={s.user.name} image={s.user.image} size="xs" />
-                            <span className="text-gray-700">{s.user.name}</span>
+                            <span className="text-gray-700">{displayName(s.user, locale)}</span>
                             {s.user.team && <span className="text-gray-400">{t.common.team} {s.user.team}</span>}
                           </div>
                         ))}
@@ -385,7 +384,7 @@ export default function FormsPage() {
                           .map((u) => (
                             <div key={u.id} className="flex items-center gap-2 text-xs bg-red-50 px-2 py-1.5 rounded-lg">
                               <Avatar name={u.name} image={u.image} size="xs" />
-                              <span className="text-gray-700">{u.name}</span>
+                              <span className="text-gray-700">{displayName(u, locale)}</span>
                               {u.team && <span className="text-gray-400">{t.common.team} {u.team}</span>}
                             </div>
                           ))}

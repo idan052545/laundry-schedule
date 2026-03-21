@@ -7,6 +7,7 @@ import { MdCake } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 
 interface UserBirthday {
   id: string;
@@ -55,7 +56,7 @@ function isBirthdayThisWeek(dateStr: string | null): boolean {
 export default function BirthdaysPage() {
   const { status } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [users, setUsers] = useState<UserBirthday[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,9 +78,7 @@ export default function BirthdaysPage() {
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchUsers();
-  }, [status, router, fetchUsers]);
-
-  if (status === "loading" || loading) {
+  }, [status, router, fetchUsers]);  if (status === "loading" || loading) {
     return <InlineLoading />;
   }
 
@@ -126,7 +125,7 @@ export default function BirthdaysPage() {
               <div key={user.id} className="flex items-center gap-3 bg-white p-3 rounded-lg shadow">
                 <Avatar name={user.name} image={user.image} size="md" />
                 <div>
-                  <div className="font-bold text-gray-800">{user.name}</div>
+                  <div className="font-bold text-gray-800">{displayName(user, locale)}</div>
                   <div className="text-xs text-gray-500">{t.common.team} {user.team}</div>
                 </div>
               </div>
@@ -145,7 +144,7 @@ export default function BirthdaysPage() {
               return (
                 <div key={user.id} className="flex items-center gap-2 bg-white p-2 px-3 rounded-lg border border-dotan-mint">
                   <Avatar name={user.name} image={user.image} size="sm" />
-                  <span className="font-medium text-sm">{user.name}</span>
+                  <span className="font-medium text-sm">{displayName(user, locale)}</span>
                   <span className="text-xs text-gray-500">{parsed?.day}/{parsed?.month}</span>
                 </div>
               );
@@ -177,7 +176,7 @@ export default function BirthdaysPage() {
                     <div key={user.id} className={`flex items-center gap-2 p-2 rounded-lg ${isToday ? "bg-pink-50 border border-pink-200" : ""}`}>
                       <Avatar name={user.name} image={user.image} size="sm" />
                       <div className="flex-1">
-                        <span className="text-sm font-medium">{user.name}</span>
+                        <span className="text-sm font-medium">{displayName(user, locale)}</span>
                         <span className="text-xs text-gray-400 me-2">{t.common.team} {user.team}</span>
                       </div>
                       <span className="text-sm text-gray-500 font-mono">{parsed?.day}</span>

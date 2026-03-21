@@ -1,8 +1,10 @@
 "use client";
 
 import { MdLocationOn, MdComment, MdImage } from "react-icons/md";
+import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 import { Issue, STATUS_CONFIG, getStatusConfig, formatDate } from "./types";
 
 interface IssueCardProps {
@@ -13,11 +15,9 @@ interface IssueCardProps {
 }
 
 export default function IssueCard({ issue, isAdmin, onSelect, onStatusChange }: IssueCardProps) {
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
   const statusConfig = getStatusConfig(t);
-  const sc = statusConfig[issue.status] || statusConfig.new;
-
-  return (
+  const sc = statusConfig[issue.status] || statusConfig.new;  return (
     <button onClick={onSelect}
       className="w-full text-start bg-white p-4 rounded-xl shadow-sm border-2 border-gray-100 hover:border-dotan-mint hover:shadow-md transition">
       <div className="flex items-start gap-3">
@@ -39,7 +39,7 @@ export default function IssueCard({ issue, isAdmin, onSelect, onStatusChange }: 
             {issue.location && (
               <span className="flex items-center gap-0.5"><MdLocationOn className="text-red-300" /> {issue.location}</span>
             )}
-            <span>{issue.createdBy.name}</span>
+            <span>{displayName(issue.createdBy, locale)}</span>
             <span>{formatDate(issue.createdAt, dateLocale)}</span>
             {issue.comments.length > 0 && (
               <span className="flex items-center gap-0.5"><MdComment /> {issue.comments.length}</span>

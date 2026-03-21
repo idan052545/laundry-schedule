@@ -5,9 +5,9 @@ import prisma from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
 
 const taskInclude = {
-  user: { select: { id: true, name: true, image: true } },
+  user: { select: { id: true, name: true, nameEn: true, image: true } },
   responses: {
-    include: { user: { select: { id: true, name: true, image: true } } },
+    include: { user: { select: { id: true, name: true, nameEn: true, image: true } } },
     orderBy: { createdAt: "desc" as const },
   },
 };

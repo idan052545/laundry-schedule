@@ -13,6 +13,7 @@ export async function GET() {
     select: {
       id: true,
       name: true,
+      nameEn: true,
       image: true,
       team: true,
       roomNumber: true,

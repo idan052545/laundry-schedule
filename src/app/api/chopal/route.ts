@@ -74,7 +74,7 @@ export async function GET(request: Request) {
     const requests = await prisma.chopalRequest.findMany({
       where: { date: targetDate },
       include: {
-        user: { select: { id: true, name: true, team: true, image: true, phone: true } },
+        user: { select: { id: true, name: true, nameEn: true, team: true, image: true, phone: true } },
         assignment: { select: { id: true, assignedTime: true, status: true, rejectReason: true } },
       },
       orderBy: [{ user: { team: "asc" } }, { user: { name: "asc" } }],
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     where: { userId_date: { userId, date: tomorrowDate } },
     update: { needed: true, note: note || null },
     create: { userId, date: tomorrowDate, needed: true, note: note || null },
-    include: { user: { select: { name: true, team: true } } },
+    include: { user: { select: { name: true, nameEn: true, team: true } } },
   });
 
   // Notify נעמה that someone registered
@@ -257,7 +257,7 @@ export async function PUT(request: Request) {
   const requests = await prisma.chopalRequest.findMany({
     where: { date: targetDate },
     include: {
-      user: { select: { name: true, team: true, phone: true, roomNumber: true } },
+      user: { select: { name: true, nameEn: true, team: true, phone: true, roomNumber: true } },
     },
     orderBy: [{ user: { team: "asc" } }, { user: { name: "asc" } }],
   });

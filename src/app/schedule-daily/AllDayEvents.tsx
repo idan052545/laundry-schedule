@@ -14,9 +14,11 @@ interface AllDayEventsProps {
   myName: string;
   onEdit: (event: ScheduleEvent) => void;
   onDelete: (id: string) => void;
+  getTranslation?: (text: string) => string;
 }
 
-export default function AllDayEvents({ events, isToday, canEdit, myUserId, myName, onEdit, onDelete }: AllDayEventsProps) {
+export default function AllDayEvents({ events, isToday, canEdit, myUserId, myName, onEdit, onDelete, getTranslation }: AllDayEventsProps) {
+  const tr = getTranslation || ((text: string) => text);
   const { t } = useLanguage();
   if (events.length === 0) return null;
 
@@ -35,7 +37,7 @@ export default function AllDayEvents({ events, isToday, canEdit, myUserId, myNam
               isMine ? "bg-teal-50 border-teal-300" : isTeam ? "bg-cyan-50 border-cyan-200" : `${config.bg} ${config.border}`
             } ${active ? "ring-1 ring-dotan-green" : ""}`}>
               <Icon className={`text-sm ${isMine ? "text-teal-600" : isTeam ? "text-cyan-600" : config.color}`} />
-              <span className={isMine ? "text-teal-800" : isTeam ? "text-cyan-700" : "text-gray-700"}>{event.title}</span>
+              <span className={isMine ? "text-teal-800" : isTeam ? "text-cyan-700" : "text-gray-700"}>{tr(event.title)}</span>
               {isTeam && <span className="px-1 py-0.5 bg-cyan-500 text-white rounded text-[8px] font-bold">{t.common.team}</span>}
               {isMine && <span className="px-1 py-0.5 bg-teal-500 text-white rounded text-[8px] font-bold">{t.schedule.forYou}</span>}
               {active && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse" />}

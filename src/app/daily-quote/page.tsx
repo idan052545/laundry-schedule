@@ -7,6 +7,7 @@ import {
   MdFormatQuote, MdSend, MdAutoAwesome, MdHistory,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
+import TranslateButton from "@/components/TranslateButton";
 import { useLanguage } from "@/i18n";
 
 interface Quote {
@@ -27,6 +28,8 @@ export default function DailyQuotePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [phase, setPhase] = useState(0);
+  const [translatedToday, setTranslatedToday] = useState<string | null>(null);
+  const [translatedYesterday, setTranslatedYesterday] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/daily-quote");
@@ -166,9 +169,16 @@ export default function DailyQuotePage() {
                   </div>
 
                   {/* Quote text */}
-                  <p className="text-center text-xl sm:text-2xl font-bold text-gray-800 leading-[1.8] mb-6">
-                    {todayQuote.text}
+                  <p className="text-center text-xl sm:text-2xl font-bold text-gray-800 leading-[1.8] mb-4">
+                    {translatedToday || todayQuote.text}
                   </p>
+                  <div className="flex justify-center mb-4">
+                    <TranslateButton
+                      size="md"
+                      texts={[todayQuote.text]}
+                      onTranslated={([translated]) => setTranslatedToday(translated)}
+                    />
+                  </div>
 
                   {/* Divider */}
                   <div className="flex items-center justify-center gap-3 mb-4">
@@ -237,8 +247,15 @@ export default function DailyQuotePage() {
                 <span className="text-xs font-bold text-gray-400 tracking-wide">{t.dailyQuote.yesterdayQuote}</span>
               </div>
               <p className="text-gray-500 text-sm leading-[1.8] text-center italic">
-                &ldquo;{yesterdayQuote.text}&rdquo;
+                &ldquo;{translatedYesterday || yesterdayQuote.text}&rdquo;
               </p>
+              <div className="flex justify-center mt-2">
+                <TranslateButton
+                  size="sm"
+                  texts={[yesterdayQuote.text]}
+                  onTranslated={([translated]) => setTranslatedYesterday(translated)}
+                />
+              </div>
               <div className="text-center mt-3">
                 <span className="text-xs text-gray-400 font-medium">{yesterdayQuote.user.name}</span>
                 {yesterdayQuote.user.team && (

@@ -29,6 +29,7 @@ interface TimelineProps {
   onEditNote: (note: ScheduleNote) => void;
   onDeleteNote: (id: string) => void;
   onRemindNote: (id: string) => void;
+  getTranslation?: (text: string) => string;
 }
 
 export default function Timeline({
@@ -36,6 +37,7 @@ export default function Timeline({
   myUserId, myName, reminding, noteReminding, nowRef,
   onDetail, onEdit, onDelete, onRemind, onRemindAssigned,
   onAssign, onMove, onEditNote, onDeleteNote, onRemindNote,
+  getTranslation,
 }: TimelineProps) {
   const { t, dateLocale } = useLanguage();
   const timedGroups = groupTimedEvents(timedEvents);
@@ -100,6 +102,7 @@ export default function Timeline({
                     isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
                     reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={onDetail} onEdit={onEdit}
                     onDelete={onDelete} onRemind={onRemind} onRemindAssigned={onRemindAssigned} onAssign={onAssign} onMove={onMove}
+                    getTranslation={getTranslation}
                   />
                 </div>
               ) : (
@@ -111,6 +114,7 @@ export default function Timeline({
                       isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
                       reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={onDetail} onEdit={onEdit}
                       onDelete={onDelete} onRemind={onRemind} onRemindAssigned={onRemindAssigned} onAssign={onAssign} onMove={onMove}
+                      getTranslation={getTranslation}
                     />
                   ))}
                 </div>

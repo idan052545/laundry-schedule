@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     where,
     include: {
       assignees: {
-        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
       },
     },
     orderBy: { startTime: "asc" },
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     },
     include: {
       assignees: {
-        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
       },
     },
   });
@@ -156,7 +156,7 @@ export async function PUT(request: Request) {
       where: { id },
       include: {
         assignees: {
-          include: { user: { select: { id: true, name: true, image: true, team: true } } },
+          include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
         },
       },
     });
@@ -258,7 +258,7 @@ export async function PUT(request: Request) {
     data,
     include: {
       assignees: {
-        include: { user: { select: { id: true, name: true, image: true, team: true } } },
+        include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
       },
     },
   });

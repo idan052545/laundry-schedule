@@ -22,6 +22,7 @@ export async function GET(request: Request) {
     select: {
       id: true,
       name: true,
+      nameEn: true,
       image: true,
       team: true,
       roomNumber: true,

@@ -18,6 +18,7 @@ import {
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 import SimulationsSurveys from "./SimulationsSurveys";
 import { Commander, CommanderPost, getPostTypeConfig } from "./types";
 
@@ -26,7 +27,7 @@ function CommanderPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("id");
-  const { t, dateLocale } = useLanguage();
+  const { t, dateLocale, locale } = useLanguage();
 
   const [commanders, setCommanders] = useState<Commander[]>([]);
   const [posts, setPosts] = useState<CommanderPost[]>([]);
@@ -65,9 +66,7 @@ function CommanderPageContent() {
       if (selectedId) fetchPosts();
       else setLoading(false);
     }
-  }, [status, router, fetchCommanders, fetchPosts, selectedId]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  }, [status, router, fetchCommanders, fetchPosts, selectedId]);  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
     const res = await fetch("/api/commander-posts", {
@@ -112,7 +111,7 @@ function CommanderPageContent() {
               <div className="flex items-center gap-3 sm:gap-4">
                 <Avatar name={cmd.name} image={cmd.image} size="lg" />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-800 text-base sm:text-lg group-hover:text-dotan-green-dark transition truncate">{cmd.name}</h3>
+                  <h3 className="font-bold text-gray-800 text-base sm:text-lg group-hover:text-dotan-green-dark transition truncate">{displayName(cmd, locale)}</h3>
                   {cmd.roleTitle && <span className="text-xs sm:text-sm text-dotan-green font-medium">{cmd.roleTitle}</span>}
                   <div className="text-xs text-gray-400 mt-1">{cmd._count.commanderPosts} {t.commander.nPosts}</div>
                 </div>
@@ -141,7 +140,7 @@ function CommanderPageContent() {
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <Avatar name={commander.name} image={commander.image} size="md" />
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-dotan-green-dark truncate">{commander.name}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-dotan-green-dark truncate">{displayName(commander, locale)}</h1>
               {commander.roleTitle && <span className="text-xs sm:text-sm text-dotan-green font-medium">{commander.roleTitle}</span>}
             </div>
           </div>

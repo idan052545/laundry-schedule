@@ -4,8 +4,10 @@ import {
   MdAccessTime, MdPeople, MdThumbUp, MdSwapHoriz, MdStar,
   MdCheck, MdEdit, MdDelete, MdNotifications,
 } from "react-icons/md";
+import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
+import { displayName } from "@/lib/displayName";
 import { CATEGORY_CONFIG, STATUS_CONFIG } from "./constants";
 import type { VolRequest } from "./types";
 
@@ -34,11 +36,10 @@ export default function RequestCard({
   onAssign, onOpenCandidates, onShowReplace, onAcceptReplace,
   onStartEdit, onNotify, onStatusChange, onShowFeedback, onShowDispute,
 }: RequestCardProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const catConfig = CATEGORY_CONFIG[req.category] || CATEGORY_CONFIG.other;
   const CatIcon = catConfig.icon;
-  const activeAssignments = req.assignments.filter(a => a.status !== "cancelled" && a.status !== "replaced");
-  const isMine = activeAssignments.some(a => a.userId === myUserId);
+  const activeAssignments = req.assignments.filter(a => a.status !== "cancelled" && a.status !== "replaced");  const isMine = activeAssignments.some(a => a.userId === myUserId);
   const hasUrgentReplace = req.replacements.some(r => r.isUrgent);
   const slotsLeft = req.requiredCount - activeAssignments.length;
 
@@ -76,7 +77,7 @@ export default function RequestCard({
             </div>
             <div className="flex items-center gap-1.5 mt-1">
               <Avatar name={req.createdBy.name} image={req.createdBy.image} size="xs" />
-              <span className="text-[10px] text-gray-400">{req.createdBy.name}</span>
+              <span className="text-[10px] text-gray-400">{displayName(req.createdBy, locale)}</span>
               {req.target !== "all" && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 font-bold">
                   {req.target === "mixed" ? t.teams.mixed : req.target.replace("team-", `${t.common.team} `)}
@@ -95,7 +96,7 @@ export default function RequestCard({
                 "bg-green-50 border-green-200 text-green-800"
               }`}>
                 <Avatar name={a.user.name} image={a.user.image} size="xs" />
-                <span>{a.user.name}</span>
+                <span>{displayName(a.user, locale)}</span>
                 {a.assignmentType === "commander" && <span className="text-[8px]">({t.volunteers.commander})</span>}
                 {a.assignmentType === "team-member" && <span className="text-[8px]">({t.common.team})</span>}
               </div>

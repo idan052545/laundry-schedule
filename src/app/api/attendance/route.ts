@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const EXCLUDED_ROLES = ["sagal", "simulator", "simulator-admin"];
   const users = await prisma.user.findMany({
     where: { role: { notIn: EXCLUDED_ROLES } },
-    select: { id: true, name: true, team: true, image: true, roomNumber: true },
+    select: { id: true, name: true, nameEn: true, team: true, image: true, roomNumber: true },
     orderBy: [{ team: "asc" }, { name: "asc" }],
   });
 
