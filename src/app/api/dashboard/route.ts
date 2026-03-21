@@ -218,6 +218,10 @@ export async function GET() {
         target: true, targetDetails: true, requiredCount: true, startTime: true, endTime: true,
         isCommanderRequest: true,
         createdBy: { select: { name: true, nameEn: true, phone: true } },
+        assignments: {
+          where: { status: { in: ["assigned", "active"] } },
+          select: { userId: true, user: { select: { team: true } } },
+        },
         _count: { select: { assignments: true } },
       },
     }),
@@ -315,13 +319,18 @@ export async function GET() {
     })
   );
 
-  // Filter volunteer requests: for mixed target, only show if user's team is included
+  // Filter volunteer requests: for mixed target, only show if user's team is included and not full
   const filteredVolRequests = (activeVolunteerRequests || []).filter(
-    (r: { target: string; targetDetails: string | null }) => {
+    (r: { target: string; targetDetails: string | null; assignments: { userId: string; user: { team: number | null } }[] }) => {
       if (r.target === "mixed" && r.targetDetails && user?.team) {
         try {
-          const teams = JSON.parse(r.targetDetails) as { team: number }[];
-          return teams.some(d => d.team === user.team);
+          const details = JSON.parse(r.targetDetails) as { team: number; count: number }[];
+          const myTeamDetail = details.find(d => d.team === user.team);
+          if (!myTeamDetail) return false; // user's team not in target
+          // Check if user's team quota is already full
+          const myTeamAssigned = r.assignments.filter(a => a.user.team === user.team).length;
+          if (myTeamAssigned >= myTeamDetail.count) return false;
+          return true;
         } catch { return false; }
       }
       return true;
@@ -405,7 +414,7 @@ export async function GET() {
     dailyQuote,
     todayNotes,
     chopalStatus,
-    activeVolunteerRequests: filteredVolRequests,
+    activeVolunteerRequests: filteredVolRequests.map(({ assignments, ...rest }: { assignments: unknown;[key: string]: unknown }) => rest),
     myVolunteerAssignments: enrichedVolAssignments,
     myCreatedRequests,
     urgentReplacement,
