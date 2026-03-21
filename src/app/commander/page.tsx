@@ -18,6 +18,7 @@ import {
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import TranslateButton, { useTranslation } from "@/components/TranslateButton";
 import { displayName } from "@/lib/displayName";
 import SimulationsSurveys from "./SimulationsSurveys";
 import { Commander, CommanderPost, getPostTypeConfig } from "./types";
@@ -28,6 +29,7 @@ function CommanderPageContent() {
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("id");
   const { t, dateLocale, locale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
 
   const [commanders, setCommanders] = useState<Commander[]>([]);
   const [posts, setPosts] = useState<CommanderPost[]>([]);
@@ -66,7 +68,16 @@ function CommanderPageContent() {
       if (selectedId) fetchPosts();
       else setLoading(false);
     }
-  }, [status, router, fetchCommanders, fetchPosts, selectedId]);  const handleSubmit = async (e: React.FormEvent) => {
+  }, [status, router, fetchCommanders, fetchPosts, selectedId]);
+
+  // Auto-translate posts for English users
+  useEffect(() => {
+    if (isEnglish && posts.length > 0) {
+      translateTexts(posts.flatMap(p => [p.title, p.content]));
+    }
+  }, [isEnglish, posts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
     const res = await fetch("/api/commander-posts", {
@@ -143,6 +154,13 @@ function CommanderPageContent() {
               <h1 className="text-xl sm:text-2xl font-bold text-dotan-green-dark truncate">{displayName(commander, locale)}</h1>
               {commander.roleTitle && <span className="text-xs sm:text-sm text-dotan-green font-medium">{commander.roleTitle}</span>}
             </div>
+            {isEnglish && posts.length > 0 && (
+              <TranslateButton
+                size="md"
+                texts={posts.flatMap(p => [p.title, p.content])}
+                onTranslated={() => translateTexts(posts.flatMap(p => [p.title, p.content]))}
+              />
+            )}
           </div>
         )}
         <div className="flex gap-2 shrink-0">
@@ -223,7 +241,7 @@ function CommanderPageContent() {
                     <IconComp className="inline text-xs ms-0.5" /> {config.label}
                   </span>
                   {post.pinned && <MdPushPin className="text-dotan-gold shrink-0" />}
-                  <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{post.title}</h3>
+                  <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">{getTranslation(post.title)}</h3>
                 </div>
                 {post.author.id === userId && (
                   <button onClick={() => handleDelete(post.id)} className="text-red-400 hover:text-red-600 transition shrink-0">
@@ -231,7 +249,7 @@ function CommanderPageContent() {
                   </button>
                 )}
               </div>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{post.content}</p>
+              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{getTranslation(post.content)}</p>
               {post.imageUrl && (
                 <div className="mt-3 rounded-lg overflow-hidden border border-gray-200">
                   <img src={post.imageUrl} alt={post.title} className="w-full max-h-[400px] object-cover" />
