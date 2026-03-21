@@ -225,6 +225,7 @@ const he = {
     laundry: "מכבסה",
     birthdays: "ימי הולדת",
     volunteers: "תורנויות",
+    guardDuty: "שיבוץ תורנויות",
     dailyQuote: "משפט היומי",
     chopal: 'חופ"ל',
     aktualia: "אקטואליה",

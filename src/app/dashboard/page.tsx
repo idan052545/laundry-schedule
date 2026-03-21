@@ -11,7 +11,7 @@ import {
   MdMessage, MdFactCheck, MdCake, MdStar, MdDescription, MdMenuBook,
   MdFolder, MdBuild, MdPerson, MdPoll, MdAutoAwesome, MdSecurity,
   MdLocalHospital, MdNewspaper, MdNotifications, MdTune, MdRefresh,
-  MdWarning,
+  MdWarning, MdVolunteerActivism,
 } from "react-icons/md";
 import type { Machine, DashboardFeed, SectionKey, DashStyle, Notification } from "./types";
 import { loadVisibleSections, getGreeting } from "./constants";
@@ -103,7 +103,8 @@ export default function DashboardPage() {
     { href: "/formats", icon: MdFolder, title: t.dashboard.formats, color: "text-cyan-600", bg: "bg-cyan-50" },
     { href: "/schedule", icon: MdLocalLaundryService, title: t.dashboard.laundry, color: "text-dotan-green", bg: "bg-green-50" },
     { href: "/birthdays", icon: MdCake, title: t.dashboard.birthdays, color: "text-pink-600", bg: "bg-pink-50" },
-    { href: "/guard-duty", icon: MdSecurity, title: t.dashboard.volunteers, color: "text-amber-700", bg: "bg-amber-50" },
+    { href: "/volunteers", icon: MdVolunteerActivism, title: t.dashboard.volunteers, color: "text-green-600", bg: "bg-green-50" },
+    { href: "/guard-duty", icon: MdSecurity, title: t.dashboard.guardDuty, color: "text-amber-700", bg: "bg-amber-50" },
     { href: "/daily-quote", icon: MdAutoAwesome, title: t.dashboard.dailyQuote, color: "text-purple-600", bg: "bg-purple-50" },
     { href: "/chopal", icon: MdLocalHospital, title: t.dashboard.chopal, color: "text-rose-600", bg: "bg-rose-50" },
     { href: "/aktualia", icon: MdNewspaper, title: t.dashboard.aktualia, color: "text-emerald-600", bg: "bg-emerald-50" },
