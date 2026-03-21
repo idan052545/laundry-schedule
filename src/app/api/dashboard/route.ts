@@ -255,11 +255,16 @@ export async function GET() {
         status: { in: ["open", "in-progress", "filled"] },
         endTime: { gt: new Date() },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { startTime: "asc" },
       take: 10,
       select: {
         id: true, title: true, category: true, status: true, startTime: true, endTime: true,
-        requiredCount: true, _count: { select: { assignments: true } },
+        requiredCount: true, location: true,
+        assignments: {
+          where: { status: { in: ["assigned", "active"] } },
+          select: { userId: true, assignmentType: true, user: { select: { id: true, name: true, nameEn: true, image: true } } },
+        },
+        _count: { select: { assignments: true } },
       },
     }),
 

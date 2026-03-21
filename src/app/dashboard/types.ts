@@ -43,7 +43,7 @@ export interface DashboardFeed {
   chopalStatus: { registered: boolean; isOpen: boolean; date: string; assignment: { id: string; assignedTime: string; status: string } | null };
   activeVolunteerRequests: { id: string; title: string; category: string; priority: string; status: string; target: string; requiredCount: number; startTime: string; endTime: string; isCommanderRequest: boolean; createdBy: { name: string; phone: string | null }; _count: { assignments: number } }[];
   myVolunteerAssignments: { id: string; status: string; request: { id: string; title: string; startTime: string; endTime: string; category: string; location?: string | null; assignments?: { userId: string; user: { id: string; name: string; nameEn?: string | null; image?: string | null } }[] }; overlappingSchedule?: { id: string; title: string; startTime: string; endTime: string; type: string }[] }[];
-  myCreatedRequests: { id: string; title: string; category: string; status: string; startTime: string; endTime: string; requiredCount: number; _count: { assignments: number } }[];
+  myCreatedRequests: { id: string; title: string; category: string; status: string; startTime: string; endTime: string; requiredCount: number; location?: string | null; assignments?: { userId: string; assignmentType: string; user: { id: string; name: string; nameEn?: string | null; image?: string | null } }[]; _count: { assignments: number } }[];
   urgentReplacement: { id: string; isUrgent: boolean; request: { id: string; title: string } } | null;
 }
 

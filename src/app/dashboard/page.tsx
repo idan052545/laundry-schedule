@@ -158,6 +158,15 @@ export default function DashboardPage() {
     setRefreshing(false);
   };
 
+  const handleRemindVolunteer = async (requestId: string) => {
+    await fetch("/api/volunteers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: requestId, remindAssigned: true }),
+    });
+    alert("נשלחה תזכורת למשובצים");
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchData();
@@ -278,7 +287,7 @@ export default function DashboardPage() {
       {feedLoading ? <DashboardSkeleton /> : (
         <>
           {feed && dashStyle === "classic" && <ClassicFeed feed={feed} visible={visible} />}
-          {feed && dashStyle === "new" && <NewFeed feed={feed} visible={visible} />}
+          {feed && dashStyle === "new" && <NewFeed feed={feed} visible={visible} onRemindVolunteer={handleRemindVolunteer} />}
           {feed && dashStyle === "carousel" && <CarouselFeed feed={feed} visible={visible} />}
         </>
       )}
