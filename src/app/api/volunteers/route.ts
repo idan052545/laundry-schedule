@@ -49,6 +49,10 @@ export async function GET(request: Request) {
         include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
       },
       replacements: { where: { status: "seeking" }, select: { id: true, isUrgent: true, originalUserId: true } },
+      feedback: {
+        select: { id: true, rating: true, type: true, comment: true, user: { select: { name: true, nameEn: true, image: true } } },
+        orderBy: { createdAt: "desc" as const },
+      },
       _count: { select: { feedback: true } },
     },
     orderBy: [{ priority: "desc" }, { startTime: "asc" }],

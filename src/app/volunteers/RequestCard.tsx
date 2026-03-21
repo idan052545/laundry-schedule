@@ -1,10 +1,11 @@
 "use client";
 
 import {
-  MdAccessTime, MdPeople, MdThumbUp, MdSwapHoriz, MdStar,
+  MdAccessTime, MdPeople, MdThumbUp, MdSwapHoriz, MdStar, MdStarBorder,
   MdCheck, MdEdit, MdDelete, MdNotifications, MdLocationOn, MdNotificationsActive,
+  MdExpandMore, MdExpandLess, MdLightbulb, MdChat,
 } from "react-icons/md";
-import { useEffect } from "react";
+import { useState } from "react";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
 import { displayName } from "@/lib/displayName";
@@ -41,10 +42,14 @@ export default function RequestCard({
   getTranslation,
 }: RequestCardProps) {
   const { t, locale } = useLanguage();
+  const [showFeedbackDetails, setShowFeedbackDetails] = useState(false);
   const catConfig = CATEGORY_CONFIG[req.category] || CATEGORY_CONFIG.other;
   const CatIcon = catConfig.icon;
-  const activeAssignments = req.assignments.filter(a => a.status !== "cancelled" && a.status !== "replaced");  const isMine = activeAssignments.some(a => a.userId === myUserId);
+  const activeAssignments = req.assignments.filter(a => a.status !== "cancelled" && a.status !== "replaced");
+  const isMine = activeAssignments.some(a => a.userId === myUserId);
   const hasUrgentReplace = req.replacements.some(r => r.isUrgent);
+  const feedbackTypeIcons: Record<string, typeof MdThumbUp> = { preserve: MdThumbUp, improvement: MdLightbulb, vent: MdChat };
+  const feedbackTypeLabels: Record<string, string> = { preserve: t.volunteers.feedbackPreserve, improvement: t.volunteers.feedbackImprovement, vent: t.volunteers.feedbackVent };
   const slotsLeft = req.requiredCount - activeAssignments.length;
 
   return (
@@ -199,6 +204,64 @@ export default function RequestCard({
             </button>
           )}
         </div>
+
+        {/* Feedback summary for completed requests */}
+        {req.status === "completed" && req.feedback && req.feedback.length > 0 && (
+          <div className="mt-2 border-t border-gray-100 pt-2">
+            <button onClick={() => setShowFeedbackDetails(!showFeedbackDetails)}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-purple-600 hover:text-purple-700 w-full">
+              <MdStar className="text-xs" />
+              <span className="flex items-center gap-0.5">
+                {[1,2,3,4,5].map(n => {
+                  const avg = req.feedback.reduce((s, f) => s + f.rating, 0) / req.feedback.length;
+                  return n <= Math.round(avg)
+                    ? <MdStar key={n} className="text-amber-400 text-[10px]" />
+                    : <MdStarBorder key={n} className="text-gray-300 text-[10px]" />;
+                })}
+              </span>
+              <span className="text-gray-400">({req.feedback.length})</span>
+              {/* Type summary */}
+              {Object.entries(req.feedback.reduce((acc, f) => { acc[f.type] = (acc[f.type] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([type, count]) => {
+                const Icon = feedbackTypeIcons[type] || MdStar;
+                return <span key={type} className="flex items-center gap-0.5 text-[10px] text-gray-400"><Icon className="text-[10px]" />{count}</span>;
+              })}
+              <span className="ms-auto">{showFeedbackDetails ? <MdExpandLess /> : <MdExpandMore />}</span>
+            </button>
+
+            {showFeedbackDetails && (
+              <div className="mt-2 space-y-1.5">
+                {req.feedback.map(f => {
+                  const Icon = feedbackTypeIcons[f.type] || MdStar;
+                  return (
+                    <div key={f.id} className="flex items-start gap-2 bg-purple-50/50 rounded-lg px-2.5 py-2 border border-purple-100">
+                      <Avatar name={f.user.name} image={f.user.image || null} size="xs" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-gray-700">{displayName(f.user, locale)}</span>
+                          <span className="flex items-center gap-0.5">
+                            {[1,2,3,4,5].map(n => (
+                              n <= f.rating
+                                ? <MdStar key={n} className="text-amber-400 text-[9px]" />
+                                : <MdStarBorder key={n} className="text-gray-300 text-[9px]" />
+                            ))}
+                          </span>
+                          <span className={`text-[9px] px-1 py-0.5 rounded font-medium ${
+                            f.type === "preserve" ? "bg-green-100 text-green-700" :
+                            f.type === "improvement" ? "bg-blue-100 text-blue-700" :
+                            "bg-gray-100 text-gray-600"
+                          }`}>
+                            <Icon className="inline text-[9px]" /> {feedbackTypeLabels[f.type] || f.type}
+                          </span>
+                        </div>
+                        {f.comment && <p className="text-[10px] text-gray-500 mt-0.5">{f.comment}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -45,7 +45,16 @@ export interface VolRequest {
   createdAt: string;
   assignments: VolAssignment[];
   replacements: VolReplacement[];
+  feedback: VolFeedback[];
   _count: { feedback: number };
+}
+
+export interface VolFeedback {
+  id: string;
+  rating: number;
+  type: string;
+  comment: string | null;
+  user: { name: string; nameEn?: string | null; image?: string | null };
 }
 
 export interface Candidate {
