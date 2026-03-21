@@ -613,6 +613,8 @@ const he = {
     alreadyAssigned: "משובץ",
     teamFull: "צוות מלא",
     available: "פנוי/ה",
+    hasConflicts: "התנגשויות",
+    noCandidates: "לא נמצאו מועמדים",
     assignAsCommander: "שבץ כמפקד",
     assignAsTeammate: "שבץ כחבר צוות",
     // Create modal

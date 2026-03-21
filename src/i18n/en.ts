@@ -579,6 +579,8 @@ const en: Dictionary = {
     alreadyAssigned: "Assigned",
     teamFull: "Team full",
     available: "Available",
+    hasConflicts: "Conflicts",
+    noCandidates: "No candidates found",
     assignAsCommander: "Assign as commander",
     assignAsTeammate: "Assign as teammate",
     createTitle: "Create duty",
