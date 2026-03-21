@@ -25,13 +25,92 @@ import CarouselFeed from "./CarouselFeed";
 import MachineStatus from "./MachineStatus";
 import { useLanguage } from "@/i18n";
 
+function DashboardSkeleton() {
+  const shimmer = "animate-pulse bg-gray-200 rounded-lg";
+  return (
+    <div className="space-y-3 mb-5">
+      {/* Quote skeleton */}
+      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-purple-100/60 rounded-2xl px-4 py-3.5">
+        <div className={`${shimmer} h-4 w-3/4 mb-2`} />
+        <div className={`${shimmer} h-3 w-1/3`} />
+      </div>
+      {/* Schedule skeleton */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-l from-emerald-500 to-dotan-green px-3.5 py-2 flex items-center gap-2">
+          <MdCalendarMonth className="text-sm text-white/90" />
+          <div className="h-3 w-20 bg-white/30 rounded" />
+        </div>
+        <div className="px-3.5 py-2.5 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className={`${shimmer} w-2 h-2 rounded-full`} />
+            <div className={`${shimmer} h-3 w-20`} />
+            <div className={`${shimmer} h-3 flex-1`} />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className={`${shimmer} w-2 h-2 rounded-full`} />
+            <div className={`${shimmer} h-3 w-20`} />
+            <div className={`${shimmer} h-3 flex-1`} />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className={`${shimmer} w-2 h-2 rounded-full`} />
+            <div className={`${shimmer} h-3 w-20`} />
+            <div className={`${shimmer} h-3 flex-1`} />
+          </div>
+        </div>
+      </div>
+      {/* Action items skeleton */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100 rounded-2xl px-3 py-2.5 flex items-center gap-2.5">
+          <div className={`${shimmer} w-8 h-8 rounded-xl`} />
+          <div className={`${shimmer} h-3 flex-1`} />
+        </div>
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl px-3 py-2.5 flex items-center gap-2.5">
+          <div className={`${shimmer} w-8 h-8 rounded-xl`} />
+          <div className={`${shimmer} h-3 flex-1`} />
+        </div>
+      </div>
+      {/* Tasks skeleton */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-gradient-to-l from-purple-500 to-indigo-500 px-3.5 py-2 flex items-center gap-2">
+          <MdAssignment className="text-sm text-white/90" />
+          <div className="h-3 w-16 bg-white/30 rounded" />
+        </div>
+        <div className="px-3.5 py-2.5 space-y-2">
+          <div className="flex items-center gap-2"><div className={`${shimmer} w-2 h-2 rounded-full`} /><div className={`${shimmer} h-3 flex-1`} /></div>
+          <div className="flex items-center gap-2"><div className={`${shimmer} w-2 h-2 rounded-full`} /><div className={`${shimmer} h-3 flex-1`} /></div>
+        </div>
+      </div>
+      {/* Message skeleton */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
+        <div className={`${shimmer} w-8 h-8 rounded-xl`} />
+        <div className="flex-1 space-y-1.5">
+          <div className={`${shimmer} h-3 w-2/3`} />
+          <div className={`${shimmer} h-2.5 w-1/4`} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotificationSkeleton() {
+  return (
+    <div className="mb-3">
+      <div className="w-full flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+        <div className="animate-pulse bg-gray-200 rounded w-5 h-5" />
+        <div className="animate-pulse bg-gray-200 rounded h-3 flex-1" />
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t, dateLocale } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [feed, setFeed] = useState<DashboardFeed | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [notifLoading, setNotifLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -55,15 +134,22 @@ export default function DashboardPage() {
   };
 
   const fetchData = useCallback(async () => {
-    const [machinesRes, feedRes, notifRes] = await Promise.all([
-      fetch("/api/machines"),
-      fetch("/api/dashboard"),
-      fetch("/api/notifications"),
-    ]);
-    if (machinesRes.ok) setMachines(await machinesRes.json());
-    if (feedRes.ok) setFeed(await feedRes.json());
-    if (notifRes.ok) setNotifications(await notifRes.json());
-    setLoading(false);
+    // Fire all requests independently — each updates state as it resolves
+    const feedPromise = fetch("/api/dashboard").then(async (res) => {
+      if (res.ok) setFeed(await res.json());
+      setFeedLoading(false);
+    }).catch(() => setFeedLoading(false));
+
+    const notifPromise = fetch("/api/notifications").then(async (res) => {
+      if (res.ok) setNotifications(await res.json());
+      setNotifLoading(false);
+    }).catch(() => setNotifLoading(false));
+
+    const machinesPromise = fetch("/api/machines").then(async (res) => {
+      if (res.ok) setMachines(await res.json());
+    }).catch(() => {});
+
+    await Promise.all([feedPromise, notifPromise, machinesPromise]);
   }, []);
 
   const handleRefresh = async () => {
@@ -84,7 +170,7 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [status, fetchData]);
 
-  if (status === "loading" || loading) {
+  if (status === "loading") {
     return <InlineLoading />;
   }
 
@@ -184,12 +270,18 @@ export default function DashboardPage() {
       {visible.has("volunteers") && feed && <VolunteerAlerts feed={feed} />}
 
       {/* Notification center */}
-      {feed && <NotificationCenter notifications={notifications} setNotifications={setNotifications} />}
+      {notifLoading ? <NotificationSkeleton /> : (
+        <NotificationCenter notifications={notifications} setNotifications={setNotifications} />
+      )}
 
       {/* Feed views */}
-      {feed && dashStyle === "classic" && <ClassicFeed feed={feed} visible={visible} />}
-      {feed && dashStyle === "new" && <NewFeed feed={feed} visible={visible} />}
-      {feed && dashStyle === "carousel" && <CarouselFeed feed={feed} visible={visible} />}
+      {feedLoading ? <DashboardSkeleton /> : (
+        <>
+          {feed && dashStyle === "classic" && <ClassicFeed feed={feed} visible={visible} />}
+          {feed && dashStyle === "new" && <NewFeed feed={feed} visible={visible} />}
+          {feed && dashStyle === "carousel" && <CarouselFeed feed={feed} visible={visible} />}
+        </>
+      )}
 
       {/* Feature Cards — clean grid */}
       <div className="grid grid-cols-3 gap-2 mb-6">
