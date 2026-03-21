@@ -635,6 +635,10 @@ const en: Dictionary = {
     feedbackImprovement: "Improvement",
     feedbackPreserve: "Preserve",
     feedbackVent: "Vent",
+    helpHierarchy: "Willingness to Help",
+    helpPlatoon: "Platoon",
+    helpTeam: "Team",
+    helpSelf: "Self",
   },
 
   issues: {

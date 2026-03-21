@@ -674,6 +674,11 @@ const he = {
     feedbackImprovement: "שיפור",
     feedbackPreserve: "שימור",
     feedbackVent: "לפרוק",
+    // Hierarchy
+    helpHierarchy: "הנכונות לעזור",
+    helpPlatoon: "פלוגה",
+    helpTeam: "צוות",
+    helpSelf: "עצמי",
   },
 
   // Issues

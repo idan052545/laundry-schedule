@@ -60,6 +60,25 @@ export default function VolunteersPage() {
         )}
       </div>
 
+      {/* Hierarchy of helping pyramid */}
+      <div className="mb-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl px-4 py-3">
+        <div className="flex items-center justify-center gap-1 mb-2">
+          <MdVolunteerActivism className="text-green-600 text-sm" />
+          <span className="text-[11px] font-bold text-green-800">{t.volunteers.helpHierarchy}</span>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-28 py-1 rounded-lg bg-green-600 text-white text-center text-[10px] font-bold shadow-sm">
+            {t.volunteers.helpPlatoon}
+          </div>
+          <div className="w-20 py-1 rounded-lg bg-green-400 text-white text-center text-[10px] font-bold shadow-sm">
+            {t.volunteers.helpTeam}
+          </div>
+          <div className="w-14 py-1 rounded-lg bg-green-200 text-green-800 text-center text-[10px] font-bold">
+            {t.volunteers.helpSelf}
+          </div>
+        </div>
+      </div>
+
       {v.isSagal && (
         <div className="mb-4 px-4 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-medium text-center">
           {t.volunteers.sagalViewOnly}
