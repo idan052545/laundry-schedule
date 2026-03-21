@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   MdCalendarMonth, MdCheckCircle, MdAssignment, MdDescription,
@@ -9,6 +9,7 @@ import {
   MdAutoAwesome, MdEmojiEvents, MdVolunteerActivism,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
+import { useTranslation } from "@/components/TranslateButton";
 import type { DashboardFeed, SectionKey } from "./types";
 import { useLanguage } from "@/i18n";
 import { displayName } from "@/lib/displayName";
@@ -31,8 +32,29 @@ interface CarouselFeedProps {
 
 export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
   const { t, locale, dateLocale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIdx, setActiveIdx] = useState(0);  const cards: CarouselCard[] = [];
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    if (!isEnglish) return;
+    const texts: string[] = [];
+    if (feed.dailyQuote) texts.push(feed.dailyQuote.text);
+    for (const ev of feed.scheduleItems || []) texts.push(ev.title);
+    for (const ev of feed.allDaySchedule) texts.push(ev.title);
+    for (const ev of feed.myTeamAssignments || []) texts.push(ev.title);
+    for (const task of feed.todayTasks) texts.push(task.title);
+    for (const f of feed.pendingForms) texts.push(f.title);
+    for (const p of feed.pinnedPosts) texts.push(p.title);
+    if (feed.latestMessage) texts.push(feed.latestMessage.title);
+    for (const r of feed.activeVolunteerRequests || []) texts.push(r.title);
+    for (const a of feed.myVolunteerAssignments || []) texts.push(a.request.title);
+    for (const r of feed.myCreatedRequests || []) texts.push(r.title);
+    if (feed.urgentReplacement) texts.push(feed.urgentReplacement.request.title);
+    if (texts.length > 0) translateTexts(texts);
+  }, [isEnglish, feed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cards: CarouselCard[] = [];
 
   // Quote
   if (visible.has("quote") && feed.dailyQuote) {
@@ -45,7 +67,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       title: t.dashboard.dailyQuote,
       subtitle: displayName(feed.dailyQuote.user, locale),
       content: (
-        <p className="text-white/90 text-sm leading-relaxed mt-2 line-clamp-3">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
+        <p className="text-white/90 text-sm leading-relaxed mt-2 line-clamp-3">&ldquo;{getTranslation(feed.dailyQuote.text)}&rdquo;</p>
       ),
     });
   }
@@ -69,7 +91,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
               <span className="text-[10px] text-white/70 tabular-nums shrink-0" dir="ltr">
                 {new Date(ev.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
               </span>
-              <span className="text-xs text-white truncate">{ev.title}</span>
+              <span className="text-xs text-white truncate">{getTranslation(ev.title)}</span>
               <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${ev.target === "all" ? "bg-white/15 text-white/80" : "bg-cyan-300/25 text-cyan-100"}`}>
                 {ev.target === "all" ? t.schedule.platoon : t.common.team}
               </span>
@@ -78,7 +100,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
           {feed.allDaySchedule.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {feed.allDaySchedule.slice(0, 3).map(e => (
-                <span key={e.id} className="text-[10px] bg-white/15 text-white/80 px-2 py-0.5 rounded-full">{e.title}</span>
+                <span key={e.id} className="text-[10px] bg-white/15 text-white/80 px-2 py-0.5 rounded-full">{getTranslation(e.title)}</span>
               ))}
             </div>
           )}
@@ -129,7 +151,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
               <span className="text-[11px] font-bold text-white/80 tabular-nums w-12 text-center" dir="ltr">
                 {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
               </span>
-              <span className="text-xs text-white truncate">{e.title}</span>
+              <span className="text-xs text-white truncate">{getTranslation(e.title)}</span>
             </div>
           ))}
         </div>
@@ -151,7 +173,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
           {feed.todayTasks.slice(0, 3).map(task => (
             <div key={task.id} className="flex items-center gap-2">
               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${task.priority === "urgent" ? "bg-red-300" : task.priority === "high" ? "bg-orange-300" : "bg-white/40"}`} />
-              <span className="text-xs text-white/90 truncate">{task.title}</span>
+              <span className="text-xs text-white/90 truncate">{getTranslation(task.title)}</span>
             </div>
           ))}
           {feed.todayTasks.length > 3 && <span className="text-[10px] text-white/50">+ {feed.todayTasks.length - 3}</span>}
@@ -172,7 +194,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       content: (
         <div className="space-y-0.5 mt-2">
           {feed.pendingForms.slice(0, 3).map(f => (
-            <p key={f.id} className="text-xs text-white/80 truncate">{f.title}</p>
+            <p key={f.id} className="text-xs text-white/80 truncate">{getTranslation(f.title)}</p>
           ))}
         </div>
       ),
@@ -213,7 +235,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       iconBg: "bg-white/20",
       icon: <MdVolunteerActivism className="text-xl text-white" />,
       title: `${t.volAlerts.needsReplacement} ${t.volAlerts.urgent}!`,
-      subtitle: feed.urgentReplacement.request.title,
+      subtitle: getTranslation(feed.urgentReplacement.request.title),
     });
   }
   if (visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0) {
@@ -224,7 +246,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       iconBg: "bg-white/20",
       icon: <MdVolunteerActivism className="text-xl text-white" />,
       title: `${feed.activeVolunteerRequests.length} ${t.volunteers.title}`,
-      subtitle: feed.activeVolunteerRequests[0]?.title,
+      subtitle: feed.activeVolunteerRequests[0]?.title ? getTranslation(feed.activeVolunteerRequests[0].title) : undefined,
     });
   }
   if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0) {
@@ -235,8 +257,8 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: nowV ? "from-emerald-600 to-green-700" : "from-emerald-500 to-teal-600",
       iconBg: "bg-white/20",
       icon: <MdCheckCircle className="text-xl text-white" />,
-      title: nowV ? nowV.request.title : `${feed.myVolunteerAssignments.length} ${t.volunteers.title}`,
-      subtitle: nowV ? `${t.common.now}` : feed.myVolunteerAssignments[0]?.request.title,
+      title: nowV ? getTranslation(nowV.request.title) : `${feed.myVolunteerAssignments.length} ${t.volunteers.title}`,
+      subtitle: nowV ? `${t.common.now}` : feed.myVolunteerAssignments[0]?.request.title ? getTranslation(feed.myVolunteerAssignments[0].request.title) : undefined,
     });
   }
   if (visible.has("volunteers") && feed.myCreatedRequests?.length > 0) {
@@ -292,7 +314,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-blue-500 to-indigo-600",
       iconBg: "bg-white/20",
       icon: <MdMessage className="text-xl text-white" />,
-      title: feed.latestMessage.title,
+      title: getTranslation(feed.latestMessage.title),
       subtitle: displayName(feed.latestMessage.author, locale),
     });
   }
@@ -305,7 +327,7 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
       gradient: "from-yellow-500 to-amber-600",
       iconBg: "bg-white/20",
       icon: <MdPushPin className="text-xl text-white" />,
-      title: feed.pinnedPosts[0].title,
+      title: getTranslation(feed.pinnedPosts[0].title),
       subtitle: displayName(feed.pinnedPosts[0].author, locale),
     });
   }

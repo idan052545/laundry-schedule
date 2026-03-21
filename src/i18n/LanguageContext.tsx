@@ -32,7 +32,13 @@ const LanguageContext = createContext<LanguageContextValue>({
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const [locale, setLocaleState] = useState<Locale>("he");
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("language");
+      if (stored === "en" || stored === "he") return stored;
+    }
+    return "he";
+  });
 
   // Initialize from session or localStorage
   useEffect(() => {

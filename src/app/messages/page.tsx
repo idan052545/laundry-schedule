@@ -7,7 +7,7 @@ import { MdPushPin, MdDelete, MdAdd, MdClose, MdSend, MdImage, MdPerson, MdInbox
 import Avatar from "@/components/Avatar";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
-import { useTranslation } from "@/components/TranslateButton";
+import TranslateButton, { useTranslation } from "@/components/TranslateButton";
 
 interface Assignee {
   id: string;
@@ -138,7 +138,18 @@ export default function MessagesPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark">{t.messages.title}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-dotan-green-dark">{t.messages.title}</h1>
+          {isEnglish && messages.length > 0 && (
+            <TranslateButton
+              size="md"
+              texts={messages.flatMap(m => [m.title, m.content])}
+              onTranslated={() => {
+                translateTexts(messages.flatMap(m => [m.title, m.content]));
+              }}
+            />
+          )}
+        </div>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-dotan-green-dark text-white px-4 py-2 rounded-lg hover:bg-dotan-green transition font-medium flex items-center gap-2 text-sm">
           {showForm ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.messages.newMessage}</>}

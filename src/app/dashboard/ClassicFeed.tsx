@@ -8,6 +8,7 @@ import {
   MdAccessTime, MdVolunteerActivism, MdMoreHoriz,
 } from "react-icons/md";
 import { useEffect } from "react";
+import { useTranslation } from "@/components/TranslateButton";
 import type { DashboardFeed, SectionKey } from "./types";
 import { CAT_ICONS, CAT_COLORS } from "./types";
 import { useLanguage } from "@/i18n";
@@ -19,11 +20,31 @@ interface ClassicFeedProps {
 }
 
 export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
-  const { t, locale, dateLocale } = useLanguage();  return (
+  const { t, locale, dateLocale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
+
+  useEffect(() => {
+    if (!isEnglish) return;
+    const texts: string[] = [];
+    if (feed.dailyQuote) texts.push(feed.dailyQuote.text);
+    if (feed.currentSchedule) texts.push(feed.currentSchedule.title);
+    for (const ev of feed.allDaySchedule) texts.push(ev.title);
+    for (const ev of feed.myTeamAssignments || []) texts.push(ev.title);
+    for (const task of feed.todayTasks) texts.push(task.title);
+    for (const f of feed.pendingForms) texts.push(f.title);
+    if (feed.latestMessage) texts.push(feed.latestMessage.title);
+    for (const r of feed.activeVolunteerRequests || []) texts.push(r.title);
+    for (const a of feed.myVolunteerAssignments || []) texts.push(a.request.title);
+    for (const r of feed.myCreatedRequests || []) texts.push(r.title);
+    if (feed.urgentReplacement) texts.push(feed.urgentReplacement.request.title);
+    if (texts.length > 0) translateTexts(texts);
+  }, [isEnglish, feed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
     <div className="space-y-2 mb-5">
       {visible.has("quote") && feed.dailyQuote && (
         <Link href="/daily-quote" className="block bg-gradient-to-l from-purple-50/80 to-indigo-50/80 border border-purple-100 rounded-xl px-3.5 py-3 hover:shadow-sm transition">
-          <p className="text-[13px] font-medium text-gray-700 leading-relaxed">&ldquo;{feed.dailyQuote.text}&rdquo;</p>
+          <p className="text-[13px] font-medium text-gray-700 leading-relaxed">&ldquo;{getTranslation(feed.dailyQuote.text)}&rdquo;</p>
           <span className="text-[10px] text-purple-400 mt-1 block">{displayName(feed.dailyQuote.user, locale)} — {t.dashboard.dailyQuote}</span>
         </Link>
       )}
@@ -38,7 +59,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
             return (
               <div className="flex items-center gap-2">
                 {cs.status === "now" && <span className="w-1.5 h-1.5 rounded-full bg-dotan-green animate-pulse shrink-0" />}
-                <span className="text-sm font-medium text-gray-800 truncate">{cs.title}</span>
+                <span className="text-sm font-medium text-gray-800 truncate">{getTranslation(cs.title)}</span>
                 <span className={`text-[8px] px-1 py-0.5 rounded font-bold shrink-0 ${cs.target === "all" ? "bg-emerald-50 text-emerald-600" : "bg-cyan-50 text-cyan-600"}`}>
                   {cs.target === "all" ? t.schedule.platoon : t.common.team}
                 </span>
@@ -51,7 +72,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
           {feed.allDaySchedule.length > 0 && (
             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-1">
               {feed.allDaySchedule.map((e) => (
-                <span key={e.id} className="text-[11px] text-gray-500">{e.title}</span>
+                <span key={e.id} className="text-[11px] text-gray-500">{getTranslation(e.title)}</span>
               ))}
             </div>
           )}
@@ -87,7 +108,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                 <span key={e.id} className="text-[11px] text-teal-800">
                   <span className="font-bold tabular-nums" dir="ltr">
                     {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                  </span>{" "}{e.title}
+                  </span>{" "}{getTranslation(e.title)}
                 </span>
               ))}
             </div>
@@ -135,7 +156,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("volunteers") && feed.urgentReplacement && (
         <Link href={`/volunteers?highlight=${feed.urgentReplacement.request.id}`} className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3 py-2 hover:shadow-sm transition animate-pulse">
           <MdVolunteerActivism className="text-lg text-red-500 shrink-0" />
-          <span className="text-xs font-bold text-red-700 flex-1 truncate flex items-center gap-1"><MdWarning className="text-sm shrink-0" /> {t.volAlerts.needsReplacement} {t.volAlerts.urgent} — {feed.urgentReplacement.request.title}</span>
+          <span className="text-xs font-bold text-red-700 flex-1 truncate flex items-center gap-1"><MdWarning className="text-sm shrink-0" /> {t.volAlerts.needsReplacement} {t.volAlerts.urgent} — {getTranslation(feed.urgentReplacement.request.title)}</span>
         </Link>
       )}
       {visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0 && (
@@ -155,7 +176,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                   <CatIcon className={`text-sm shrink-0 ${CAT_COLORS[r.category] || "text-gray-400"}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-medium text-gray-700 truncate">{r.title}</p>
+                      <p className="text-xs font-medium text-gray-700 truncate">{getTranslation(r.title)}</p>
                       {r.isCommanderRequest && <MdStar className="text-[10px] text-amber-500 shrink-0" />}
                       {r.priority === "urgent" && <MdWarning className="text-[10px] text-red-500 shrink-0" />}
                     </div>
@@ -187,7 +208,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
                 <Link key={a.id} href="/volunteers?tab=my" className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition ${isNow ? "bg-emerald-50 border border-emerald-100" : "hover:bg-gray-50"}`}>
                   <CatIcon className={`text-sm shrink-0 ${CAT_COLORS[a.request.category] || "text-gray-400"}`} />
                   <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-medium truncate ${isNow ? "text-emerald-700" : "text-gray-700"}`}>{a.request.title}</p>
+                    <p className={`text-xs font-medium truncate ${isNow ? "text-emerald-700" : "text-gray-700"}`}>{getTranslation(a.request.title)}</p>
                     <p className="text-[10px] text-gray-400 flex items-center gap-1">
                       <MdAccessTime className="text-[10px]" /> {timeStr}
                       {isNow && <span className="text-emerald-500 font-bold me-1 flex items-center gap-0.5"><MdSchedule className="text-[10px]" />{t.common.now}</span>}
@@ -212,7 +233,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
               return (
                 <Link key={r.id} href="/volunteers" className="block rounded-lg px-2 py-1.5 hover:bg-gray-50 transition">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-gray-700 truncate flex-1">{r.title}</p>
+                    <p className="text-xs font-medium text-gray-700 truncate flex-1">{getTranslation(r.title)}</p>
                     <span className={`text-[10px] font-bold ${filled >= r.requiredCount ? "text-green-600" : "text-amber-600"}`}>{filled}/{r.requiredCount}</span>
                   </div>
                   <div className="w-full h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
@@ -237,10 +258,10 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
             <span className="text-[10px] font-bold text-gray-400">{t.dashboard.tasks} ({feed.todayTasks.length})</span>
           </Link>
           <div className="space-y-1">
-            {feed.todayTasks.slice(0, 4).map((t) => (
-              <Link key={t.id} href="/tasks" className="flex items-center gap-2 group">
-                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.priority === "urgent" ? "bg-red-500" : t.priority === "high" ? "bg-orange-400" : "bg-gray-300"}`} />
-                <span className={`text-xs truncate flex-1 group-hover:underline ${t.dueDate && new Date(t.dueDate) < new Date() ? "text-red-600 font-medium" : "text-gray-600"}`}>{t.title}</span>
+            {feed.todayTasks.slice(0, 4).map((tk) => (
+              <Link key={tk.id} href="/tasks" className="flex items-center gap-2 group">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${tk.priority === "urgent" ? "bg-red-500" : tk.priority === "high" ? "bg-orange-400" : "bg-gray-300"}`} />
+                <span className={`text-xs truncate flex-1 group-hover:underline ${tk.dueDate && new Date(tk.dueDate) < new Date() ? "text-red-600 font-medium" : "text-gray-600"}`}>{getTranslation(tk.title)}</span>
               </Link>
             ))}
           </div>
@@ -249,7 +270,7 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
       {visible.has("messages") && feed.latestMessage && (
         <Link href="/messages" className="flex items-center gap-2.5 bg-blue-50/60 border border-blue-100 rounded-xl px-3 py-2 hover:shadow-sm transition">
           <MdMessage className="text-base text-blue-500 shrink-0" />
-          <span className="text-xs font-medium text-blue-700 truncate flex-1">{feed.latestMessage.title}</span>
+          <span className="text-xs font-medium text-blue-700 truncate flex-1">{getTranslation(feed.latestMessage.title)}</span>
         </Link>
       )}
       {visible.has("birthdays") && feed.birthdayUsers.length > 0 && (

@@ -9,6 +9,7 @@ import {
 } from "react-icons/md";
 import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
+import { useTranslation } from "@/components/TranslateButton";
 import type { DashboardFeed, SectionKey } from "./types";
 import { useLanguage } from "@/i18n";
 import { displayName } from "@/lib/displayName";
@@ -19,13 +20,34 @@ interface NewFeedProps {
 }
 
 export default function NewFeed({ feed, visible }: NewFeedProps) {
-  const { t, locale, dateLocale } = useLanguage();  return (
+  const { t, locale, dateLocale } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
+
+  useEffect(() => {
+    if (!isEnglish) return;
+    const texts: string[] = [];
+    if (feed.dailyQuote) texts.push(feed.dailyQuote.text);
+    for (const ev of feed.scheduleItems || []) texts.push(ev.title);
+    for (const ev of feed.allDaySchedule) texts.push(ev.title);
+    for (const ev of feed.myTeamAssignments || []) texts.push(ev.title);
+    for (const task of feed.todayTasks) texts.push(task.title);
+    for (const f of feed.pendingForms) texts.push(f.title);
+    for (const p of feed.pinnedPosts) texts.push(p.title);
+    if (feed.latestMessage) texts.push(feed.latestMessage.title);
+    for (const r of feed.activeVolunteerRequests || []) texts.push(r.title);
+    for (const a of feed.myVolunteerAssignments || []) texts.push(a.request.title);
+    for (const r of feed.myCreatedRequests || []) texts.push(r.title);
+    if (feed.urgentReplacement) texts.push(feed.urgentReplacement.request.title);
+    if (texts.length > 0) translateTexts(texts);
+  }, [isEnglish, feed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
     <div className="space-y-3 mb-5">
       {/* Daily quote — elegant */}
       {visible.has("quote") && feed.dailyQuote && (
         <Link href="/daily-quote" className="block bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-purple-100/60 rounded-2xl px-4 py-3.5 hover:shadow-md transition relative overflow-hidden">
           <div className="absolute top-1 left-2 text-6xl text-purple-100 font-serif leading-none select-none">&ldquo;</div>
-          <p className="text-[13px] font-medium text-gray-700 leading-relaxed relative z-10">{feed.dailyQuote.text}</p>
+          <p className="text-[13px] font-medium text-gray-700 leading-relaxed relative z-10">{getTranslation(feed.dailyQuote.text)}</p>
           <span className="text-[10px] text-purple-400 mt-1.5 block relative z-10">— {displayName(feed.dailyQuote.user, locale)}</span>
         </Link>
       )}
@@ -53,7 +75,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                     {" – "}
                     {new Date(ev.endTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                   </span>
-                  <span className="text-sm font-semibold text-gray-800 truncate">{ev.title}</span>
+                  <span className="text-sm font-semibold text-gray-800 truncate">{getTranslation(ev.title)}</span>
                   <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${ev.target === "all" ? "bg-emerald-100 text-emerald-700" : "bg-cyan-100 text-cyan-700"}`}>
                     {ev.target === "all" ? t.schedule.platoon : t.common.team}
                   </span>
@@ -66,7 +88,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                 {feed.allDaySchedule.map((e) => (
                   <span key={e.id} className={`text-[10px] px-2 py-0.5 rounded-full border ${e.target === "all" ? "bg-gray-50 text-gray-600 border-gray-100" : "bg-cyan-50 text-cyan-700 border-cyan-100"}`}>
                     {e.target !== "all" && <span className="font-bold ms-0.5">{t.common.team}</span>}
-                    {e.title}
+                    {getTranslation(e.title)}
                     {e.assignees?.length > 0 && <span className="text-teal-600 font-bold me-0.5"> ⭐</span>}
                   </span>
                 ))}
@@ -129,7 +151,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                   {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
                 </span>
                 <div className="w-px h-4 bg-teal-200" />
-                <span className="text-xs font-medium text-gray-800 truncate">{e.title}</span>
+                <span className="text-xs font-medium text-gray-800 truncate">{getTranslation(e.title)}</span>
               </div>
             ))}
           </div>
@@ -226,7 +248,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                   <div className={`w-2 h-2 rounded-full shrink-0 ${
                     task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-orange-400" : "bg-gray-300"
                   }`} />
-                  <span className={`text-xs truncate flex-1 group-hover:underline ${isOverdue ? "text-red-600 font-medium" : "text-gray-600"}`}>{task.title}</span>
+                  <span className={`text-xs truncate flex-1 group-hover:underline ${isOverdue ? "text-red-600 font-medium" : "text-gray-600"}`}>{getTranslation(task.title)}</span>
                   {isOverdue && <span className="text-[9px] text-red-500 font-bold shrink-0">{t.tasks.completed}</span>}
                 </Link>
               );
@@ -247,7 +269,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
                 <MdPushPin className="text-sm text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-xs font-semibold text-gray-800 truncate block">{post.title}</span>
+                <span className="text-xs font-semibold text-gray-800 truncate block">{getTranslation(post.title)}</span>
                 <span className="text-[10px] text-yellow-600">
                   {displayName(post.author, locale)}
                   {post.dueDate && <> · {new Date(post.dueDate + "T12:00:00").toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}</>}
@@ -265,7 +287,7 @@ export default function NewFeed({ feed, visible }: NewFeedProps) {
             <MdMessage className="text-sm text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold text-gray-800 truncate block">{feed.latestMessage.title}</span>
+            <span className="text-xs font-semibold text-gray-800 truncate block">{getTranslation(feed.latestMessage.title)}</span>
             <span className="text-[10px] text-blue-500">{displayName(feed.latestMessage.author, locale)}</span>
           </div>
         </Link>
