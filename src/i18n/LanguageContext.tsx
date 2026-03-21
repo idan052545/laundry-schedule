@@ -40,17 +40,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return "he";
   });
 
-  // Initialize from session or localStorage
+  // Sync from session only if localStorage has no preference yet
   useEffect(() => {
+    const stored = localStorage.getItem("language");
+    if (stored === "en" || stored === "he") {
+      // localStorage is the source of truth (updated immediately on toggle)
+      setLocaleState(stored);
+      return;
+    }
+    // No local preference — use session language as initial value
     const sessionLang = (session?.user as { language?: string } | undefined)?.language;
     if (sessionLang === "en" || sessionLang === "he") {
       setLocaleState(sessionLang);
       localStorage.setItem("language", sessionLang);
-    } else {
-      const stored = localStorage.getItem("language") as Locale | null;
-      if (stored === "en" || stored === "he") {
-        setLocaleState(stored);
-      }
     }
   }, [session]);
 

@@ -4,7 +4,9 @@ import {
   MdVolunteerActivism, MdAdd, MdPeople, MdPerson,
   MdBarChart, MdFilterList,
 } from "react-icons/md";
+import { useEffect } from "react";
 import { InlineLoading } from "@/components/LoadingScreen";
+import TranslateButton, { useTranslation } from "@/components/TranslateButton";
 import { useLanguage } from "@/i18n";
 import { STATUS_CONFIG } from "./constants";
 import { useVolunteers } from "./useVolunteers";
@@ -21,7 +23,13 @@ import EditModal from "./modals/EditModal";
 
 export default function VolunteersPage() {
   const { t } = useLanguage();
+  const { translateTexts, getTranslation, isEnglish } = useTranslation();
   const v = useVolunteers();
+
+  const allTitles = [...v.requests, ...v.myRequests].map(r => r.title);
+  useEffect(() => {
+    if (isEnglish && allTitles.length > 0) translateTexts(allTitles);
+  }, [isEnglish, allTitles.join("\0")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (v.status === "loading" || v.loading) return <InlineLoading />;
 
@@ -29,10 +37,19 @@ export default function VolunteersPage() {
     <div className="max-w-2xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <MdVolunteerActivism className="text-green-600" />
-          {t.volunteers.title}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <MdVolunteerActivism className="text-green-600" />
+            {t.volunteers.title}
+          </h1>
+          {isEnglish && allTitles.length > 0 && (
+            <TranslateButton
+              size="md"
+              texts={allTitles}
+              onTranslated={() => translateTexts(allTitles)}
+            />
+          )}
+        </div>
         {!v.isSagal && (
           <button
             onClick={() => { v.setForm(f => ({ ...f, startTime: v.nowTimeStr(), endTime: v.plus15() })); v.setShowCreate(true); }}
@@ -99,6 +116,7 @@ export default function VolunteersPage() {
               submitting={v.submitting}
               fmtTime={v.fmtTime}
               fmtDate={v.fmtDate}
+              getTranslation={getTranslation}
               onAssign={v.handleAssign}
               onOpenCandidates={(req) => { v.setSelectedRequest(req); v.fetchCandidates(req); }}
               onShowReplace={v.setShowReplace}
@@ -128,6 +146,7 @@ export default function VolunteersPage() {
               myUserId={v.myUserId}
               fmtTime={v.fmtTime}
               fmtDate={v.fmtDate}
+              getTranslation={getTranslation}
               onShowReplace={(id) => v.setShowReplace(id)}
               onShowFeedback={(id) => v.setShowFeedback(id)}
               onShowDispute={(id) => v.setShowDispute(id)}

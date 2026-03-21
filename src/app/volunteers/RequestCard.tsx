@@ -28,6 +28,7 @@ interface RequestCardProps {
   onStatusChange: (id: string, newStatus: string) => void;
   onShowFeedback: (id: string) => void;
   onShowDispute: (id: string) => void;
+  getTranslation?: (text: string) => string;
 }
 
 export default function RequestCard({
@@ -35,6 +36,7 @@ export default function RequestCard({
   fmtTime, fmtDate,
   onAssign, onOpenCandidates, onShowReplace, onAcceptReplace,
   onStartEdit, onNotify, onStatusChange, onShowFeedback, onShowDispute,
+  getTranslation,
 }: RequestCardProps) {
   const { t, locale } = useLanguage();
   const catConfig = CATEGORY_CONFIG[req.category] || CATEGORY_CONFIG.other;
@@ -60,7 +62,7 @@ export default function RequestCard({
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold text-gray-800">{req.title}</h3>
+              <h3 className="text-sm font-bold text-gray-800">{getTranslation ? getTranslation(req.title) : req.title}</h3>
               {req.isCommanderRequest && <span className="px-1.5 py-0.5 bg-amber-200 text-amber-800 rounded text-[9px] font-bold">{t.volunteers.commander}</span>}
               {!req.isCommanderRequest && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">{t.volunteers.helpRequestBadge}</span>}
               {req.priority === "urgent" && <span className="px-1.5 py-0.5 bg-red-200 text-red-800 rounded text-[9px] font-bold">{t.volunteers.urgentBadge}</span>}

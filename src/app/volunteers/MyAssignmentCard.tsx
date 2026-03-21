@@ -13,11 +13,12 @@ interface MyAssignmentCardProps {
   onShowReplace: (assignmentId: string) => void;
   onShowFeedback: (id: string) => void;
   onShowDispute: (id: string) => void;
+  getTranslation?: (text: string) => string;
 }
 
 export default function MyAssignmentCard({
   req, myUserId, fmtTime, fmtDate,
-  onShowReplace, onShowFeedback, onShowDispute,
+  onShowReplace, onShowFeedback, onShowDispute, getTranslation,
 }: MyAssignmentCardProps) {
   const { t } = useLanguage();
   const myAssignment = req.assignments.find(a => a.userId === myUserId && a.status !== "cancelled");
@@ -33,7 +34,7 @@ export default function MyAssignmentCard({
           <CatIcon className={`text-xl ${catConfig.color}`} />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-gray-800">{req.title}</h3>
+          <h3 className="text-sm font-bold text-gray-800">{getTranslation ? getTranslation(req.title) : req.title}</h3>
           <div className="text-[11px] text-gray-500 flex items-center gap-2 mt-0.5">
             <span>{fmtDate(req.startTime)} {fmtTime(req.startTime)}–{fmtTime(req.endTime)}</span>
             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${STATUS_CONFIG[req.status]?.bg} ${STATUS_CONFIG[req.status]?.color}`}>
