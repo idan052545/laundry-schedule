@@ -22,6 +22,25 @@ export async function GET(request: Request) {
     where.endTime = { gte: dayStart };
   }
 
+  // Auto-complete requests whose endTime has passed
+  const expired = await prisma.volunteerRequest.findMany({
+    where: { status: { in: ["open", "filled", "in-progress"] }, endTime: { lt: new Date() } },
+    select: { id: true },
+  });
+  if (expired.length > 0) {
+    const expiredIds = expired.map((r: { id: string }) => r.id);
+    await prisma.$transaction([
+      prisma.volunteerRequest.updateMany({
+        where: { id: { in: expiredIds } },
+        data: { status: "completed" },
+      }),
+      prisma.volunteerAssignment.updateMany({
+        where: { requestId: { in: expiredIds }, status: { in: ["assigned", "active"] } },
+        data: { status: "completed" },
+      }),
+    ]);
+  }
+
   const requests = await prisma.volunteerRequest.findMany({
     where,
     include: {
@@ -246,8 +265,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 
-  // If already cancelled, permanently delete
-  if (req.status === "cancelled") {
+  // If cancelled or completed, permanently delete
+  if (req.status === "cancelled" || req.status === "completed") {
     await prisma.volunteerRequest.delete({ where: { id } });
     return NextResponse.json({ success: true, deleted: true });
   }

@@ -132,7 +132,7 @@ export default function RequestCard({
               <MdSwapHoriz className="text-sm" /> {t.volunteers.needsReplace}
             </button>
           )}
-          {!isSagal && req.replacements.filter(r => r.status === "seeking").map(r => (
+          {!isSagal && req.status !== "completed" && req.status !== "cancelled" && req.replacements.filter(r => r.status === "seeking").map(r => (
             <span key={r.id} className="contents">
               {r.originalUserId !== myUserId && (
                 <button onClick={() => onAcceptReplace(r.id)} disabled={submitting}
@@ -180,7 +180,7 @@ export default function RequestCard({
               <MdCheck className="text-sm" /> {t.volunteers.completeBtn}
             </button>
           )}
-          {!isSagal && req.status === "cancelled" && (req.createdById === myUserId || isCommander) && (
+          {!isSagal && (req.status === "cancelled" || req.status === "completed") && (req.createdById === myUserId || isCommander) && (
             <button onClick={() => onDelete(req.id)} disabled={submitting}
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-600 text-white text-[10px] font-bold hover:bg-red-700 transition disabled:opacity-50">
               <MdDelete className="text-xs" /> {t.volunteers.deleteBtn}
