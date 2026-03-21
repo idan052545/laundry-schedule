@@ -125,6 +125,7 @@ export default function VolunteersPage() {
               onNotify={v.handleNotify}
               onRemindAssigned={v.handleRemindAssigned}
               onStatusChange={v.handleStatusChange}
+              onDelete={v.handleDelete}
               onShowFeedback={v.setShowFeedback}
               onShowDispute={v.setShowDispute}
             />

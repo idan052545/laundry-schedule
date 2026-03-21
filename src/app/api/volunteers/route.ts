@@ -246,6 +246,13 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 
+  // If already cancelled, permanently delete
+  if (req.status === "cancelled") {
+    await prisma.volunteerRequest.delete({ where: { id } });
+    return NextResponse.json({ success: true, deleted: true });
+  }
+
+  // Otherwise just cancel
   await prisma.$transaction([
     prisma.volunteerRequest.update({ where: { id }, data: { status: "cancelled" } }),
     prisma.volunteerAssignment.updateMany({

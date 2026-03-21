@@ -636,6 +636,8 @@ const he = {
     locationLabel: "נקודת התכנסות",
     locationPlaceholder: "לדוגמה: חדר אוכל, מגרש",
     remindBtn: "תזכורת",
+    deleteBtn: "מחיקה",
+    pickReplacer: "בחר מחליף",
     publishVolunteer: "פרסם תורנות",
     sendHelpRequest: "שלח בקשת עזרה",
     // Replace modal

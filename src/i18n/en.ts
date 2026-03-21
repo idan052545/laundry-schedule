@@ -601,6 +601,8 @@ const en: Dictionary = {
     locationLabel: "Gathering point",
     locationPlaceholder: "e.g. Dining hall, Field",
     remindBtn: "Remind",
+    deleteBtn: "Delete",
+    pickReplacer: "Pick replacer",
     publishVolunteer: "Publish duty",
     sendHelpRequest: "Send help request",
     replaceTitle: "Replacement request",

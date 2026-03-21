@@ -27,6 +27,7 @@ interface RequestCardProps {
   onNotify: (req: VolRequest) => void;
   onRemindAssigned: (req: VolRequest) => void;
   onStatusChange: (id: string, newStatus: string) => void;
+  onDelete: (id: string) => void;
   onShowFeedback: (id: string) => void;
   onShowDispute: (id: string) => void;
   getTranslation?: (text: string) => string;
@@ -36,7 +37,7 @@ export default function RequestCard({
   req, myUserId, isCommander, isSagal, submitting,
   fmtTime, fmtDate,
   onAssign, onOpenCandidates, onShowReplace, onAcceptReplace,
-  onStartEdit, onNotify, onRemindAssigned, onStatusChange, onShowFeedback, onShowDispute,
+  onStartEdit, onNotify, onRemindAssigned, onStatusChange, onDelete, onShowFeedback, onShowDispute,
   getTranslation,
 }: RequestCardProps) {
   const { t, locale } = useLanguage();
@@ -132,14 +133,22 @@ export default function RequestCard({
             </button>
           )}
           {!isSagal && req.replacements.filter(r => r.status === "seeking").map(r => (
-            r.originalUserId !== myUserId && (
-              <button key={r.id} onClick={() => onAcceptReplace(r.id)} disabled={submitting}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-xs font-bold transition disabled:opacity-50 ${
-                  r.isUrgent ? "bg-red-600 hover:bg-red-700 animate-pulse" : "bg-orange-600 hover:bg-orange-700"
-                }`}>
-                <MdSwapHoriz className="text-sm" /> {r.isUrgent ? t.volunteers.urgentReplace : t.volunteers.normalReplace}
-              </button>
-            )
+            <span key={r.id} className="contents">
+              {r.originalUserId !== myUserId && (
+                <button onClick={() => onAcceptReplace(r.id)} disabled={submitting}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-xs font-bold transition disabled:opacity-50 ${
+                    r.isUrgent ? "bg-red-600 hover:bg-red-700 animate-pulse" : "bg-orange-600 hover:bg-orange-700"
+                  }`}>
+                  <MdSwapHoriz className="text-sm" /> {r.isUrgent ? t.volunteers.urgentReplace : t.volunteers.normalReplace}
+                </button>
+              )}
+              {(req.createdById === myUserId || isCommander) && (
+                <button onClick={() => onOpenCandidates(req)} disabled={submitting}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-orange-200 text-orange-600 text-[10px] font-medium hover:bg-orange-50 transition disabled:opacity-50">
+                  <MdPeople className="text-sm" /> {t.volunteers.pickReplacer}
+                </button>
+              )}
+            </span>
           ))}
           {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
             <button onClick={() => onStartEdit(req)}
@@ -160,15 +169,21 @@ export default function RequestCard({
             </button>
           )}
           {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
-            <button onClick={() => onStatusChange(req.id, "cancelled")}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-[10px] font-medium hover:bg-gray-50 transition">
+            <button onClick={() => onStatusChange(req.id, "cancelled")} disabled={submitting}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 text-[10px] font-medium hover:bg-gray-50 transition disabled:opacity-50">
               <MdDelete className="text-xs" /> {t.volunteers.cancelBtn}
             </button>
           )}
           {!isSagal && (req.status === "filled" || req.status === "in-progress") && (req.createdById === myUserId || isCommander) && (
-            <button onClick={() => onStatusChange(req.id, "completed")}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-700 text-white text-xs font-bold hover:bg-gray-800 transition">
+            <button onClick={() => onStatusChange(req.id, "completed")} disabled={submitting}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-700 text-white text-xs font-bold hover:bg-gray-800 transition disabled:opacity-50">
               <MdCheck className="text-sm" /> {t.volunteers.completeBtn}
+            </button>
+          )}
+          {!isSagal && req.status === "cancelled" && (req.createdById === myUserId || isCommander) && (
+            <button onClick={() => onDelete(req.id)} disabled={submitting}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-600 text-white text-[10px] font-bold hover:bg-red-700 transition disabled:opacity-50">
+              <MdDelete className="text-xs" /> {t.volunteers.deleteBtn}
             </button>
           )}
           {req.status === "completed" && isMine && req._count.feedback === 0 && (

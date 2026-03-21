@@ -181,6 +181,8 @@ export function useVolunteers() {
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    if (submitting) return;
+    setSubmitting(true);
     await fetch("/api/volunteers", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -188,6 +190,15 @@ export function useVolunteers() {
     });
     await fetchRequests();
     if (selectedRequest?.id === id) setSelectedRequest(null);
+    setSubmitting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("למחוק לצמיתות?")) return;
+    setSubmitting(true);
+    await fetch(`/api/volunteers?id=${id}`, { method: "DELETE" });
+    await fetchRequests();
+    setSubmitting(false);
   };
 
   const handleReplace = async (assignmentId: string) => {
@@ -355,7 +366,7 @@ export function useVolunteers() {
     nowTimeStr, plus15,
     handleCreate, handleAssign, handleUnassign, handleStatusChange,
     handleReplace, handleAcceptReplace, handleFeedback, handleDispute,
-    startEditingRequest, handleEdit, handleNotify, handleRemindAssigned,
+    startEditingRequest, handleEdit, handleNotify, handleRemindAssigned, handleDelete,
     fmtTime, fmtDate,
   };
 }
