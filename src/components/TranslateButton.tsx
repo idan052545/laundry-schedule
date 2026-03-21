@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { MdTranslate } from "react-icons/md";
 import { useLanguage } from "@/i18n";
 
@@ -18,6 +18,10 @@ export default function TranslateButton({ texts, onTranslated, className, size =
   const { locale, t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+
+  // Reset done state when texts change (e.g. user navigates to a different day)
+  const textsKey = texts.join("\0");
+  useEffect(() => { setDone(false); }, [textsKey]);
 
   // Only show for English mode (translating Hebrew content to English)
   if (locale === "he") return null;
