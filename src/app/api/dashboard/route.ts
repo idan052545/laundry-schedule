@@ -212,10 +212,10 @@ export async function GET() {
         ],
       },
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-      take: 10,
+      take: 20,
       select: {
         id: true, title: true, category: true, priority: true, status: true,
-        target: true, requiredCount: true, startTime: true, endTime: true,
+        target: true, targetDetails: true, requiredCount: true, startTime: true, endTime: true,
         isCommanderRequest: true,
         createdBy: { select: { name: true, nameEn: true, phone: true } },
         _count: { select: { assignments: true } },
@@ -315,6 +315,19 @@ export async function GET() {
     })
   );
 
+  // Filter volunteer requests: for mixed target, only show if user's team is included
+  const filteredVolRequests = (activeVolunteerRequests || []).filter(
+    (r: { target: string; targetDetails: string | null }) => {
+      if (r.target === "mixed" && r.targetDetails && user?.team) {
+        try {
+          const teams = JSON.parse(r.targetDetails) as { team: number }[];
+          return teams.some(d => d.team === user.team);
+        } catch { return false; }
+      }
+      return true;
+    }
+  ).slice(0, 10);
+
   // Check chopal registration for tomorrow
   const tomorrowDate = (() => {
     const t = new Date();
@@ -392,7 +405,7 @@ export async function GET() {
     dailyQuote,
     todayNotes,
     chopalStatus,
-    activeVolunteerRequests,
+    activeVolunteerRequests: filteredVolRequests,
     myVolunteerAssignments: enrichedVolAssignments,
     myCreatedRequests,
     urgentReplacement,
