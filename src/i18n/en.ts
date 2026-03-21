@@ -576,6 +576,7 @@ const en: Dictionary = {
     hoursLabel: "hours",
     candidatesTitle: "Assign —",
     alreadyAssigned: "Assigned",
+    teamFull: "Team full",
     available: "Available",
     assignAsCommander: "Assign as commander",
     assignAsTeammate: "Assign as teammate",

@@ -34,7 +34,7 @@ export default function CandidatesModal({
             <div className="space-y-2">
               {candidates.map(c => (
                 <div key={c.id} className={`flex items-center gap-3 p-2.5 rounded-xl border transition ${
-                  c.isAssigned ? "bg-green-50 border-green-300" : c.isFree ? "bg-white border-gray-200 hover:border-green-300" : "bg-gray-50 border-gray-200"
+                  c.isAssigned ? "bg-green-50 border-green-300" : c.teamFull ? "bg-gray-100 border-gray-200 opacity-50" : c.isFree ? "bg-white border-gray-200 hover:border-green-300" : "bg-gray-50 border-gray-200"
                 }`}>
                   <Avatar name={c.name} image={c.image} size="sm" />
                   <div className="flex-1 min-w-0">
@@ -42,6 +42,7 @@ export default function CandidatesModal({
                       <span className="text-xs font-bold text-gray-800">{displayName(c, locale)}</span>
                       {c.team && <span className={`text-[8px] font-bold px-1 py-0.5 rounded border ${TEAM_COLORS[c.team] || TEAM_COLORS[0]}`}>{c.team}</span>}
                       {c.isAssigned && <span className="text-[8px] font-bold px-1 py-0.5 bg-green-200 text-green-800 rounded">{t.volunteers.alreadyAssigned}</span>}
+                      {c.teamFull && !c.isAssigned && <span className="text-[8px] font-bold px-1 py-0.5 bg-gray-200 text-gray-600 rounded">{t.volunteers.teamFull || "צוות מלא"}</span>}
                     </div>
                     {c.conflicts.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -56,9 +57,9 @@ export default function CandidatesModal({
                         ))}
                       </div>
                     )}
-                    {c.isFree && !c.isAssigned && <span className="text-[10px] text-green-600 font-medium">{t.volunteers.available}</span>}
+                    {c.isFree && !c.isAssigned && !c.teamFull && <span className="text-[10px] text-green-600 font-medium">{t.volunteers.available}</span>}
                   </div>
-                  {!c.isAssigned && (
+                  {!c.isAssigned && !c.teamFull && (
                     <div className="flex gap-1">
                       <button onClick={() => onAssign(selectedRequest.id, c.id, "commander")} disabled={submitting}
                         title={t.volunteers.assignAsCommander}

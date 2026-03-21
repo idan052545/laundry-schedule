@@ -56,6 +56,7 @@ export interface Candidate {
   conflicts: { type: string; title: string; priority: number }[];
   isFree: boolean;
   isAssigned: boolean;
+  teamFull?: boolean;
 }
 
 export interface TitleSuggestion {

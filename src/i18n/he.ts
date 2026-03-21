@@ -610,6 +610,7 @@ const he = {
     // Candidates
     candidatesTitle: "שיבוץ —",
     alreadyAssigned: "משובץ",
+    teamFull: "צוות מלא",
     available: "פנוי/ה",
     assignAsCommander: "שבץ כמפקד",
     assignAsTeammate: "שבץ כחבר צוות",
