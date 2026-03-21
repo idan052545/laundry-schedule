@@ -114,7 +114,14 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    // Extract text from all parts (sometimes split across multiple parts)
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const text = parts.map((p: { text?: string }) => p.text || "").join("").trim();
+
+    // If response is empty after trimming, return an error so client can handle
+    if (!text && mode === "chat") {
+      return NextResponse.json({ response: "", warning: "empty_response" });
+    }
 
     return NextResponse.json({ response: text });
   } catch (error) {

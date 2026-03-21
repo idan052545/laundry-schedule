@@ -7,7 +7,7 @@ import {
 } from "react-icons/md";
 import { useLanguage } from "@/i18n";
 import { Scenario, SimSession, ChatMessage } from "./types";
-import { buildSimulationIntroPrompt, buildChatSystemPrompt, buildScorePrompt, buildFeedbackPrompt } from "./prompts";
+import { buildSimulationIntroPrompt, buildChatSystemPrompt, buildScorePrompt, buildFeedbackPrompt, buildFirstMessagePrompt } from "./prompts";
 
 export function ChatSimulation({ simSession, scenario, commander, firstName, onEnd, onBack }: {
   simSession: SimSession;
@@ -40,12 +40,30 @@ export function ChatSimulation({ simSession, scenario, commander, firstName, onE
     setGenerating(true);
     setChatError("");
     try {
-      const res = await fetch("/api/sim-chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ systemPrompt: buildSimulationIntroPrompt(scenario, commander), message: "תאר את רקע הסימולציה", mode: "chat" }),
-      });
-      if (res.ok) { const data = await res.json(); setIntroText(data.response); }
-      else { const err = await res.json(); setChatError(err.error || `${t.simulator.error} ${res.status}`); }
+      // Generate intro text and soldier's first message in parallel
+      const [introRes, firstMsgRes] = await Promise.all([
+        fetch("/api/sim-chat", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ systemPrompt: buildSimulationIntroPrompt(scenario, commander), message: "תאר את רקע הסימולציה", mode: "chat" }),
+        }),
+        fetch("/api/sim-chat", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ systemPrompt: buildFirstMessagePrompt(scenario, commander, firstName), message: "כתוב את ההודעה הראשונה", mode: "chat" }),
+        }),
+      ]);
+      if (introRes.ok) { const data = await introRes.json(); setIntroText(data.response); }
+      else { const err = await introRes.json(); setChatError(err.error || `${t.simulator.error} ${introRes.status}`); }
+
+      // Add soldier's first message to the chat
+      if (firstMsgRes.ok) {
+        const data = await firstMsgRes.json();
+        const text = (data.response || "").trim();
+        if (text && text.length > 1) {
+          const firstMsg: ChatMessage = { role: "assistant", content: text, timestamp: Date.now() };
+          setMessages([firstMsg]);
+          await fetch("/api/sim-sessions", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: simSession.id, messages: JSON.stringify([firstMsg]) }) });
+        }
+      }
     } catch (e) { console.error("Failed to generate intro:", e); setChatError(t.simulator.connectionError); }
     setGenerating(false);
   };
@@ -72,11 +90,18 @@ export function ChatSimulation({ simSession, scenario, commander, firstName, onE
       });
       if (res.ok) {
         const data = await res.json();
-        const aiMsg: ChatMessage = { role: "assistant", content: data.response, timestamp: Date.now() };
+        const responseText = (data.response || "").trim();
+        // Filter empty messages - if AI returned empty, don't add to chat
+        if (!responseText || responseText.length < 2) {
+          console.warn("AI returned empty/too-short response, skipping");
+          setSending(false);
+          return;
+        }
+        const aiMsg: ChatMessage = { role: "assistant", content: responseText, timestamp: Date.now() };
         const updatedMessages = [...newMessages, aiMsg];
         setMessages(updatedMessages);
         await fetch("/api/sim-sessions", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: simSession.id, messages: JSON.stringify(updatedMessages) }) });
-        if (data.response.includes("כל הכבוד") && data.response.includes("סיימת את הסימולציה")) {
+        if (responseText.includes("כל הכבוד") && responseText.includes("סיימת את הסימולציה")) {
           await completeSimulation(updatedMessages);
         }
       } else {
