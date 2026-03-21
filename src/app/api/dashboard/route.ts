@@ -222,7 +222,7 @@ export async function GET() {
       },
     }),
 
-    // User's active volunteer assignments
+    // User's active volunteer assignments (with team members + location)
     prisma.volunteerAssignment.findMany({
       where: {
         userId,
@@ -232,7 +232,15 @@ export async function GET() {
       take: 5,
       select: {
         id: true, status: true,
-        request: { select: { id: true, title: true, startTime: true, endTime: true, category: true } },
+        request: {
+          select: {
+            id: true, title: true, startTime: true, endTime: true, category: true, location: true,
+            assignments: {
+              where: { status: { in: ["assigned", "active"] } },
+              select: { userId: true, user: { select: { id: true, name: true, nameEn: true, image: true } } },
+            },
+          },
+        },
       },
     }),
 
@@ -285,6 +293,27 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     }),
   ]);
+
+  // Enrich volunteer assignments with overlapping schedule events (what user will miss)
+  const enrichedVolAssignments = await Promise.all(
+    (myVolunteerAssignments || []).map(async (a: { id: string; status: string; request: { id: string; title: string; startTime: Date; endTime: Date; category: string; location: string | null; assignments: { userId: string; user: { id: string; name: string; nameEn: string | null; image: string | null } }[] } }) => {
+      const overlapping = await prisma.scheduleEvent.findMany({
+        where: {
+          startTime: { lt: a.request.endTime },
+          endTime: { gt: a.request.startTime },
+          allDay: false,
+          OR: [
+            { target: "all" },
+            ...(userTeam ? [{ target: userTeam }] : []),
+          ],
+        },
+        select: { id: true, title: true, startTime: true, endTime: true, type: true },
+        orderBy: { startTime: "asc" },
+        take: 5,
+      });
+      return { ...a, overlappingSchedule: overlapping };
+    })
+  );
 
   // Check chopal registration for tomorrow
   const tomorrowDate = (() => {
@@ -364,7 +393,7 @@ export async function GET() {
     todayNotes,
     chopalStatus,
     activeVolunteerRequests,
-    myVolunteerAssignments,
+    myVolunteerAssignments: enrichedVolAssignments,
     myCreatedRequests,
     urgentReplacement,
     nextDutyTables: (() => {

@@ -247,6 +247,7 @@ const en: Dictionary = {
     sagalModeActive: "Staff mode active — click to turn off",
     sagalModeBtn: "Staff mode (QA)",
     sagalViewOnly: "View only — Command staff",
+    youWillMiss: "You'll miss from schedule:",
   },
 
   sagalStats: {
@@ -597,6 +598,9 @@ const en: Dictionary = {
     startLabel: "Start *",
     endLabel: "End *",
     allowPartial: "Allow partial assignment (for those with partial schedule overlap)",
+    locationLabel: "Gathering point",
+    locationPlaceholder: "e.g. Dining hall, Field",
+    remindBtn: "Remind",
     publishVolunteer: "Publish duty",
     sendHelpRequest: "Send help request",
     replaceTitle: "Replacement request",

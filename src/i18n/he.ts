@@ -258,6 +258,7 @@ const he = {
     sagalModeActive: "מצב סגל פעיל — לחץ לכבות",
     sagalModeBtn: "מצב סגל (QA)",
     sagalViewOnly: "צפייה בלבד — סגל מפקד",
+    youWillMiss: "תפספסו מהלוז:",
   },
 
   // Dashboard - Sagal stats
@@ -632,6 +633,9 @@ const he = {
     startLabel: "התחלה *",
     endLabel: "סיום *",
     allowPartial: "אפשר שיבוץ חלקי (למי שיש לוז חופף רק בחלק מהזמן)",
+    locationLabel: "נקודת התכנסות",
+    locationPlaceholder: "לדוגמה: חדר אוכל, מגרש",
+    remindBtn: "תזכורת",
     publishVolunteer: "פרסם תורנות",
     sendHelpRequest: "שלח בקשת עזרה",
     // Replace modal

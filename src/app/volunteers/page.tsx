@@ -123,6 +123,7 @@ export default function VolunteersPage() {
               onAcceptReplace={v.handleAcceptReplace}
               onStartEdit={v.startEditingRequest}
               onNotify={v.handleNotify}
+              onRemindAssigned={v.handleRemindAssigned}
               onStatusChange={v.handleStatusChange}
               onShowFeedback={v.setShowFeedback}
               onShowDispute={v.setShowDispute}
@@ -175,6 +176,9 @@ export default function VolunteersPage() {
           showTitleSuggestions={v.showTitleSuggestions}
           setShowTitleSuggestions={v.setShowTitleSuggestions}
           filteredSuggestions={v.filteredSuggestions}
+          locationSuggestions={v.locationSuggestions}
+          showLocationSuggestions={v.showLocationSuggestions}
+          setShowLocationSuggestions={v.setShowLocationSuggestions}
           submitting={v.submitting}
           onClose={() => v.setShowCreate(false)}
           onCreate={v.handleCreate}

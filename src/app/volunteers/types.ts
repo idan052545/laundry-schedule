@@ -41,6 +41,7 @@ export interface VolRequest {
   status: string;
   isCommanderRequest: boolean;
   allowPartial: boolean;
+  location: string | null;
   createdAt: string;
   assignments: VolAssignment[];
   replacements: VolReplacement[];

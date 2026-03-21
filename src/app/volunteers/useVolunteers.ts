@@ -49,8 +49,11 @@ export function useVolunteers() {
     startTime: "", endTime: "", category: "other", priority: "normal",
     targetDetails: [] as { team: number; count: number }[],
     allowPartial: false,
+    location: "",
   });
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 
   // Feedback form
   const [feedbackForm, setFeedbackForm] = useState({ rating: 0, type: "preserve", comment: "" });
@@ -85,6 +88,7 @@ export function useVolunteers() {
       if (!titlesLoaded.current) {
         titlesLoaded.current = true;
         fetch("/api/volunteers/titles").then(r => r.ok ? r.json() : []).then(setTitleSuggestions);
+        fetch("/api/volunteers/locations").then(r => r.ok ? r.json() : []).then(setLocationSuggestions);
       }
     }
   }, [status, router, fetchRequests]);
@@ -135,11 +139,12 @@ export function useVolunteers() {
         startTime: `${todayDate}T${form.startTime}:00${offset}`,
         endTime: `${todayDate}T${form.endTime}:00${offset}`,
         targetDetails: form.target === "mixed" ? form.targetDetails : undefined,
+        location: form.location || undefined,
       }),
     });
     if (res.ok) {
       setShowCreate(false);
-      setForm({ title: "", description: "", target: "all", requiredCount: 1, startTime: "", endTime: "", category: "other", priority: "normal", targetDetails: [], allowPartial: false });
+      setForm({ title: "", description: "", target: "all", requiredCount: 1, startTime: "", endTime: "", category: "other", priority: "normal", targetDetails: [], allowPartial: false, location: "" });
       await fetchRequests();
     } else {
       const err = await res.json();
@@ -293,6 +298,17 @@ export function useVolunteers() {
     setSubmitting(false);
   };
 
+  const handleRemindAssigned = async (req: VolRequest) => {
+    setSubmitting(true);
+    await fetch("/api/volunteers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: req.id, remindAssigned: true }),
+    });
+    alert("נשלחה תזכורת למשובצים");
+    setSubmitting(false);
+  };
+
   const exportStats = () => {
     if (!stats) return;
     const wb = XLSX.utils.book_new();
@@ -331,6 +347,7 @@ export function useVolunteers() {
     showReplace, setShowReplace,
     submitting,
     form, setForm, showTitleSuggestions, setShowTitleSuggestions, filteredSuggestions,
+    locationSuggestions, showLocationSuggestions, setShowLocationSuggestions,
     feedbackForm, setFeedbackForm,
     disputeForm, setDisputeForm,
     replaceForm, setReplaceForm,
@@ -338,7 +355,7 @@ export function useVolunteers() {
     nowTimeStr, plus15,
     handleCreate, handleAssign, handleUnassign, handleStatusChange,
     handleReplace, handleAcceptReplace, handleFeedback, handleDispute,
-    startEditingRequest, handleEdit, handleNotify,
+    startEditingRequest, handleEdit, handleNotify, handleRemindAssigned,
     fmtTime, fmtDate,
   };
 }

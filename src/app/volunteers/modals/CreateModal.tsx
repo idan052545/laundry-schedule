@@ -1,6 +1,6 @@
 "use client";
 
-import { MdAdd, MdClose } from "react-icons/md";
+import { MdAdd, MdClose, MdLocationOn } from "react-icons/md";
 import { useLanguage } from "@/i18n";
 import { CATEGORY_CONFIG } from "../constants";
 import type { TitleSuggestion } from "../types";
@@ -10,6 +10,7 @@ interface VolunteerForm {
   startTime: string; endTime: string; category: string; priority: string;
   targetDetails: { team: number; count: number }[];
   allowPartial: boolean;
+  location: string;
 }
 
 interface CreateModalProps {
@@ -19,6 +20,9 @@ interface CreateModalProps {
   showTitleSuggestions: boolean;
   setShowTitleSuggestions: (v: boolean) => void;
   filteredSuggestions: TitleSuggestion[];
+  locationSuggestions: string[];
+  showLocationSuggestions: boolean;
+  setShowLocationSuggestions: (v: boolean) => void;
   submitting: boolean;
   onClose: () => void;
   onCreate: () => void;
@@ -28,7 +32,8 @@ type FormType = CreateModalProps["form"];
 
 export default function CreateModal({
   isCommander, form, setForm, showTitleSuggestions, setShowTitleSuggestions,
-  filteredSuggestions, submitting, onClose, onCreate,
+  filteredSuggestions, locationSuggestions, showLocationSuggestions, setShowLocationSuggestions,
+  submitting, onClose, onCreate,
 }: CreateModalProps) {
   const { t } = useLanguage();
   return (
@@ -167,6 +172,23 @@ export default function CreateModal({
               <input type="time" value={form.endTime} onChange={e => setForm((f: FormType) => ({ ...f, endTime: e.target.value }))}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-center focus:ring-2 focus:ring-green-300 transition" />
             </div>
+          </div>
+
+          <div className="relative">
+            <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><MdLocationOn className="text-sm text-gray-400" /> {t.volunteers.locationLabel}</label>
+            <input value={form.location} onChange={e => { setForm((f: FormType) => ({ ...f, location: e.target.value })); setShowLocationSuggestions(true); }}
+              onFocus={() => setShowLocationSuggestions(true)}
+              placeholder={t.volunteers.locationPlaceholder} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-green-300 transition" />
+            {showLocationSuggestions && locationSuggestions.filter(l => !form.location || l.includes(form.location)).length > 0 && (
+              <div className="absolute z-10 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-32 overflow-y-auto">
+                {locationSuggestions.filter(l => !form.location || l.includes(form.location)).map(loc => (
+                  <button key={loc} onClick={() => { setForm((f: FormType) => ({ ...f, location: loc })); setShowLocationSuggestions(false); }}
+                    className="w-full text-start px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-1.5">
+                    <MdLocationOn className="text-gray-400 text-xs" /> {loc}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">

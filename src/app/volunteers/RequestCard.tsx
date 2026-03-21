@@ -2,7 +2,7 @@
 
 import {
   MdAccessTime, MdPeople, MdThumbUp, MdSwapHoriz, MdStar,
-  MdCheck, MdEdit, MdDelete, MdNotifications,
+  MdCheck, MdEdit, MdDelete, MdNotifications, MdLocationOn, MdNotificationsActive,
 } from "react-icons/md";
 import { useEffect } from "react";
 import Avatar from "@/components/Avatar";
@@ -25,6 +25,7 @@ interface RequestCardProps {
   onAcceptReplace: (replacementId: string) => void;
   onStartEdit: (req: VolRequest) => void;
   onNotify: (req: VolRequest) => void;
+  onRemindAssigned: (req: VolRequest) => void;
   onStatusChange: (id: string, newStatus: string) => void;
   onShowFeedback: (id: string) => void;
   onShowDispute: (id: string) => void;
@@ -35,7 +36,7 @@ export default function RequestCard({
   req, myUserId, isCommander, isSagal, submitting,
   fmtTime, fmtDate,
   onAssign, onOpenCandidates, onShowReplace, onAcceptReplace,
-  onStartEdit, onNotify, onStatusChange, onShowFeedback, onShowDispute,
+  onStartEdit, onNotify, onRemindAssigned, onStatusChange, onShowFeedback, onShowDispute,
   getTranslation,
 }: RequestCardProps) {
   const { t, locale } = useLanguage();
@@ -83,6 +84,11 @@ export default function RequestCard({
               {req.target !== "all" && (
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 font-bold">
                   {req.target === "mixed" ? t.teams.mixed : req.target.replace("team-", `${t.common.team} `)}
+                </span>
+              )}
+              {req.location && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 font-medium flex items-center gap-0.5">
+                  <MdLocationOn className="text-[10px]" /> {req.location}
                 </span>
               )}
             </div>
@@ -145,6 +151,12 @@ export default function RequestCard({
             <button onClick={() => onNotify(req)} disabled={submitting}
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-green-200 text-green-600 text-[10px] font-medium hover:bg-green-50 transition disabled:opacity-50">
               <MdNotifications className="text-xs" /> {t.volunteers.alertBtn}
+            </button>
+          )}
+          {!isSagal && activeAssignments.length > 0 && req.status !== "completed" && req.status !== "cancelled" && (req.createdById === myUserId || isCommander || isMine) && (
+            <button onClick={() => onRemindAssigned(req)} disabled={submitting}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-purple-200 text-purple-600 text-[10px] font-medium hover:bg-purple-50 transition disabled:opacity-50">
+              <MdNotificationsActive className="text-xs" /> {t.volunteers.remindBtn}
             </button>
           )}
           {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (

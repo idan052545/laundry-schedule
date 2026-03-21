@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, name: true, team: true } });
 
   const body = await request.json();
-  const { title, description, target, targetDetails, requiredCount, startTime, endTime, category, priority, allowPartial } = body;
+  const { title, description, target, targetDetails, requiredCount, startTime, endTime, category, priority, allowPartial, location } = body;
 
   if (!title || !startTime || !endTime) {
     return NextResponse.json({ error: "חסר שם, שעת התחלה או סיום" }, { status: 400 });
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       priority: priority || "normal",
       isCommanderRequest: isCommander,
       allowPartial: !!allowPartial,
+      location: location || null,
     },
     include: {
       createdBy: { select: { id: true, name: true, nameEn: true, image: true, team: true, role: true } },
@@ -129,7 +130,7 @@ export async function PUT(request: Request) {
 
   const userId = (session.user as { id: string }).id;
   const body = await request.json();
-  const { id, status, title, description, startTime, endTime, requiredCount, notify, notifyBody } = body;
+  const { id, status, title, description, startTime, endTime, requiredCount, notify, notifyBody, remindAssigned, location } = body;
 
   if (!id) return NextResponse.json({ error: "חסר מזהה" }, { status: 400 });
 
@@ -149,6 +150,26 @@ export async function PUT(request: Request) {
   if (startTime) data.startTime = new Date(startTime);
   if (endTime) data.endTime = new Date(endTime);
   if (requiredCount) data.requiredCount = requiredCount;
+  if (location !== undefined) data.location = location || null;
+
+  // Remind assigned users to come
+  if (remindAssigned) {
+    const assignments = await prisma.volunteerAssignment.findMany({
+      where: { requestId: id, status: { in: ["assigned", "active"] } },
+      select: { userId: true },
+    });
+    if (assignments.length > 0) {
+      const startStr = new Date(req.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+      const locationStr = req.location ? ` | ${req.location}` : "";
+      await sendPushToUsers(assignments.map(a => a.userId), {
+        title: "תזכורת — תורנות עוד מעט!",
+        body: `${req.title} ב-${startStr}${locationStr}`,
+        url: "/volunteers",
+        tag: `volunteer-remind-${id}`,
+      });
+    }
+    return NextResponse.json({ reminded: assignments.length });
+  }
 
   const updated = await prisma.volunteerRequest.update({ where: { id }, data });
 
