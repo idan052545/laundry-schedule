@@ -6,6 +6,7 @@ import { useLanguage } from "@/i18n";
 interface AdminToolbarProps {
   isAdmin: boolean;
   isSagal: boolean;
+  isCommander: boolean;
   canEdit: boolean;
   showAdd: boolean;
   editingEvent: boolean;
@@ -24,28 +25,31 @@ interface AdminToolbarProps {
 }
 
 export default function AdminToolbar({
-  isAdmin, isSagal, canEdit, showAdd, editingEvent,
+  isAdmin, isSagal, isCommander, canEdit, showAdd, editingEvent,
   syncing, teamSyncing, teamSyncTarget, userTeam,
   visibleTeams, SYNC_TEAMS,
   onAddClick, onSync, onTeamSync, onTeamRemind,
   onToggleTeamVisibility, onShowAllTeams,
 }: AdminToolbarProps) {
   const { t } = useLanguage();
-  if ((!isAdmin && !isSagal) || showAdd || editingEvent) return null;
+  const canSync = canEdit || isCommander;
+  if ((!isAdmin && !isSagal && !isCommander) || showAdd || editingEvent) return null;
 
   return (
     <>
-      {/* Admin / Sagal: Add + Sync + Team toggles */}
-      {(isAdmin || isSagal) && (
+      {/* Admin / Sagal / Commander: Add + Sync + Team toggles */}
+      {(isAdmin || isSagal || isCommander) && (
         <div className="mb-3 space-y-2">
-          {canEdit && (
+          {(canEdit || canSync) && (
             <div className="flex gap-2">
-              <button onClick={onAddClick}
-                className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
-                <MdAdd /> {t.schedule.addEvent}
-              </button>
+              {canEdit && (
+                <button onClick={onAddClick}
+                  className="flex-1 bg-dotan-green-dark text-white py-2 rounded-xl hover:bg-dotan-green transition font-medium flex items-center justify-center gap-2 text-sm">
+                  <MdAdd /> {t.schedule.addEvent}
+                </button>
+              )}
               <button onClick={onSync} disabled={syncing}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50">
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50 ${!canEdit ? "flex-1" : ""}`}>
                 <MdSync className={syncing ? "animate-spin" : ""} /> {syncing ? t.schedule.syncing : t.schedule.sync}
               </button>
             </div>
@@ -70,7 +74,7 @@ export default function AdminToolbar({
               }`}>
               {t.common.all}
             </button>
-            {canEdit && (
+            {canSync && (
               <>
                 <div className="w-px h-4 bg-gray-200 mx-1" />
                 {SYNC_TEAMS.map(team => (
@@ -85,8 +89,8 @@ export default function AdminToolbar({
         </div>
       )}
 
-      {/* Non-admin team sync + remind (for own team only) */}
-      {!isAdmin && (userTeam === 14 || userTeam === 16) && (
+      {/* Non-admin, non-commander team sync + remind (for own team only) */}
+      {!isAdmin && !isCommander && userTeam && SYNC_TEAMS.includes(userTeam as typeof SYNC_TEAMS[number]) && (
         <div className="flex gap-2 mb-3">
           <button onClick={() => onTeamSync()} disabled={teamSyncing}
             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-teal-200 bg-gradient-to-l from-teal-50 to-cyan-50 text-teal-700 hover:from-teal-100 hover:to-cyan-100 transition text-sm font-medium disabled:opacity-50">

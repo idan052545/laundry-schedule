@@ -779,6 +779,9 @@ const he = {
     typeYesNo: "כן / לא",
     typeSingle: "בחירה יחידה",
     typeMulti: "בחירה מרובה",
+    periodDaily: "יומי",
+    periodWeekly: "שבועי",
+    periodMonthly: "חודשי",
   },
 
   // Person of week

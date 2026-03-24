@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
     const userId = (session.user as { id: string }).id;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } });
-    if (user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
+    if (user?.role !== "admin" && user?.role !== "commander" && user?.email !== "ohad@dotan.com") {
       return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
     }
   }
@@ -228,7 +228,7 @@ export async function PUT(req: Request) {
 
   const userId = (session.user as { id: string }).id;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } });
-  if (user?.role !== "admin" && user?.email !== "ohad@dotan.com") {
+  if (user?.role !== "admin" && user?.role !== "commander" && user?.email !== "ohad@dotan.com") {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
   }
 

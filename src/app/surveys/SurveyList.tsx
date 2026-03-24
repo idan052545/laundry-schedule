@@ -12,13 +12,42 @@ interface SurveyListProps {
   teamMembers: User[];
   userId: string | null;
   viewScope: "team" | "platoon";
+  period: "daily" | "weekly" | "monthly" | "all";
   onSelect: (survey: Survey) => void;
 }
 
-export default function SurveyList({ surveys, teamMembers, userId, viewScope, onSelect }: SurveyListProps) {
+function getDateRange(period: "daily" | "weekly" | "monthly" | "all"): Date | null {
+  if (period === "all") return null;
+  const now = new Date();
+  if (period === "daily") {
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }
+  if (period === "weekly") {
+    const day = now.getDay();
+    const diff = day === 0 ? 0 : day; // Sunday = start of week
+    now.setDate(now.getDate() - diff);
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }
+  // monthly
+  now.setDate(1);
+  now.setHours(0, 0, 0, 0);
+  return now;
+}
+
+export default function SurveyList({ surveys, teamMembers, userId, viewScope, period, onSelect }: SurveyListProps) {
   const { t, dateLocale, locale } = useLanguage();
   const { translateTexts, getTranslation, isEnglish } = useTranslation();
-  const filtered = surveys.filter((s) => viewScope === "platoon" ? s.team === 0 : s.team !== 0);
+  const dateFrom = getDateRange(period);
+  const filtered = surveys.filter((s) => {
+    const scopeMatch = viewScope === "platoon" ? s.team === 0 : s.team !== 0;
+    if (!scopeMatch) return false;
+    if (dateFrom) {
+      return new Date(s.createdAt) >= dateFrom;
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (!isEnglish || filtered.length === 0) return;

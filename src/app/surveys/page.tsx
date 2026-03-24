@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { MdPoll, MdAdd, MdClose, MdPeople, MdGroups } from "react-icons/md";
+import { MdPoll, MdAdd, MdClose, MdPeople, MdGroups, MdCalendarToday, MdDateRange, MdCalendarMonth, MdAllInclusive } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
 import { useSurveys } from "./useSurveys";
@@ -22,6 +22,7 @@ function SurveysPage() {
   const {
     authStatus, loading, surveys, teamMembers, userTeam, userId, isSagal,
     selectedSurvey, setSelectedSurvey, viewScope, setViewScope,
+    period, setPeriod,
     reminding, sending, editing, setEditing, editTitle, setEditTitle,
     editDesc, setEditDesc, editOptions, setEditOptions,
     handleCreate, handleRespond, handleClose, handleReopen,
@@ -93,7 +94,7 @@ function SurveysPage() {
       </div>
 
       {/* Scope tabs */}
-      <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 mb-2 bg-gray-100 rounded-xl p-1">
         <button onClick={() => setViewScope("team")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition ${
             viewScope === "team" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -106,6 +107,23 @@ function SurveysPage() {
           }`}>
           <MdGroups className="text-base" /> {t.surveys.platoonTab}
         </button>
+      </div>
+
+      {/* Period filter */}
+      <div className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
+        {([
+          { key: "daily" as const, label: t.surveys.periodDaily, icon: MdCalendarToday },
+          { key: "weekly" as const, label: t.surveys.periodWeekly, icon: MdDateRange },
+          { key: "monthly" as const, label: t.surveys.periodMonthly, icon: MdCalendarMonth },
+          { key: "all" as const, label: t.common.all, icon: MdAllInclusive },
+        ]).map(p => (
+          <button key={p.key} onClick={() => setPeriod(p.key)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition shrink-0 ${
+              period === p.key ? "bg-purple-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}>
+            <p.icon className="text-sm" /> {p.label}
+          </button>
+        ))}
       </div>
 
       {showForm && !isSagal && (
@@ -122,6 +140,7 @@ function SurveysPage() {
         teamMembers={teamMembers}
         userId={userId}
         viewScope={viewScope}
+        period={period}
         onSelect={setSelectedSurvey}
       />
     </div>

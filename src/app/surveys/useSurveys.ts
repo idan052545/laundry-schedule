@@ -21,6 +21,7 @@ export function useSurveys() {
   const [viewScope, setViewScope] = useState<"team" | "platoon">(
     searchParams.get("tab") === "platoon" ? "platoon" : "team"
   );
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("weekly");
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -180,7 +181,7 @@ export function useSurveys() {
   return {
     authStatus, loading, surveys, teamMembers, userTeam, isAdmin,
     userId, isSagal, selectedSurvey, setSelectedSurvey,
-    viewScope, setViewScope, reminding, sending,
+    viewScope, setViewScope, period, setPeriod, reminding, sending,
     editing, setEditing, editTitle, setEditTitle, editDesc, setEditDesc,
     editOptions, setEditOptions,
     handleCreate, handleRespond, handleClose, handleReopen,

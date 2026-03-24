@@ -733,6 +733,9 @@ const en: Dictionary = {
     typeYesNo: "Yes / No",
     typeSingle: "Single choice",
     typeMulti: "Multi choice",
+    periodDaily: "Daily",
+    periodWeekly: "Weekly",
+    periodMonthly: "Monthly",
   },
 
   personOfWeek: {

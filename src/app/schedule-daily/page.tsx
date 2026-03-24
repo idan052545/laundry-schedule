@@ -54,7 +54,7 @@ export default function ScheduleDailyPage() {
   // Refetch when admin toggles team visibility
   const visibleTeamsKey = Array.from(ev.visibleTeams).sort().join(",");
   useEffect(() => {
-    if (ev.initialLoadDone.current && (ev.isAdmin || isSagal)) {
+    if (ev.initialLoadDone.current && (ev.isAdmin || isSagal || isCommander)) {
       ev.fetchEvents();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,6 +64,7 @@ export default function ScheduleDailyPage() {
   const myName = session?.user?.name || "";
   const myRole = (session?.user as { role?: string } | undefined)?.role;
   const isSagal = myRole === "sagal";
+  const isCommander = myRole === "commander";
   const canEdit = ev.isAdmin && !isSagal;
 
   const isToday = date === new Date().toISOString().split("T")[0];
@@ -153,7 +154,7 @@ export default function ScheduleDailyPage() {
       )}
 
       <AdminToolbar
-        isAdmin={ev.isAdmin} isSagal={isSagal} canEdit={canEdit}
+        isAdmin={ev.isAdmin} isSagal={isSagal} isCommander={isCommander} canEdit={canEdit}
         showAdd={showAdd} editingEvent={!!editingEvent}
         syncing={ev.syncing} teamSyncing={ev.teamSyncing}
         teamSyncTarget={ev.teamSyncTarget} userTeam={ev.userTeam}
