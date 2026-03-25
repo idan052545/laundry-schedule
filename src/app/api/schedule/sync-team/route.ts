@@ -170,10 +170,13 @@ export async function POST(req: NextRequest) {
     const title = e.summary || "ללא כותרת";
     const titleNorm = title.replace(/[־\-–—]/g, " ");
     const descNorm = (e.description || "").replace(/[־\-–—]/g, " ");
-    const searchText = `${titleNorm} ${descNorm}`;
+    // Strip Hebrew "ו" (and) prefix from words: "ואורי" → "אורי", "ועילי" → "עילי"
+    const stripVav = (text: string) => text.replace(/(?<=^|\s)ו(?=[א-ת])/g, " ");
+    const searchText = stripVav(`${titleNorm} ${descNorm}`);
 
     // Extract name tokens from text: split by common delimiters used in calendar titles
     // e.g. "עידן, אלה, נועה ב, מעיין" → ["עידן", "אלה", "נועה ב", "מעיין"]
+    // Also split by Hebrew "ו" prefix: "עילי ואורי" → ["עילי", "אורי"]
     const nameTokens = searchText.split(/[,/+&|]/).map(t => t.trim()).filter(Boolean);
 
     const matchedUsers = userNameInfo.filter(u => {
@@ -192,7 +195,16 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      // 4. First name only match — only if first name is unique in team
+      // 4. Exact token match — if a comma/delimiter-separated token exactly equals a first name
+      // This handles cases like "רוני, יעל" where יעל is a standalone token
+      // Match even if first name has duplicates — the calendar creator listed specific people
+      if (u.firstName && u.firstName.length >= 2) {
+        for (const token of nameTokens) {
+          const trimmed = token.split(/\s+/).filter(Boolean);
+          if (trimmed.length === 1 && trimmed[0] === u.firstName) return true;
+        }
+      }
+      // 5. First name only match in free text — only if first name is unique in team
       const firstName = u.firstName;
       if (firstName && firstName.length >= 3 && (firstNameCounts.get(firstName) || 0) === 1) {
         const pattern = new RegExp(`(?:^|[\\s,/\\-–—+&|])${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[\\s,/\\-–—+&|])`, "u");
