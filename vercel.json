@@ -1,11 +1,11 @@
 {
   "crons": [
     {
-      "path": "/api/cron/form-reminders?secret=${CRON_SECRET}",
+      "path": "/api/cron/form-reminders",
       "schedule": "0 17 * * *"
     },
     {
-      "path": "/api/cron/sync-calendars?secret=${CRON_SECRET}",
+      "path": "/api/cron/sync-calendars",
       "schedule": "0 * * * *"
     }
   ]

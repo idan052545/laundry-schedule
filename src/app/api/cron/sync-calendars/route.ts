@@ -17,8 +17,11 @@ function formatChangeLines(diff: { added?: string[]; removed?: string[]; updated
 }
 
 export async function GET(request: Request) {
+  // Vercel cron sends Authorization: Bearer <CRON_SECRET>
+  const authHeader = request.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const { searchParams } = new URL(request.url);
-  const secret = searchParams.get("secret");
+  const secret = bearerToken || searchParams.get("secret");
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
