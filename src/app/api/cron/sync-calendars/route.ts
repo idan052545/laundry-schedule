@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 function formatChangeLines(diff: { added?: string[]; removed?: string[]; updated?: string[] }): string[] {
   const lines: string[] = [];
@@ -17,89 +18,121 @@ function formatChangeLines(diff: { added?: string[]; removed?: string[]; updated
 }
 
 export async function GET(request: Request) {
-  // Vercel cron sends Authorization: Bearer <CRON_SECRET>
-  const authHeader = request.headers.get("authorization");
-  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  const { searchParams } = new URL(request.url);
-  const secret = bearerToken || searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-
-  const results: Record<string, unknown> = {};
-
-  // Sync platoon calendar
   try {
-    const res = await fetch(`${baseUrl}/api/schedule/sync?secret=${secret}`, {
-      method: "POST",
-      cache: "no-store",
-    });
-    const data = await res.json();
-    results.platoon = { synced: data.synced, unchanged: data.todayDiff?.unchanged };
+    // Vercel cron sends Authorization: Bearer <CRON_SECRET>
+    const authHeader = request.headers.get("authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const { searchParams } = new URL(request.url);
+    const secret = bearerToken || searchParams.get("secret");
+    if (secret !== process.env.CRON_SECRET) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // Only notify if there are actual changes — don't spam on no-change syncs
-    if (data.todayDiff && !data.todayDiff.unchanged) {
-      const lines = formatChangeLines(data.todayDiff);
-      if (lines.length > 0) {
-        try {
-          const { sendPushToAll } = await import("@/lib/push");
-          await sendPushToAll({
-            title: 'שינוי בלו"ז היום',
-            body: lines.join("\n"),
-            url: "/schedule-daily",
-          });
-          results.platoonNotified = true;
-        } catch (err) {
-          results.platoonNotifyError = String(err);
+    // Derive base URL from the incoming request (same host Vercel used to call us)
+    const requestUrl = new URL(request.url);
+    const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+
+    const results: Record<string, unknown> = {};
+
+    // Helper: fetch with timeout, error handling, and retry
+    async function safeFetch(url: string, label: string): Promise<{ ok: boolean; data?: Record<string, unknown>; error?: string }> {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
+        const res = await fetch(url, {
+          method: "POST",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          return { ok: false, error: `${label}: HTTP ${res.status} — ${text.slice(0, 200)}` };
         }
+        const data = await res.json();
+        return { ok: true, data };
+      } catch (err) {
+        return { ok: false, error: `${label}: ${err instanceof Error ? err.message : String(err)}` };
       }
     }
-  } catch (err) {
-    results.platoon = { error: String(err) };
-  }
 
-  // Sync team calendars
-  for (const team of [14, 16, 17]) {
-    try {
-      const res = await fetch(`${baseUrl}/api/schedule/sync-team?secret=${secret}&team=${team}`, {
-        method: "POST",
-        cache: "no-store",
-      });
-      const data = await res.json();
-      results[`team${team}`] = { synced: data.synced, assigned: data.assigned, unchanged: data.todayDiff?.unchanged };
+    // Sync platoon calendar
+    const platoonResult = await safeFetch(
+      `${baseUrl}/api/schedule/sync?secret=${encodeURIComponent(secret)}`,
+      "platoon-sync"
+    );
+    if (platoonResult.ok && platoonResult.data) {
+      const data = platoonResult.data;
+      results.platoon = { synced: data.synced, unchanged: (data.todayDiff as Record<string, unknown>)?.unchanged };
 
-      // Only notify team members if there are actual changes
-      if (data.todayDiff && !data.todayDiff.unchanged) {
-        const lines = formatChangeLines(data.todayDiff);
+      // Only notify if there are actual changes
+      const todayDiff = data.todayDiff as { added?: string[]; removed?: string[]; updated?: string[]; unchanged?: boolean } | undefined;
+      if (todayDiff && !todayDiff.unchanged) {
+        const lines = formatChangeLines(todayDiff);
         if (lines.length > 0) {
           try {
-            const prisma = (await import("@/lib/prisma")).default;
-            const { sendPushToUsers } = await import("@/lib/push");
-            const teamUsers = await prisma.user.findMany({
-              where: { team },
-              select: { id: true },
+            const { sendPushToAll } = await import("@/lib/push");
+            await sendPushToAll({
+              title: 'שינוי בלו"ז היום',
+              body: lines.join("\n"),
+              url: "/schedule-daily",
             });
-            if (teamUsers.length > 0) {
-              await sendPushToUsers(teamUsers.map((u: { id: string }) => u.id), {
-                title: `שינוי בלו"ז צוות ${team}`,
-                body: lines.join("\n"),
-                url: "/schedule-daily",
-              });
-            }
-            results[`team${team}Notified`] = true;
+            results.platoonNotified = true;
           } catch (err) {
-            results[`team${team}NotifyError`] = String(err);
+            results.platoonNotifyError = String(err);
           }
         }
       }
-    } catch (err) {
-      results[`team${team}`] = { error: String(err) };
+    } else {
+      results.platoon = { error: platoonResult.error };
     }
-  }
 
-  return NextResponse.json({ success: true, results });
+    // Sync team calendars
+    for (const team of [14, 16, 17]) {
+      const teamResult = await safeFetch(
+        `${baseUrl}/api/schedule/sync-team?secret=${encodeURIComponent(secret)}&team=${team}`,
+        `team-${team}-sync`
+      );
+      if (teamResult.ok && teamResult.data) {
+        const data = teamResult.data;
+        results[`team${team}`] = { synced: data.synced, assigned: data.assigned, unchanged: (data.todayDiff as Record<string, unknown>)?.unchanged };
+
+        // Only notify team members if there are actual changes
+        const todayDiff = data.todayDiff as { added?: string[]; removed?: string[]; updated?: string[]; unchanged?: boolean } | undefined;
+        if (todayDiff && !todayDiff.unchanged) {
+          const lines = formatChangeLines(todayDiff);
+          if (lines.length > 0) {
+            try {
+              const prisma = (await import("@/lib/prisma")).default;
+              const { sendPushToUsers } = await import("@/lib/push");
+              const teamUsers = await prisma.user.findMany({
+                where: { team },
+                select: { id: true },
+              });
+              if (teamUsers.length > 0) {
+                await sendPushToUsers(teamUsers.map((u: { id: string }) => u.id), {
+                  title: `שינוי בלו"ז צוות ${team}`,
+                  body: lines.join("\n"),
+                  url: "/schedule-daily",
+                });
+              }
+              results[`team${team}Notified`] = true;
+            } catch (err) {
+              results[`team${team}NotifyError`] = String(err);
+            }
+          }
+        }
+      } else {
+        results[`team${team}`] = { error: teamResult.error };
+      }
+    }
+
+    return NextResponse.json({ success: true, results });
+  } catch (err) {
+    console.error("Cron sync-calendars fatal error:", err);
+    return NextResponse.json(
+      { error: `Fatal: ${err instanceof Error ? err.message : String(err)}` },
+      { status: 500 }
+    );
+  }
 }
