@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
   const activeEvents = allGCalEvents.filter(e => e.status !== "cancelled");
 
-  // Pre-compute unique first names — only allow first-name matching when no duplicates
+  // Pre-compute first name counts for uniqueness check
   const firstNameCounts = new Map<string, number>();
   for (const u of teamUsers) {
     if (!u.name) continue;
@@ -145,6 +145,18 @@ export async function POST(req: NextRequest) {
       firstNameCounts.set(firstName, (firstNameCounts.get(firstName) || 0) + 1);
     }
   }
+
+  // Pre-compute user name info for efficient matching
+  const userNameInfo = teamUsers.map(u => {
+    if (!u.name) return { id: u.id, name: u.name, firstName: "", lastNameInitial: "", allParts: [] as string[] };
+    const rawParts = u.name.split(/\s+/);
+    const allParts = rawParts.filter(p => p.length > 1);
+    const firstName = allParts[0] || "";
+    // Get the first letter of the last name (or second part) for initial matching
+    const lastPart = rawParts.length >= 2 ? rawParts[rawParts.length - 1] : "";
+    const lastNameInitial = lastPart.length > 0 ? lastPart[0] : "";
+    return { id: u.id, name: u.name, firstName, lastNameInitial, allParts };
+  });
 
   const parsed = activeEvents.map(e => {
     const allDay = !e.start.dateTime;
@@ -159,15 +171,29 @@ export async function POST(req: NextRequest) {
     const titleNorm = title.replace(/[־\-–—]/g, " ");
     const descNorm = (e.description || "").replace(/[־\-–—]/g, " ");
     const searchText = `${titleNorm} ${descNorm}`;
-    const matchedUsers = teamUsers.filter(u => {
+
+    // Extract name tokens from text: split by common delimiters used in calendar titles
+    // e.g. "עידן, אלה, נועה ב, מעיין" → ["עידן", "אלה", "נועה ב", "מעיין"]
+    const nameTokens = searchText.split(/[,/+&|]/).map(t => t.trim()).filter(Boolean);
+
+    const matchedUsers = userNameInfo.filter(u => {
       if (!u.name) return false;
-      // Full name match
+      // 1. Full name match
       if (searchText.includes(u.name)) return true;
-      const nameParts = u.name.split(/\s+/).filter(p => p.length > 1);
-      // All parts of name found in text
-      if (nameParts.length >= 2 && nameParts.every(part => searchText.includes(part))) return true;
-      // First name match — only if first name is unique in team (no duplicates)
-      const firstName = nameParts[0];
+      // 2. All significant parts of name found in text
+      if (u.allParts.length >= 2 && u.allParts.every(part => searchText.includes(part))) return true;
+      // 3. First name + last name initial match (e.g. "נועה ב" matches "נועה ברזילי")
+      if (u.firstName && u.lastNameInitial) {
+        for (const token of nameTokens) {
+          const tokenParts = token.split(/\s+/).filter(Boolean);
+          if (tokenParts.length === 2 && tokenParts[1].length === 1) {
+            // Token is "firstName X" where X is a single letter initial
+            if (tokenParts[0] === u.firstName && tokenParts[1] === u.lastNameInitial) return true;
+          }
+        }
+      }
+      // 4. First name only match — only if first name is unique in team
+      const firstName = u.firstName;
       if (firstName && firstName.length >= 3 && (firstNameCounts.get(firstName) || 0) === 1) {
         const pattern = new RegExp(`(?:^|[\\s,/\\-–—+&|])${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[\\s,/\\-–—+&|])`, "u");
         if (pattern.test(` ${searchText} `)) return true;
