@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { sendPushToUsers, sendPushToAll } from "@/lib/push";
+import { sendPushToUsers } from "@/lib/push";
 
 // GET — list volunteer requests
 export async function GET(request: Request) {
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, name: true, team: true } });
 
   const body = await request.json();
-  const { title, description, target, targetDetails, requiredCount, startTime, endTime, category, priority, allowPartial, location } = body;
+  const { title, description, target, targetDetails, requiredCount, startTime, endTime, category, priority, allowPartial, location, isRetro } = body;
 
   if (!title || !startTime || !endTime) {
     return NextResponse.json({ error: "חסר שם, שעת התחלה או סיום" }, { status: 400 });
@@ -85,20 +85,28 @@ export async function POST(request: Request) {
       createdById: userId,
       target: target || "all",
       targetDetails: targetDetails ? JSON.stringify(targetDetails) : null,
-      requiredCount: requiredCount || 1,
+      requiredCount: isRetro ? 1 : (requiredCount || 1),
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       category: category || "other",
-      priority: priority || "normal",
+      priority: isRetro ? "normal" : (priority || "normal"),
       isCommanderRequest: isCommander,
       allowPartial: !!allowPartial,
       location: location || null,
+      status: isRetro ? "completed" : "open",
     },
     include: {
       createdBy: { select: { id: true, name: true, nameEn: true, image: true, team: true, role: true } },
       assignments: true,
     },
   });
+
+  // Auto-assign creator for retro requests
+  if (isRetro) {
+    await prisma.volunteerAssignment.create({
+      data: { requestId: req.id, userId, assignmentType: "self", status: "completed" },
+    });
+  }
 
   // Update title history
   await prisma.volunteerTitleHistory.upsert({
@@ -107,17 +115,24 @@ export async function POST(request: Request) {
     create: { title, category: category || "other" },
   });
 
+  // Skip notifications for retro requests
+  if (isRetro) return NextResponse.json(req);
+
   // Send notifications
   const startStr = new Date(startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
   const notifBody = `${user?.name}: ${title} (${startStr})${priority === "urgent" ? " — דחוף!" : ""}`;
 
+  // Build eligible user filter: exclude sagals (they can't volunteer)
+  const notifTitle = isCommander ? "התנדבות חדשה (מפקד)" : "בקשת עזרה חדשה";
+  const notifPayload = { title: notifTitle, body: notifBody, url: "/volunteers", tag: `volunteer-new-${req.id}` };
+
   if (target === "all") {
-    await sendPushToAll({
-      title: isCommander ? "תורנות חדשה (מפקד)" : "בקשת עזרה חדשה",
-      body: notifBody,
-      url: "/volunteers",
-      tag: `volunteer-new-${req.id}`,
-    }, userId);
+    const eligibleUsers = await prisma.user.findMany({
+      where: { id: { not: userId }, role: { not: "sagal" } },
+      select: { id: true },
+    });
+    const ids = eligibleUsers.map((u: { id: string }) => u.id);
+    if (ids.length > 0) await sendPushToUsers(ids, notifPayload);
   } else {
     // Send to specific team(s)
     let teamNums: number[] = [];
@@ -128,18 +143,11 @@ export async function POST(request: Request) {
     }
     if (teamNums.length > 0) {
       const teamUsers = await prisma.user.findMany({
-        where: { team: { in: teamNums } },
+        where: { team: { in: teamNums }, role: { not: "sagal" } },
         select: { id: true },
       });
-      const ids = teamUsers.map(u => u.id).filter(id => id !== userId);
-      if (ids.length > 0) {
-        await sendPushToUsers(ids, {
-          title: isCommander ? "תורנות חדשה (מפקד)" : "בקשת עזרה חדשה",
-          body: notifBody,
-          url: "/volunteers",
-          tag: `volunteer-new-${req.id}`,
-        });
-      }
+      const ids = teamUsers.map((u: { id: string }) => u.id).filter((id: string) => id !== userId);
+      if (ids.length > 0) await sendPushToUsers(ids, notifPayload);
     }
   }
 
@@ -184,8 +192,8 @@ export async function PUT(request: Request) {
     if (assignments.length > 0) {
       const startStr = new Date(req.startTime).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
       const locationStr = req.location ? ` | ${req.location}` : "";
-      await sendPushToUsers(assignments.map(a => a.userId), {
-        title: "תזכורת — תורנות עוד מעט!",
+      await sendPushToUsers(assignments.map((a: { userId: string }) => a.userId), {
+        title: "תזכורת — התנדבות עוד מעט!",
         body: `${req.title} ב-${startStr}${locationStr}`,
         url: "/volunteers",
         tag: `volunteer-remind-${id}`,
@@ -203,8 +211,8 @@ export async function PUT(request: Request) {
       select: { userId: true },
     });
     if (assignments.length > 0) {
-      await sendPushToUsers(assignments.map(a => a.userId), {
-        title: "תורנות הסתיימה",
+      await sendPushToUsers(assignments.map((a: { userId: string }) => a.userId), {
+        title: "התנדבות הסתיימה",
         body: `${req.title} — דרגו את החוויה`,
         url: "/volunteers",
         tag: `volunteer-feedback-${id}`,
@@ -219,31 +227,22 @@ export async function PUT(request: Request) {
 
   // Send push notification about this request
   if (notify && notifyBody) {
-    const target = updated.target || req.target;
-    if (target === "all") {
-      await sendPushToAll({
-        title: "תורנות דורשת מתנדבים",
-        body: notifyBody,
-        url: "/volunteers",
-        tag: `volunteer-notify-${id}`,
-      }, userId);
+    const notifTarget = updated.target || req.target;
+    const notifData = { title: "התנדבות דורשת מתנדבים", body: notifyBody, url: "/volunteers", tag: `volunteer-notify-${id}` };
+    if (notifTarget === "all") {
+      const eligible = await prisma.user.findMany({ where: { id: { not: userId }, role: { not: "sagal" } }, select: { id: true } });
+      const eIds = eligible.map((u: { id: string }) => u.id);
+      if (eIds.length > 0) await sendPushToUsers(eIds, notifData);
     } else {
       const teams: number[] = [];
-      if (target.startsWith("team-")) teams.push(parseInt(target.replace("team-", "")));
-      else if (target === "mixed" && req.targetDetails) {
+      if (notifTarget.startsWith("team-")) teams.push(parseInt(notifTarget.replace("team-", "")));
+      else if (notifTarget === "mixed" && req.targetDetails) {
         try { JSON.parse(req.targetDetails as string).forEach((d: { team: number }) => teams.push(d.team)); } catch { /* ignore */ }
       }
       if (teams.length > 0) {
-        const targetUsers = await prisma.user.findMany({ where: { team: { in: teams } }, select: { id: true } });
-        const ids = targetUsers.map(u => u.id).filter(uid => uid !== userId);
-        if (ids.length > 0) {
-          await sendPushToUsers(ids, {
-            title: "תורנות דורשת מתנדבים",
-            body: notifyBody,
-            url: "/volunteers",
-            tag: `volunteer-notify-${id}`,
-          });
-        }
+        const targetUsers = await prisma.user.findMany({ where: { team: { in: teams }, role: { not: "sagal" } }, select: { id: true } });
+        const ids = targetUsers.map((u: { id: string }) => u.id).filter((uid: string) => uid !== userId);
+        if (ids.length > 0) await sendPushToUsers(ids, notifData);
       }
     }
   }

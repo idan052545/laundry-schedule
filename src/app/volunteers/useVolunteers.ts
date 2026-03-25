@@ -50,6 +50,8 @@ export function useVolunteers() {
     targetDetails: [] as { team: number; count: number }[],
     allowPartial: false,
     location: "",
+    isRetro: false,
+    retroDate: "",
   });
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
@@ -128,23 +130,25 @@ export function useVolunteers() {
 
   const handleCreate = async () => {
     if (!form.title || !form.startTime || !form.endTime) return;
+    if (form.isRetro && !form.retroDate) return;
     setSubmitting(true);
-    const todayDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+    const dateStr = form.isRetro ? form.retroDate : new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
     const offset = getIsraelOffset(new Date());
     const res = await fetch("/api/volunteers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
-        startTime: `${todayDate}T${form.startTime}:00${offset}`,
-        endTime: `${todayDate}T${form.endTime}:00${offset}`,
+        startTime: `${dateStr}T${form.startTime}:00${offset}`,
+        endTime: `${dateStr}T${form.endTime}:00${offset}`,
         targetDetails: form.target === "mixed" ? form.targetDetails : undefined,
         location: form.location || undefined,
+        isRetro: form.isRetro || undefined,
       }),
     });
     if (res.ok) {
       setShowCreate(false);
-      setForm({ title: "", description: "", target: "all", requiredCount: 1, startTime: "", endTime: "", category: "other", priority: "normal", targetDetails: [], allowPartial: false, location: "" });
+      setForm({ title: "", description: "", target: "all", requiredCount: 1, startTime: "", endTime: "", category: "other", priority: "normal", targetDetails: [], allowPartial: false, location: "", isRetro: false, retroDate: "" });
       await fetchRequests();
     } else {
       const err = await res.json();
@@ -155,6 +159,17 @@ export function useVolunteers() {
 
   const handleAssign = async (requestId: string, userId?: string, type?: string) => {
     setSubmitting(true);
+
+    // Optimistic update for self-assignment
+    const isSelf = !userId || userId === myUserId;
+    if (isSelf && myUserId) {
+      setRequests(prev => prev.map(r => {
+        if (r.id !== requestId) return r;
+        const newAssignment = { id: `temp-${Date.now()}`, userId: myUserId, user: { id: myUserId, name: session?.user?.name || "", nameEn: null, image: session?.user?.image || null, team: null }, status: "assigned", assignmentType: "self", assignedById: null, actualStartTime: null, actualEndTime: null, createdAt: new Date().toISOString() };
+        return { ...r, assignments: [...r.assignments, newAssignment] };
+      }));
+    }
+
     const res = await fetch("/api/volunteers/assign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -169,6 +184,8 @@ export function useVolunteers() {
       }
     } else {
       const err = await res.json();
+      // Revert optimistic update on failure
+      if (isSelf) await fetchRequests();
       alert(err.error || "שגיאה");
     }
     setSubmitting(false);
@@ -326,14 +343,14 @@ export function useVolunteers() {
     const rows = stats.leaderboard.map(u => ({
       שם: u.name,
       צוות: u.team || "-",
-      "מספר תורנויות": u.count,
+      "מספר התנדבויות": u.count,
       "סה\"כ דקות": Math.round(u.totalMinutes),
       "סה\"כ שעות": (u.totalMinutes / 60).toFixed(1),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = [{ wch: 20 }, { wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws, "התפלגות");
-    XLSX.writeFile(wb, `תורנויות_${stats.period}.xlsx`);
+    XLSX.writeFile(wb, `התנדבויות_${stats.period}.xlsx`);
   };
 
   const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });

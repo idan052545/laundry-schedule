@@ -37,14 +37,15 @@ function resolveTeam(searchParams: URLSearchParams, userTeam?: number | null): n
 // POST — sync team Google Calendar → ScheduleEvent
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const cronSecret = searchParams.get("secret");
-  const isCron = cronSecret === process.env.CRON_SECRET;
+  const cronSecret = searchParams.get("secret") || req.headers.get("x-cron-secret");
+  const isCron = !!cronSecret && cronSecret === process.env.CRON_SECRET;
 
   let teamNumber: number;
 
   if (isCron) {
     teamNumber = resolveTeam(searchParams);
   } else {
+    console.log(`[sync-team] Auth failed — querySecret=${!!searchParams.get("secret")}, headerSecret=${!!req.headers.get("x-cron-secret")}, envSet=${!!process.env.CRON_SECRET}`);
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
     const userId = (session.user as { id: string }).id;

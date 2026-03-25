@@ -11,6 +11,8 @@ interface VolunteerForm {
   targetDetails: { team: number; count: number }[];
   allowPartial: boolean;
   location: string;
+  isRetro: boolean;
+  retroDate: string;
 }
 
 interface CreateModalProps {
@@ -198,9 +200,30 @@ export default function CreateModal({
             <span className="text-xs text-gray-600">{t.volunteers.allowPartial}</span>
           </label>
 
-          <button onClick={onCreate} disabled={submitting || !form.title || !form.startTime || !form.endTime}
+          {/* Retro toggle — add a past volunteering */}
+          <div className="border-t border-gray-100 pt-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={!!form.isRetro}
+                onChange={e => setForm((f: FormType) => ({ ...f, isRetro: e.target.checked, retroDate: "" }))}
+                className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
+              <span className="text-xs text-gray-600">{t.volunteers.retroToggle}</span>
+            </label>
+            {form.isRetro && (
+              <div className="mt-2 space-y-2">
+                <input type="date" value={form.retroDate}
+                  max={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })}
+                  onChange={e => setForm((f: FormType) => ({ ...f, retroDate: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 transition" />
+                <p className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 font-medium">
+                  {t.volunteers.retroNote}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <button onClick={onCreate} disabled={submitting || !form.title || !form.startTime || !form.endTime || (form.isRetro && !form.retroDate)}
             className="w-full py-3 rounded-xl bg-green-600 text-white font-bold text-sm shadow-lg hover:bg-green-700 transition disabled:opacity-50">
-            {submitting ? t.common.sending : isCommander ? t.volunteers.publishVolunteer : t.volunteers.sendHelpRequest}
+            {submitting ? t.common.sending : form.isRetro ? t.volunteers.publishRetro : isCommander ? t.volunteers.publishVolunteer : t.volunteers.sendHelpRequest}
           </button>
         </div>
       </div>

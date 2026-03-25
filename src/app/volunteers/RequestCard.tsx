@@ -161,17 +161,18 @@ export default function RequestCard({
               <MdEdit className="text-xs" /> {t.volunteers.editBtn}
             </button>
           )}
-          {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
-            <button onClick={() => onNotify(req)} disabled={submitting}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-green-200 text-green-600 text-[10px] font-medium hover:bg-green-50 transition disabled:opacity-50">
-              <MdNotifications className="text-xs" /> {t.volunteers.alertBtn}
-            </button>
-          )}
-          {!isSagal && activeAssignments.length > 0 && req.status !== "completed" && req.status !== "cancelled" && (req.createdById === myUserId || isCommander || isMine) && (
-            <button onClick={() => onRemindAssigned(req)} disabled={submitting}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-purple-200 text-purple-600 text-[10px] font-medium hover:bg-purple-50 transition disabled:opacity-50">
-              <MdNotificationsActive className="text-xs" /> {t.volunteers.remindBtn}
-            </button>
+          {!isSagal && req.status !== "completed" && req.status !== "cancelled" && (req.createdById === myUserId || isCommander || isMine) && (
+            activeAssignments.length > 0 ? (
+              <button onClick={() => onRemindAssigned(req)} disabled={submitting}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-purple-200 text-purple-600 text-[10px] font-medium hover:bg-purple-50 transition disabled:opacity-50">
+                <MdNotificationsActive className="text-xs" /> {t.volunteers.remindBtn}
+              </button>
+            ) : req.status === "open" && (req.createdById === myUserId || isCommander) ? (
+              <button onClick={() => onNotify(req)} disabled={submitting}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-green-200 text-green-600 text-[10px] font-medium hover:bg-green-50 transition disabled:opacity-50">
+                <MdNotifications className="text-xs" /> {t.volunteers.alertBtn}
+              </button>
+            ) : null
           )}
           {!isSagal && req.status === "open" && (req.createdById === myUserId || isCommander) && (
             <button onClick={() => onStatusChange(req.id, "cancelled")} disabled={submitting}

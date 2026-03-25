@@ -24,12 +24,13 @@ interface GCalResponse {
 
 // POST — sync Google Calendar → ScheduleEvent (admin or cron)
 export async function POST(req: Request) {
-  // Allow cron secret bypass
+  // Allow cron secret bypass (query param or custom header)
   const { searchParams } = new URL(req.url);
-  const cronSecret = searchParams.get("secret");
-  const isCron = cronSecret === process.env.CRON_SECRET;
+  const cronSecret = searchParams.get("secret") || req.headers.get("x-cron-secret");
+  const isCron = !!cronSecret && cronSecret === process.env.CRON_SECRET;
 
   if (!isCron) {
+    console.log(`[sync] Auth failed — querySecret=${!!searchParams.get("secret")}, headerSecret=${!!req.headers.get("x-cron-secret")}, envSet=${!!process.env.CRON_SECRET}`);
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
     const userId = (session.user as { id: string }).id;

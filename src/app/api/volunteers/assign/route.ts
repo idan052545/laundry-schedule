@@ -26,12 +26,18 @@ export async function POST(request: Request) {
   if (!req) return NextResponse.json({ error: "בקשה לא נמצאה" }, { status: 404 });
   if (req.status !== "open") return NextResponse.json({ error: "הבקשה כבר סגורה" }, { status: 400 });
 
+  // Check if slots are full
+  const activeCount = req.assignments.filter(a => a.status !== "cancelled" && a.status !== "replaced").length;
+  if (activeCount >= req.requiredCount) {
+    return NextResponse.json({ error: "ההתנדבות מלאה — אין מקומות פנויים" }, { status: 400 });
+  }
+
   // Check if already assigned
   const existing = await prisma.volunteerAssignment.findUnique({
     where: { requestId_userId: { requestId, userId: targetUserId } },
   });
   if (existing && existing.status !== "cancelled") {
-    return NextResponse.json({ error: "כבר משובץ לתורנות זו" }, { status: 400 });
+    return NextResponse.json({ error: "כבר משובץ להתנדבות זו" }, { status: 400 });
   }
 
   // Commander assignment permission check
@@ -68,8 +74,8 @@ export async function POST(request: Request) {
       });
 
   // Check if request is now filled
-  const activeCount = req.assignments.filter(a => a.status !== "cancelled").length + 1;
-  if (activeCount >= req.requiredCount) {
+  const filledCount = activeCount + 1;
+  if (filledCount >= req.requiredCount) {
     await prisma.volunteerRequest.update({ where: { id: requestId }, data: { status: "filled" } });
   }
 
@@ -89,7 +95,7 @@ export async function POST(request: Request) {
     const assignerName = (await prisma.user.findUnique({ where: { id: currentUserId }, select: { name: true } }))?.name;
     const startStr = req.startTime.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
     await sendPushToUsers([targetUserId], {
-      title: "שובצת לתורנות",
+      title: "שובצת להתנדבות",
       body: `${assignerName} שיבץ אותך ל${req.title} (${startStr})`,
       url: "/volunteers",
       tag: `volunteer-assigned-${requestId}`,

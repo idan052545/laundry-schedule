@@ -224,7 +224,7 @@ const he = {
     formats: "פורמטים",
     laundry: "מכבסה",
     birthdays: "ימי הולדת",
-    volunteers: "תורנויות",
+    volunteers: "התנדבויות",
     guardDuty: "שיבוץ תורנויות",
     dailyQuote: "משפט היומי",
     chopal: 'חופ"ל',
@@ -237,7 +237,7 @@ const he = {
     // Section keys
     sectionQuote: "משפט היומי",
     sectionSchedule: 'לו"ז',
-    sectionDuty: "תורנויות",
+    sectionDuty: "התנדבויות",
     sectionTeamSchedule: "לו\"ז צוות",
     sectionMySchedule: 'הלו"ז שלי',
     sectionNotes: "הערות",
@@ -566,16 +566,16 @@ const he = {
 
   // Volunteers
   volunteers: {
-    title: "תורנויות",
-    createVolunteer: "יצירת תורנות",
+    title: "התנדבויות",
+    createVolunteer: "יצירת התנדבות",
     helpRequest: "בקשת עזרה",
     sagalViewOnly: "צפייה בלבד — סגל מפקד",
     activityTab: "פעילות",
     myTab: "שלי",
     statsTab: "סטטיסטיקה",
     openTab: "פתוחות",
-    noVolunteers: "אין תורנויות",
-    noAssignments: "אין תורנויות משובצות",
+    noVolunteers: "אין התנדבויות",
+    noAssignments: "אין התנדבויות משובצות",
     // Card
     commander: "מפקד",
     helpRequestBadge: "בקשת עזרה",
@@ -607,7 +607,7 @@ const he = {
     avgRating: "דירוג ממוצע",
     teamDistribution: "התפלגות לפי צוות",
     topVolunteers: "מתנדבים מובילים",
-    duties: "תורנויות",
+    duties: "התנדבויות",
     hoursLabel: "שעות",
     // Candidates
     candidatesTitle: "שיבוץ —",
@@ -619,10 +619,10 @@ const he = {
     assignAsCommander: "שבץ כמפקד",
     assignAsTeammate: "שבץ כחבר צוות",
     // Create modal
-    createTitle: "יצירת תורנות",
+    createTitle: "יצירת התנדבות",
     helpRequestTitle: "בקשת עזרה",
     helpRequestDesc: "בקשת עזרה היא פניה ידידותית לחברי הפלוגה — לא חובה, אבל כל עזרה מתקבלת בברכה",
-    volunteerName: "שם התורנות *",
+    volunteerName: "שם ההתנדבות *",
     helpName: "במה צריך עזרה? *",
     namePlaceholder: "לדוגמה: ניקיון חדר אוכל",
     descriptionLabel: "תיאור",
@@ -639,9 +639,11 @@ const he = {
     locationLabel: "נקודת התכנסות",
     locationPlaceholder: "לדוגמה: חדר אוכל, מגרש",
     remindBtn: "תזכורת",
+    slotsFull: "ההתנדבות מלאה",
+    joining: "מצטרף/ת...",
     deleteBtn: "מחיקה",
     pickReplacer: "בחר מחליף",
-    publishVolunteer: "פרסם תורנות",
+    publishVolunteer: "פרסם התנדבות",
     sendHelpRequest: "שלח בקשת עזרה",
     // Replace modal
     replaceTitle: "בקשת החלפה",
@@ -649,7 +651,7 @@ const he = {
     replaceUrgent: "דחוף! (ישלח התראה מיוחדת)",
     sendRequest: "שלח בקשה",
     // Feedback modal
-    feedbackTitle: "דירוג התורנות",
+    feedbackTitle: "דירוג ההתנדבות",
     feedbackComment: "משהו נוסף?",
     sendRating: "שלח דירוג",
     // Dispute modal
@@ -659,7 +661,10 @@ const he = {
     disputeReason: "סיבה (לא חובה)",
     sendDispute: "שלח ערעור",
     // Edit modal
-    editTitle: "עריכת תורנות",
+    retroToggle: "התנדבות שכבר הייתה (רטרו)",
+    retroNote: "שומרים על אמינות — מדווחים רק על התנדבויות שבאמת התבצעו",
+    publishRetro: "דווח התנדבות",
+    editTitle: "עריכת התנדבות",
     editName: "שם",
     editDescription: "תיאור",
     editStart: "התחלה",

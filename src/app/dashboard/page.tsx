@@ -167,6 +167,21 @@ export default function DashboardPage() {
     alert("נשלחה תזכורת למשובצים");
   };
 
+  const handleQuickAssign = async (requestId: string): Promise<boolean> => {
+    const res = await fetch("/api/volunteers/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId }),
+    });
+    if (res.ok) {
+      fetchData(); // refresh in background
+      return true;
+    }
+    const err = await res.json();
+    alert(err.error || "שגיאה");
+    return false;
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/login"); return; }
     if (status === "authenticated") fetchData();
@@ -287,7 +302,7 @@ export default function DashboardPage() {
       {feedLoading ? <DashboardSkeleton /> : (
         <>
           {feed && dashStyle === "classic" && <ClassicFeed feed={feed} visible={visible} />}
-          {feed && dashStyle === "new" && <NewFeed feed={feed} visible={visible} onRemindVolunteer={handleRemindVolunteer} />}
+          {feed && dashStyle === "new" && <NewFeed feed={feed} visible={visible} onRemindVolunteer={handleRemindVolunteer} onQuickAssign={handleQuickAssign} isSagal={isSagal} />}
           {feed && dashStyle === "carousel" && <CarouselFeed feed={feed} visible={visible} />}
         </>
       )}

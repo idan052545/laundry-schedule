@@ -33,6 +33,7 @@ export async function GET(request: Request) {
     const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
 
     const results: Record<string, unknown> = {};
+    console.log(`[cron] baseUrl=${baseUrl}, secretLen=${secret?.length}, envLen=${process.env.CRON_SECRET?.length}, match=${secret === process.env.CRON_SECRET}`);
 
     // Helper: fetch with timeout, error handling, and retry
     async function safeFetch(url: string, label: string): Promise<{ ok: boolean; data?: Record<string, unknown>; error?: string }> {
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
           method: "POST",
           cache: "no-store",
           signal: controller.signal,
+          headers: { "x-cron-secret": secret || "" },
         });
         clearTimeout(timeout);
         if (!res.ok) {

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     select: { id: true },
   });
 
-  const title = isUrgent ? "דחוף! צריך מחליף עכשיו" : "מחפשים מחליף לתורנות";
+  const title = isUrgent ? "דחוף! צריך מחליף עכשיו" : "מחפשים מחליף להתנדבות";
   const body = `${assignment.user.name} צריך/ה מחליף/ה ל${req.title}`;
 
   if (candidates.length > 0) {
