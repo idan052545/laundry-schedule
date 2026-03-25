@@ -169,18 +169,24 @@ export async function POST(req: NextRequest) {
       : new Date(e.end.date + "T00:00:00+03:00");
 
     const title = e.summary || "ללא כותרת";
-    const titleNorm = title.replace(/[־\-–—]/g, " ");
-    const descNorm = (e.description || "").replace(/[־\-–—]/g, " ");
-    // Strip Hebrew "ו" (and) prefix from words: "ואורי" → "אורי", "ועילי" → "עילי"
-    const stripVav = (text: string) => text.replace(/(?<=^|\s)ו(?=[א-ת])/g, " ");
-    const searchText = stripVav(`${titleNorm} ${descNorm}`);
+    const descRaw = e.description || "";
 
-    // Extract name tokens from text: split by common delimiters used in calendar titles
-    // e.g. "12:10 טד נופמו - עידן, אלה, נועה ב" → ["עידן", "אלה", "נועה ב"]
-    // Split by comma first, then also split each token by " - " to separate prefix from names
+    // Extract names portion: split by " - " or " – " first, take everything after the separator
+    // e.g. "12:10-12:45 טד נופמו - יהלי כ, רוני, נטע" → "יהלי כ, רוני, נטע"
+    const dashIdx = title.search(/\s[-–—]\s/);
+    const namesPart = dashIdx >= 0 ? title.slice(dashIdx + title.slice(dashIdx).match(/\s[-–—]\s/)![0].length) : title;
+
+    // Normalize dashes in names part and description for text search
+    const namesNorm = namesPart.replace(/[־\-–—]/g, " ");
+    const descNorm = descRaw.replace(/[־\-–—]/g, " ");
+    // Strip Hebrew "ו" (and) prefix from words: "ואורי" → "אורי"
+    const stripVav = (text: string) => text.replace(/(?<=^|\s)ו(?=[א-ת])/g, " ");
+    const searchText = stripVav(`${namesNorm} ${descNorm}`);
+
+    // Extract name tokens by splitting on commas and other delimiters
+    // e.g. "יהלי כ, רוני, נטע, עידן" → ["יהלי כ", "רוני", "נטע", "עידן"]
     const nameTokens = searchText
       .split(/[,/+&|]/)
-      .flatMap(t => t.split(/\s+[-–—]\s+/))
       .map(t => t.trim())
       .filter(Boolean);
 
