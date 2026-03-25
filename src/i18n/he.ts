@@ -657,8 +657,10 @@ const he = {
     sendRating: "שלח דירוג",
     // Dispute modal
     disputeTitle: "ערעור שעות",
-    actualStart: "שעת התחלה בפועל",
+    disputeDesc: "עדכון שעת הסיום בפועל — שעת ההתחלה נשארת כפי שנקבעה",
+    actualStart: "שעת התחלה",
     actualEnd: "שעת סיום בפועל",
+    lockedStart: "נעול",
     disputeReason: "סיבה (לא חובה)",
     sendDispute: "שלח ערעור",
     // Edit modal

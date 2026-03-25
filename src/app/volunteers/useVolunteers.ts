@@ -60,8 +60,8 @@ export function useVolunteers() {
   // Feedback form
   const [feedbackForm, setFeedbackForm] = useState({ rating: 0, type: "preserve", comment: "" });
 
-  // Dispute form
-  const [disputeForm, setDisputeForm] = useState({ claimedStartTime: "", claimedEndTime: "", reason: "" });
+  // Dispute form — stores the request's original date + times for the modal
+  const [disputeForm, setDisputeForm] = useState({ claimedStartTime: "", claimedEndTime: "", reason: "", originalStartTime: "", originalEndTime: "" });
 
   // Replace form
   const [replaceForm, setReplaceForm] = useState({ reason: "", isUrgent: false });
@@ -257,16 +257,45 @@ export function useVolunteers() {
     setSubmitting(false);
   };
 
+  const startDispute = (requestId: string) => {
+    // Find the request to pre-fill times
+    const req = requests.find(r => r.id === requestId);
+    if (!req) { setShowDispute(requestId); return; }
+    const toTimeStr = (iso: string) =>
+      new Date(iso).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+    const startTime = toTimeStr(req.startTime);
+    const endTime = toTimeStr(req.endTime);
+    setDisputeForm({
+      claimedStartTime: startTime,
+      claimedEndTime: endTime,
+      reason: "",
+      originalStartTime: startTime,
+      originalEndTime: endTime,
+    });
+    setShowDispute(requestId);
+  };
+
   const handleDispute = async (requestId: string) => {
     if (!disputeForm.claimedStartTime || !disputeForm.claimedEndTime) return;
     setSubmitting(true);
+    // Convert time-only strings to full ISO using the request's date
+    const req = requests.find(r => r.id === requestId);
+    const dateStr = req
+      ? new Date(req.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" })
+      : new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
+    const offset = getIsraelOffset(new Date());
     await fetch("/api/volunteers/dispute", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId, ...disputeForm }),
+      body: JSON.stringify({
+        requestId,
+        claimedStartTime: `${dateStr}T${disputeForm.claimedStartTime}:00${offset}`,
+        claimedEndTime: `${dateStr}T${disputeForm.claimedEndTime}:00${offset}`,
+        reason: disputeForm.reason,
+      }),
     });
     setShowDispute(null);
-    setDisputeForm({ claimedStartTime: "", claimedEndTime: "", reason: "" });
+    setDisputeForm({ claimedStartTime: "", claimedEndTime: "", reason: "", originalStartTime: "", originalEndTime: "" });
     setSubmitting(false);
   };
 
@@ -371,7 +400,7 @@ export function useVolunteers() {
     candidates, loadingCandidates, fetchCandidates,
     stats, statsPeriod, setStatsPeriod, exportStats,
     showFeedback, setShowFeedback,
-    showDispute, setShowDispute,
+    showDispute, setShowDispute, startDispute,
     showReplace, setShowReplace,
     submitting,
     form, setForm, showTitleSuggestions, setShowTitleSuggestions, filteredSuggestions,

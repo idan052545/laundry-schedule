@@ -146,7 +146,7 @@ export default function VolunteersPage() {
               onStatusChange={v.handleStatusChange}
               onDelete={v.handleDelete}
               onShowFeedback={v.setShowFeedback}
-              onShowDispute={v.setShowDispute}
+              onShowDispute={v.startDispute}
             />
           ))}
         </div>
@@ -170,7 +170,7 @@ export default function VolunteersPage() {
               getTranslation={getTranslation}
               onShowReplace={(id) => v.setShowReplace(id)}
               onShowFeedback={(id) => v.setShowFeedback(id)}
-              onShowDispute={(id) => v.setShowDispute(id)}
+              onShowDispute={(id) => v.startDispute(id)}
             />
           ))}
         </div>
