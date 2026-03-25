@@ -20,12 +20,9 @@ interface TimelineProps {
   noteReminding: string | null;
   nowRef: RefObject<HTMLDivElement | null>;
   onDetail: (event: ScheduleEvent) => void;
-  onEdit: (event: ScheduleEvent) => void;
-  onDelete: (id: string) => void;
   onRemind: (id: string) => void;
   onRemindAssigned: (id: string) => void;
   onAssign: (event: ScheduleEvent) => void;
-  onMove: (idx: number, direction: "up" | "down") => void;
   onEditNote: (note: ScheduleNote) => void;
   onDeleteNote: (id: string) => void;
   onRemindNote: (id: string) => void;
@@ -35,8 +32,8 @@ interface TimelineProps {
 export default function Timeline({
   timedEvents, notes, date, isToday, canEdit,
   myUserId, myName, reminding, noteReminding, nowRef,
-  onDetail, onEdit, onDelete, onRemind, onRemindAssigned,
-  onAssign, onMove, onEditNote, onDeleteNote, onRemindNote,
+  onDetail, onRemind, onRemindAssigned,
+  onAssign, onEditNote, onDeleteNote, onRemindNote,
   getTranslation,
 }: TimelineProps) {
   const { t, dateLocale } = useLanguage();
@@ -86,34 +83,34 @@ export default function Timeline({
           return (
             <div key={`g-${item.groupIdx}`} ref={isNowGroup ? nowRef : undefined} className="flex gap-2 mb-0 min-w-0">
               <div className="w-12 shrink-0 text-end pt-3">
-                <div className={`text-xs font-bold ${isTeamGroup ? "text-cyan-700" : "text-gray-800"}`}>{groupStartTime}</div>
-                <div className={`text-[10px] ${isTeamGroup ? "text-cyan-400" : "text-gray-400"}`}>{groupEndTime}</div>
+                <div className={`text-[13px] font-extrabold tabular-nums ${anyActive ? "text-dotan-green" : isTeamGroup ? "text-cyan-600" : "text-gray-700"}`}>{groupStartTime}</div>
+                <div className={`text-[10px] font-medium ${isTeamGroup ? "text-cyan-400" : "text-gray-350"}`}>{groupEndTime}</div>
               </div>
-              <div className="flex flex-col items-center shrink-0 w-4">
-                <div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm shrink-0 mt-3.5 z-10 ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30" : hasMyAssignment ? "bg-teal-400 ring-2 ring-teal-300/40" : isTeamGroup ? "bg-cyan-400" : firstConfig.dot}`} />
+              <div className="flex flex-col items-center shrink-0 w-5">
+                <div className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow shrink-0 mt-3.5 z-10 transition-all ${anyActive ? "bg-dotan-green ring-2 ring-dotan-green/30 scale-110" : hasMyAssignment ? "bg-teal-400 ring-2 ring-teal-300/40" : isTeamGroup ? "bg-cyan-400" : firstConfig.dot}`} />
                 {idx < totalItems - 1 && (
-                  <div className="w-0.5 flex-1 bg-gray-200 -mt-0.5" />
+                  <div className={`w-0.5 flex-1 -mt-0.5 ${anyActive ? "bg-gradient-to-b from-dotan-green/40 to-gray-200" : "bg-gray-200"}`} />
                 )}
               </div>
               {isSingle ? (
                 <div className="flex-1 mb-2 min-w-0">
                   <EventCard
-                    event={group.events[0].event} idx={group.events[0].idx} compact={false}
-                    isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
-                    reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={onDetail} onEdit={onEdit}
-                    onDelete={onDelete} onRemind={onRemind} onRemindAssigned={onRemindAssigned} onAssign={onAssign} onMove={onMove}
+                    event={group.events[0].event} compact={false}
+                    isAdmin={canEdit} isToday={isToday}
+                    reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={onDetail}
+                    onRemind={onRemind} onRemindAssigned={onRemindAssigned} onAssign={onAssign}
                     getTranslation={getTranslation}
                   />
                 </div>
               ) : (
-                <div className="flex-1 mb-2 flex gap-1.5 min-w-0">
+                <div className="flex-1 mb-2 flex gap-2 min-w-0">
                   {group.events.map((evItem) => (
                     <EventCard
                       key={evItem.event.id}
-                      event={evItem.event} idx={evItem.idx} compact={true}
-                      isAdmin={canEdit} isToday={isToday} timedEventsLength={timedEvents.length}
-                      reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={onDetail} onEdit={onEdit}
-                      onDelete={onDelete} onRemind={onRemind} onRemindAssigned={onRemindAssigned} onAssign={onAssign} onMove={onMove}
+                      event={evItem.event} compact={true}
+                      isAdmin={canEdit} isToday={isToday}
+                      reminding={reminding} currentUserId={myUserId} currentUserName={myName} onDetail={onDetail}
+                      onRemind={onRemind} onRemindAssigned={onRemindAssigned} onAssign={onAssign}
                       getTranslation={getTranslation}
                     />
                   ))}

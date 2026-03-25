@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  MdEdit, MdDelete, MdNotifications, MdPersonAdd,
-  MdArrowUpward, MdArrowDownward, MdAccessAlarm,
+  MdNotifications, MdPersonAdd,
+  MdAccessAlarm, MdAccessTime,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { useLanguage } from "@/i18n";
@@ -12,27 +12,22 @@ import { formatTime, formatEndTime, getDurationMin, isEventNow, isNameInTitle } 
 
 interface EventCardProps {
   event: ScheduleEvent;
-  idx: number;
   compact: boolean;
   isAdmin: boolean;
   isToday: boolean;
-  timedEventsLength: number;
   reminding: string | null;
   currentUserId?: string;
   currentUserName?: string;
   onDetail: (event: ScheduleEvent) => void;
-  onEdit: (event: ScheduleEvent) => void;
-  onDelete: (id: string) => void;
   onRemind: (id: string) => void;
   onRemindAssigned: (id: string) => void;
   onAssign: (event: ScheduleEvent) => void;
-  onMove: (idx: number, direction: "up" | "down") => void;
   getTranslation?: (text: string) => string;
 }
 
 export default function EventCard({
-  event, idx, compact, isAdmin, isToday, timedEventsLength,
-  reminding, currentUserId, currentUserName, onDetail, onEdit, onDelete, onRemind, onRemindAssigned, onAssign, onMove,
+  event, compact, isAdmin, isToday,
+  reminding, currentUserId, currentUserName, onDetail, onRemind, onRemindAssigned, onAssign,
   getTranslation,
 }: EventCardProps) {
   const { t, dateLocale } = useLanguage();
@@ -45,17 +40,16 @@ export default function EventCard({
   const isAssignedToMe = (currentUserId ? event.assignees.some(a => a.userId === currentUserId) : false) || isNameInTitle(event.title, currentUserName || "");
   const isTeamEvent = event.target !== "all";
 
-  // Visual priority: assigned > team > default
   const cardBg = isAssignedToMe
-    ? "bg-gradient-to-l from-teal-50 to-emerald-50 border-teal-400"
+    ? "bg-gradient-to-l from-teal-50/90 to-emerald-50/90 border-teal-300"
     : isTeamEvent
-      ? "bg-cyan-50/80 border-cyan-200"
+      ? "bg-gradient-to-l from-cyan-50/80 to-sky-50/80 border-cyan-200"
       : `${config.bg} ${config.border}`;
   const cardRing = active
-    ? "ring-2 ring-dotan-green shadow-md"
+    ? "ring-2 ring-dotan-green/60 shadow-lg shadow-green-100/50"
     : isAssignedToMe
-      ? "ring-2 ring-teal-400 shadow-md"
-      : "shadow-sm";
+      ? "ring-1 ring-teal-300/60 shadow-md shadow-teal-100/40"
+      : "shadow-sm hover:shadow-md";
   const leftAccent = isAssignedToMe
     ? "border-r-[4px] border-r-teal-500"
     : isTeamEvent ? "border-r-[3px] border-r-cyan-400" : "";
@@ -63,114 +57,96 @@ export default function EventCard({
   return (
     <div
       onClick={() => onDetail(event)}
-      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-xl border ${compact ? "p-2" : "p-3"} transition cursor-pointer overflow-hidden ${cardBg} ${cardRing} ${leftAccent}`}
+      className={`${compact ? "flex-1 min-w-0" : "flex-1"} rounded-2xl border ${compact ? "p-2.5" : "p-3.5"} transition-all duration-200 cursor-pointer overflow-hidden ${cardBg} ${cardRing} ${leftAccent} hover:scale-[1.01] active:scale-[0.99]`}
     >
-      <div className="flex items-start gap-1.5">
-        {isAdmin && !compact && (
-          <div className="flex flex-col gap-0.5 shrink-0 mt-0.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); onMove(idx, "up"); }}
-              disabled={idx === 0}
-              className="text-gray-300 hover:text-dotan-green disabled:opacity-20 disabled:hover:text-gray-300 transition">
-              <MdArrowUpward className="text-sm" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onMove(idx, "down"); }}
-              disabled={idx === timedEventsLength - 1}
-              className="text-gray-300 hover:text-dotan-green disabled:opacity-20 disabled:hover:text-gray-300 transition">
-              <MdArrowDownward className="text-sm" />
-            </button>
+      <div className="flex items-start gap-2">
+        {/* Icon circle */}
+        {!compact && (
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+            isAssignedToMe ? "bg-teal-100" : isTeamEvent ? "bg-cyan-100" : config.bg
+          } ${active ? "animate-pulse" : ""}`}>
+            <Icon className={`text-lg ${isAssignedToMe ? "text-teal-600" : isTeamEvent ? "text-cyan-600" : config.color}`} />
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 flex-wrap">
-            <Icon className={`${compact ? "text-sm" : "text-base"} ${config.color} shrink-0`} />
-            <h3 className={`font-bold text-gray-800 ${compact ? "text-xs" : "text-sm"} leading-tight truncate`}>{tr(event.title)}</h3>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {compact && <Icon className={`text-sm ${config.color} shrink-0`} />}
+            <h3 className={`font-bold text-gray-800 ${compact ? "text-xs" : "text-[13px]"} leading-tight truncate`}>{tr(event.title)}</h3>
             {active && (
-              <span className="px-1 py-0.5 bg-dotan-green text-white rounded text-[8px] font-bold animate-pulse">
+              <span className="px-1.5 py-0.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-[8px] font-bold animate-pulse shadow-sm">
                 {t.common.now}
               </span>
             )}
             {isTeamEvent && (
-              <span className="px-1 py-0.5 bg-cyan-500 text-white rounded text-[8px] font-bold">
+              <span className="px-1.5 py-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full text-[8px] font-bold shadow-sm">
                 {targetLabels[event.target] || t.common.team}
               </span>
             )}
             {isAssignedToMe && (
               <span className="px-1.5 py-0.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-full text-[8px] font-bold shadow-sm">
-                ⭐ {t.schedule.forYou}
+                {t.schedule.forYou}
               </span>
             )}
           </div>
 
           {compact && (
-            <div className="text-[10px] text-gray-500 mt-0.5 font-medium" dir="ltr">
+            <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5 font-medium" dir="ltr">
+              <MdAccessTime className="text-[10px]" />
               {formatTime(event.startTime, dateLocale)} – {formatEndTime(event.startTime, event.endTime, dateLocale)}
             </div>
           )}
 
-          {!compact && duration > 0 && (
-            <div className="text-[10px] text-gray-400 mt-0.5">
-              {duration >= 60 ? `${Math.floor(duration / 60)} ${t.common.hours}` : ""}{duration % 60 > 0 ? ` ${duration % 60} ${t.common.minutes}` : ""}
+          {!compact && (
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+              {duration > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <MdAccessTime className="text-[10px]" />
+                  {duration >= 60 ? `${Math.floor(duration / 60)} ${t.common.hours}` : ""}{duration % 60 > 0 ? ` ${duration % 60} ${t.common.minutes}` : ""}
+                </span>
+              )}
             </div>
           )}
 
           {!compact && event.description && (
-            <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">{tr(event.description!)}</p>
+            <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed line-clamp-2">{tr(event.description!)}</p>
           )}
 
           {!compact && event.assignees.length > 0 && (
-            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-              {event.assignees.slice(0, 4).map((a) => (
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {event.assignees.slice(0, 5).map((a) => (
                 <Avatar key={a.id} name={a.user.name} image={a.user.image} size="xs" />
               ))}
-              {event.assignees.length > 4 && (
-                <span className="text-[10px] text-gray-400">+{event.assignees.length - 4}</span>
+              {event.assignees.length > 5 && (
+                <span className="text-[10px] text-gray-400 font-medium">+{event.assignees.length - 5}</span>
               )}
             </div>
           )}
 
-          {!active && event.assignees.length > 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onRemindAssigned(event.id); }}
-              disabled={reminding === event.id}
-              className={`flex items-center gap-1 ${compact ? "mt-1" : "mt-1.5"} text-[10px] font-medium text-blue-500 hover:text-blue-700 transition disabled:opacity-50`}
-            >
-              <MdAccessAlarm className={`text-xs ${reminding === event.id ? "animate-bounce" : ""}`} />
-              <span>{t.schedule.remindAssigned}</span>
-            </button>
-          )}
-
-          {isAdmin && (
-            <div className={`flex items-center gap-2 ${compact ? "mt-1" : "mt-2 pt-1.5 border-t border-black/5"}`}>
-              {compact && (
-                <>
-                  <button onClick={(e) => { e.stopPropagation(); onMove(idx, "up"); }} disabled={idx === 0}
-                    className="text-gray-300 hover:text-dotan-green disabled:opacity-20 transition">
-                    <MdArrowUpward className="text-xs" />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); onMove(idx, "down"); }} disabled={idx === timedEventsLength - 1}
-                    className="text-gray-300 hover:text-dotan-green disabled:opacity-20 transition">
-                    <MdArrowDownward className="text-xs" />
-                  </button>
-                  <div className="w-px h-3 bg-gray-200" />
-                </>
-              )}
-              <button onClick={(e) => { e.stopPropagation(); onRemind(event.id); }} disabled={reminding === event.id}
-                className="text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
-                <MdNotifications className={`${compact ? "text-xs" : "text-sm"} ${reminding === event.id ? "animate-bounce" : ""}`} />
+          {/* Actions row */}
+          <div className={`flex items-center gap-1.5 ${compact ? "mt-1" : "mt-2"}`}>
+            {!active && event.assignees.length > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemindAssigned(event.id); }}
+                disabled={reminding === event.id}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 text-[10px] font-medium transition disabled:opacity-50"
+              >
+                <MdAccessAlarm className={`text-xs ${reminding === event.id ? "animate-bounce" : ""}`} />
+                {t.schedule.remindAssigned}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onAssign(event); }} className="text-gray-300 hover:text-purple-500 transition">
-                <MdPersonAdd className={compact ? "text-xs" : "text-sm"} />
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onEdit(event); }} className="text-gray-300 hover:text-dotan-green transition">
-                <MdEdit className={compact ? "text-xs" : "text-sm"} />
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onDelete(event.id); }} className="text-gray-300 hover:text-red-500 transition mr-auto">
-                <MdDelete className={compact ? "text-xs" : "text-sm"} />
-              </button>
-            </div>
-          )}
+            )}
+            {isAdmin && (
+              <>
+                <button onClick={(e) => { e.stopPropagation(); onRemind(event.id); }} disabled={reminding === event.id}
+                  className="p-1 rounded-full hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition disabled:opacity-50">
+                  <MdNotifications className={`${compact ? "text-xs" : "text-sm"} ${reminding === event.id ? "animate-bounce" : ""}`} />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onAssign(event); }}
+                  className="p-1 rounded-full hover:bg-purple-50 text-gray-300 hover:text-purple-500 transition">
+                  <MdPersonAdd className={compact ? "text-xs" : "text-sm"} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

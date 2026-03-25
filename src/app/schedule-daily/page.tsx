@@ -201,9 +201,8 @@ export default function ScheduleDailyPage() {
       )}
 
       <AllDayEvents
-        events={allDayEvents} isToday={isToday} canEdit={canEdit}
+        events={allDayEvents} isToday={isToday}
         myUserId={myUserId} myName={myName}
-        onEdit={openEdit} onDelete={ev.handleDelete}
         getTranslation={getTranslation}
       />
 
@@ -232,11 +231,10 @@ export default function ScheduleDailyPage() {
         myUserId={myUserId} myName={myName}
         reminding={ev.reminding} noteReminding={nt.noteReminding}
         nowRef={nowRef}
-        onDetail={setDetailEvent} onEdit={openEdit}
-        onDelete={ev.handleDelete} onRemind={ev.handleRemind}
+        onDetail={setDetailEvent}
+        onRemind={ev.handleRemind}
         onRemindAssigned={ev.handleRemindAssigned}
         onAssign={ev.openAssign}
-        onMove={(idx, dir) => ev.moveEvent(idx, dir, timedEvents)}
         onEditNote={nt.openEditNote}
         onDeleteNote={nt.handleDeleteNote}
         onRemindNote={nt.handleRemindNote}

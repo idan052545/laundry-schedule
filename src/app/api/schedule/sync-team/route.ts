@@ -151,10 +151,19 @@ export async function POST(req: NextRequest) {
     const searchText = `${titleNorm} ${descNorm}`;
     const matchedUsers = teamUsers.filter(u => {
       if (!u.name) return false;
+      // Full name match
       if (searchText.includes(u.name)) return true;
       const nameParts = u.name.split(/\s+/).filter(p => p.length > 1);
-      if (nameParts.length < 2) return false;
-      return nameParts.every(part => searchText.includes(part));
+      // All parts of name found in text
+      if (nameParts.length >= 2 && nameParts.every(part => searchText.includes(part))) return true;
+      // First name match — only if first name is 3+ chars to avoid false positives
+      const firstName = nameParts[0];
+      if (firstName && firstName.length >= 3) {
+        // Check if first name appears as a standalone word (bounded by spaces, commas, dashes, start/end)
+        const pattern = new RegExp(`(?:^|[\\s,/\\-–—+&|])${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[\\s,/\\-–—+&|])`, "u");
+        if (pattern.test(` ${searchText} `)) return true;
+      }
+      return false;
     });
 
     return {
