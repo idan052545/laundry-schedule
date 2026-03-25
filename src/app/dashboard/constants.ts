@@ -6,6 +6,7 @@ export const getSectionLabels = (t: Dictionary): Record<SectionKey, string> => (
   schedule: t.dashboard.sectionSchedule,
   duty: t.dashboard.sectionDuty,
   teamSchedule: t.dashboard.sectionTeamSchedule,
+  mySchedule: t.dashboard.sectionMySchedule,
   notes: t.dashboard.sectionNotes,
   tasks: t.dashboard.sectionTasks,
   forms: t.dashboard.sectionForms,
@@ -21,7 +22,7 @@ export const getSectionLabels = (t: Dictionary): Record<SectionKey, string> => (
 });
 
 export const DEFAULT_VISIBLE: SectionKey[] = [
-  "quote", "schedule", "duty", "teamSchedule", "notes", "tasks", "forms",
+  "quote", "schedule", "duty", "teamSchedule", "mySchedule", "notes", "tasks", "forms",
   "surveys", "birthdays", "messages", "materials", "commander", "vote",
   "machines", "chopal", "volunteers",
 ];

@@ -229,6 +229,7 @@ const en: Dictionary = {
     sectionSchedule: "Schedule",
     sectionDuty: "Duties",
     sectionTeamSchedule: "Team Schedule",
+    sectionMySchedule: "My Schedule",
     sectionNotes: "Notes",
     sectionTasks: "Tasks",
     sectionForms: "Forms",

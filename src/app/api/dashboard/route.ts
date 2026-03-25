@@ -41,6 +41,7 @@ export async function GET() {
     dailyQuote,
     upcomingDutyTables,
     myTeamAssignments,
+    myAssignedSchedule,
     activeVolunteerRequests,
     myVolunteerAssignments,
     myCreatedRequests,
@@ -192,6 +193,19 @@ export async function GET() {
         startTime: { lte: new Date(todayStr + "T23:59:59Z") },
         endTime: { gt: new Date(todayStr + "T00:00:00Z") },
         target: { not: "all" },
+        assignees: { some: { userId } },
+      },
+      orderBy: { startTime: "asc" },
+      select: {
+        id: true, title: true, startTime: true, endTime: true, type: true, target: true, allDay: true,
+      },
+    }),
+
+    // All schedule events assigned to the user today (team + platoon)
+    prisma.scheduleEvent.findMany({
+      where: {
+        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
+        endTime: { gt: new Date(todayStr + "T00:00:00Z") },
         assignees: { some: { userId } },
       },
       orderBy: { startTime: "asc" },
@@ -412,6 +426,7 @@ export async function GET() {
     scheduleItems,
     allDaySchedule: allDayEvents,
     myTeamAssignments,
+    myAssignedSchedule,
     pendingSurveys,
     pendingPlatoonSurveys,
     platoonSurveyCommanderId,

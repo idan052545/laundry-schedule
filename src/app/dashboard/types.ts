@@ -27,6 +27,7 @@ export interface DashboardFeed {
   scheduleItems: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; assignees: { id: string }[]; status: "now" | "next" }[];
   allDaySchedule: { id: string; title: string; type: string; target: string; assignees: { id: string }[] }[];
   myTeamAssignments: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; allDay: boolean }[];
+  myAssignedSchedule: { id: string; title: string; startTime: string; endTime: string; type: string; target: string; allDay: boolean }[];
   pendingSurveys: { id: string; title: string; createdAt: string }[];
   pendingPlatoonSurveys: { id: string; title: string; createdAt: string }[];
   platoonSurveyCommanderId: string | null;
@@ -47,7 +48,7 @@ export interface DashboardFeed {
   urgentReplacement: { id: string; isUrgent: boolean; request: { id: string; title: string } } | null;
 }
 
-export type SectionKey = "quote" | "schedule" | "duty" | "teamSchedule" | "notes" | "tasks" | "forms" | "surveys" | "birthdays" | "messages" | "materials" | "commander" | "vote" | "machines" | "chopal" | "volunteers";
+export type SectionKey = "quote" | "schedule" | "duty" | "teamSchedule" | "mySchedule" | "notes" | "tasks" | "forms" | "surveys" | "birthdays" | "messages" | "materials" | "commander" | "vote" | "machines" | "chopal" | "volunteers";
 
 export type DashStyle = "new" | "classic" | "carousel";
 

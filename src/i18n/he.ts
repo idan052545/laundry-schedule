@@ -239,6 +239,7 @@ const he = {
     sectionSchedule: 'לו"ז',
     sectionDuty: "תורנויות",
     sectionTeamSchedule: "לו\"ז צוות",
+    sectionMySchedule: 'הלו"ז שלי',
     sectionNotes: "הערות",
     sectionTasks: "משימות",
     sectionForms: "טפסים",
