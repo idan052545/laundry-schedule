@@ -136,6 +136,16 @@ export async function POST(req: NextRequest) {
 
   const activeEvents = allGCalEvents.filter(e => e.status !== "cancelled");
 
+  // Pre-compute unique first names — only allow first-name matching when no duplicates
+  const firstNameCounts = new Map<string, number>();
+  for (const u of teamUsers) {
+    if (!u.name) continue;
+    const firstName = u.name.split(/\s+/).filter(p => p.length > 1)[0];
+    if (firstName && firstName.length >= 3) {
+      firstNameCounts.set(firstName, (firstNameCounts.get(firstName) || 0) + 1);
+    }
+  }
+
   const parsed = activeEvents.map(e => {
     const allDay = !e.start.dateTime;
     const startTime = e.start.dateTime
@@ -156,10 +166,9 @@ export async function POST(req: NextRequest) {
       const nameParts = u.name.split(/\s+/).filter(p => p.length > 1);
       // All parts of name found in text
       if (nameParts.length >= 2 && nameParts.every(part => searchText.includes(part))) return true;
-      // First name match — only if first name is 3+ chars to avoid false positives
+      // First name match — only if first name is unique in team (no duplicates)
       const firstName = nameParts[0];
-      if (firstName && firstName.length >= 3) {
-        // Check if first name appears as a standalone word (bounded by spaces, commas, dashes, start/end)
+      if (firstName && firstName.length >= 3 && (firstNameCounts.get(firstName) || 0) === 1) {
         const pattern = new RegExp(`(?:^|[\\s,/\\-–—+&|])${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[\\s,/\\-–—+&|])`, "u");
         if (pattern.test(` ${searchText} `)) return true;
       }
