@@ -28,12 +28,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Derive base URL from the incoming request (same host Vercel used to call us)
-    const requestUrl = new URL(request.url);
-    const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+    // Use production URL to avoid Vercel Deployment Protection on preview URLs
+    const prodDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL; // e.g. "laundry-schedule.vercel.app"
+    const baseUrl = prodDomain
+      ? `https://${prodDomain}`
+      : process.env.NEXTAUTH_URL || `${new URL(request.url).protocol}//${new URL(request.url).host}`;
 
     const results: Record<string, unknown> = {};
-    console.log(`[cron] baseUrl=${baseUrl}, secretLen=${secret?.length}, envLen=${process.env.CRON_SECRET?.length}, match=${secret === process.env.CRON_SECRET}`);
+    console.log(`[cron] baseUrl=${baseUrl}, secretLen=${secret?.length}`);
 
     // Helper: fetch with timeout, error handling, and retry
     async function safeFetch(url: string, label: string): Promise<{ ok: boolean; data?: Record<string, unknown>; error?: string }> {
