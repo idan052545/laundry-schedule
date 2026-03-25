@@ -176,9 +176,13 @@ export async function POST(req: NextRequest) {
     const searchText = stripVav(`${titleNorm} ${descNorm}`);
 
     // Extract name tokens from text: split by common delimiters used in calendar titles
-    // e.g. "עידן, אלה, נועה ב, מעיין" → ["עידן", "אלה", "נועה ב", "מעיין"]
-    // Also split by Hebrew "ו" prefix: "עילי ואורי" → ["עילי", "אורי"]
-    const nameTokens = searchText.split(/[,/+&|]/).map(t => t.trim()).filter(Boolean);
+    // e.g. "12:10 טד נופמו - עידן, אלה, נועה ב" → ["עידן", "אלה", "נועה ב"]
+    // Split by comma first, then also split each token by " - " to separate prefix from names
+    const nameTokens = searchText
+      .split(/[,/+&|]/)
+      .flatMap(t => t.split(/\s+[-–—]\s+/))
+      .map(t => t.trim())
+      .filter(Boolean);
 
     const matchedUsers = userNameInfo.filter(u => {
       if (!u.name) return false;
