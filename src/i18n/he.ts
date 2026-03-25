@@ -30,6 +30,7 @@ const he = {
     tomorrow: "מחר",
     yesterday: "אתמול",
     now: "עכשיו",
+    passed: "עבר",
     hours: "שעות",
     minutes: "דק׳",
     days: "ימים",

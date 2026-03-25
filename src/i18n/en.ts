@@ -31,6 +31,7 @@ const en: Dictionary = {
     tomorrow: "Tomorrow",
     yesterday: "Yesterday",
     now: "Now",
+    passed: "Passed",
     hours: "hours",
     minutes: "min",
     days: "days",
