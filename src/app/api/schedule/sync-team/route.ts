@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 
   let allGCalEvents: GCalEvent[];
   let beforeEvents: { title: string; startTime: Date; endTime: Date; allDay: boolean }[];
-  let teamUsers: { id: string; name: string }[];
+  let teamUsers: { id: string; name: string; role: string }[];
   let teamEventIds: { id: string }[];
 
   try {
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       }),
       prisma.user.findMany({
         where: { team: teamNumber },
-        select: { id: true, name: true, nameEn: true },
+        select: { id: true, name: true, nameEn: true, role: true },
       }),
       prisma.scheduleEvent.findMany({
         where: { target: TARGET },
@@ -122,7 +122,8 @@ export async function POST(req: NextRequest) {
     ]);
     allGCalEvents = gcal;
     beforeEvents = before;
-    teamUsers = users;
+    // Exclude sagal from auto-assignment matching
+    teamUsers = users.filter((u: { role: string }) => u.role !== "sagal");
     teamEventIds = ids;
   } catch (err) {
     console.error(`Failed to fetch team ${teamNumber} calendar:`, err);
@@ -136,12 +137,12 @@ export async function POST(req: NextRequest) {
 
   const activeEvents = allGCalEvents.filter(e => e.status !== "cancelled");
 
-  // Pre-compute first name counts for uniqueness check
+  // Pre-compute first name counts for uniqueness check (count all names >= 2 chars)
   const firstNameCounts = new Map<string, number>();
   for (const u of teamUsers) {
     if (!u.name) continue;
     const firstName = u.name.split(/\s+/).filter(p => p.length > 1)[0];
-    if (firstName && firstName.length >= 3) {
+    if (firstName && firstName.length >= 2) {
       firstNameCounts.set(firstName, (firstNameCounts.get(firstName) || 0) + 1);
     }
   }
@@ -196,9 +197,8 @@ export async function POST(req: NextRequest) {
         }
       }
       // 4. Exact token match — if a comma/delimiter-separated token exactly equals a first name
-      // This handles cases like "רוני, יעל" where יעל is a standalone token
-      // Match even if first name has duplicates — the calendar creator listed specific people
-      if (u.firstName && u.firstName.length >= 2) {
+      // Only match if the first name is unique in the team to avoid false duplicates
+      if (u.firstName && u.firstName.length >= 2 && (firstNameCounts.get(u.firstName) || 0) === 1) {
         for (const token of nameTokens) {
           const trimmed = token.split(/\s+/).filter(Boolean);
           if (trimmed.length === 1 && trimmed[0] === u.firstName) return true;
