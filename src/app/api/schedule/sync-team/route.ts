@@ -180,13 +180,14 @@ export async function POST(req: NextRequest) {
     // Normalize dashes in names part and description for text search
     const namesNorm = namesPart.replace(/[־\-–—]/g, " ");
     const descNorm = descRaw.replace(/[־\-–—]/g, " ");
-    // Strip Hebrew "ו" (and) prefix from words: "ואורי" → "אורי"
+    // Strip Hebrew "ו" (and) prefix from words for text search: "ואורי" → "אורי"
     const stripVav = (text: string) => text.replace(/(?<=^|\s)ו(?=[א-ת])/g, " ");
     const searchText = stripVav(`${namesNorm} ${descNorm}`);
 
-    // Extract name tokens by splitting on commas and other delimiters
-    // e.g. "יהלי כ, רוני, נטע, עידן" → ["יהלי כ", "רוני", "נטע", "עידן"]
-    const nameTokens = searchText
+    // For tokenization, also treat "ו" prefix as a delimiter
+    // e.g. "יהלי כ ויעל" → "יהלי כ,יעל" → ["יהלי כ", "יעל"]
+    const tokenizeText = `${namesNorm} ${descNorm}`.replace(/(?<=\s)ו(?=[א-ת])/g, ",");
+    const nameTokens = tokenizeText
       .split(/[,/+&|]/)
       .map(t => t.trim())
       .filter(Boolean);
