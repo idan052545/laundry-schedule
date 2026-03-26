@@ -70,6 +70,10 @@ model User {
   volDisputes          VolunteerDispute[]     @relation("volDisputes")
   volDisputeReviews    VolunteerDispute[]     @relation("volDisputeReviewer")
   volFeedback          VolunteerFeedback[]    @relation("volFeedback")
+  mamashRoles          MamashRole[]           @relation("mamashRoles")
+  requirementTargets   ScheduleRequirement[]  @relation("requirementTarget")
+  requirementCreated   ScheduleRequirement[]  @relation("requirementCreator")
+  scheduleChanges      ScheduleChange[]       @relation("scheduleChanges")
 }
 
 model Machine {
@@ -647,6 +651,64 @@ model VolunteerTitleHistory {
   category   String
   usageCount Int      @default(1)
   lastUsed   DateTime @default(now())
+}
+
+// ── ממ״ש (Weekly Team Commander) ──────────────────────────────
+
+model MamashRole {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("mamashRoles", fields: [userId], references: [id])
+  team      Int
+  weekStart String   // YYYY-MM-DD (Sunday)
+  weekEnd   String   // YYYY-MM-DD (Saturday)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([team, weekStart])
+  @@index([userId])
+}
+
+model ScheduleRequirement {
+  id            String   @id @default(uuid())
+  team          Int
+  weekStart     String   // YYYY-MM-DD
+  type          String   // status-meeting, plan-approval, simulation, feedback, morning-talk, ted-debrief, experience-download, scenario, team-assessment, mamash-time, hot-debrief, checkpoint, custom
+  title         String
+  description   String?
+  targetUserId  String?
+  targetUser    User?    @relation("requirementTarget", fields: [targetUserId], references: [id])
+  duration      Int      @default(10) // minutes
+  priority      String   @default("normal") // low, normal, high, urgent
+  status        String   @default("pending") // pending, scheduled, completed, skipped, cancelled
+  linkedEventId String?
+  scheduledDate String?  // YYYY-MM-DD
+  createdById   String
+  createdBy     User     @relation("requirementCreator", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([team, weekStart, status])
+}
+
+model ScheduleChange {
+  id              String   @id @default(uuid())
+  eventId         String?
+  team            Int
+  date            String   // YYYY-MM-DD
+  changeType      String   // create, reschedule, cancel, swap, reassign
+  description     String
+  previousData    String?  // JSON
+  newData         String?  // JSON
+  reason          String?
+  affectedUserIds String?  // JSON array
+  createdById     String
+  createdBy       User     @relation("scheduleChanges", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  notified        Boolean  @default(false)
+
+  @@index([team, date])
+  @@index([eventId])
 }
 
 model TranslationCache {

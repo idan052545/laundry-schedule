@@ -218,6 +218,7 @@ export default function DashboardPage() {
     { href: "/daily-quote", icon: MdAutoAwesome, title: t.dashboard.dailyQuote, color: "text-purple-600", bg: "bg-purple-50" },
     { href: "/chopal", icon: MdLocalHospital, title: t.dashboard.chopal, color: "text-rose-600", bg: "bg-rose-50" },
     { href: "/aktualia", icon: MdNewspaper, title: t.dashboard.aktualia, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { href: "/mamash", icon: MdStar, title: t.dashboard.mamash, color: "text-emerald-700", bg: "bg-emerald-50" },
     { href: "/notifications", icon: MdNotifications, title: t.dashboard.notifications, color: "text-gray-600", bg: "bg-gray-50" },
     { href: "/profile", icon: MdPerson, title: t.dashboard.profile, color: "text-gray-500", bg: "bg-gray-50" },
   ];

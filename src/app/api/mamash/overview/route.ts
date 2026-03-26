@@ -1,0 +1,200 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+
+function toHHMM(d: Date): string {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function getWeekStart(date: Date): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() - d.getDay());
+  return d.toISOString().split("T")[0];
+}
+
+export async function GET(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "לא מחובר" }, { status: 401 });
+
+  const userId = (session.user as { id: string }).id;
+  const { searchParams } = new URL(request.url);
+  const dateStr = searchParams.get("date");
+  const teamParam = searchParams.get("team");
+
+  if (!dateStr) return NextResponse.json({ error: "חסר תאריך" }, { status: 400 });
+
+  // Determine team
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { team: true, role: true, email: true } });
+  const team = teamParam ? Number(teamParam) : user?.team;
+  if (!team) return NextResponse.json({ error: "חסר צוות" }, { status: 400 });
+
+  const isAdmin = user?.role === "admin" || user?.role === "commander" || user?.email === "ohad@dotan.com";
+
+  // Verify ממ״ש or admin access
+  const activeMamash = await prisma.mamashRole.findFirst({
+    where: { team, active: true },
+    include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
+  });
+  if (!isAdmin && activeMamash?.userId !== userId) {
+    return NextResponse.json({ error: "אין הרשאה — רק ממ״ש פעיל או מפקד" }, { status: 403 });
+  }
+
+  const dayStart = new Date(dateStr + "T00:00:00Z");
+  const dayEnd = new Date(dateStr + "T23:59:59Z");
+  const weekStart = getWeekStart(new Date(dateStr));
+
+  // Parallel fetches
+  const [events, teamMembers, dutyAssignments, chopalRequests, requirements, changelog] = await Promise.all([
+    // Events: platoon (all) + this team
+    prisma.scheduleEvent.findMany({
+      where: {
+        startTime: { lte: dayEnd },
+        endTime: { gt: dayStart },
+        target: { in: ["all", `team-${team}`] },
+      },
+      include: {
+        assignees: {
+          include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
+        },
+      },
+      orderBy: { startTime: "asc" },
+    }),
+    // Team members
+    prisma.user.findMany({
+      where: { team, role: { not: "sagal" } },
+      select: { id: true, name: true, nameEn: true, image: true, team: true },
+      orderBy: { name: "asc" },
+    }),
+    // Duty assignments for today
+    prisma.dutyAssignment.findMany({
+      where: {
+        table: { date: dateStr },
+      },
+      select: { userId: true, timeSlot: true },
+    }),
+    // Chopal requests for today
+    prisma.chopalRequest.findMany({
+      where: { date: dateStr, needed: true },
+      select: { userId: true },
+    }),
+    // Requirements for the week
+    prisma.scheduleRequirement.findMany({
+      where: { team, weekStart },
+      include: {
+        targetUser: { select: { id: true, name: true, nameEn: true, image: true, team: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    // Changelog for today
+    prisma.scheduleChange.findMany({
+      where: { team, date: dateStr },
+      include: {
+        createdBy: { select: { id: true, name: true, image: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  // Build availability matrix
+  const platoonEvents = events.filter(e => e.target === "all" && !e.allDay);
+  const teamEvents = events.filter(e => e.target === `team-${team}` && !e.allDay);
+  const chopalUserIds = new Set(chopalRequests.map(c => c.userId));
+  const dutyByUser = new Map<string, string[]>();
+  for (const da of dutyAssignments) {
+    if (!dutyByUser.has(da.userId)) dutyByUser.set(da.userId, []);
+    dutyByUser.get(da.userId)!.push(da.timeSlot);
+  }
+
+  // Time slots: 06:00 to 22:00 in 30-min increments
+  const slots: string[] = [];
+  for (let h = 6; h < 22; h++) {
+    slots.push(`${String(h).padStart(2, "0")}:00`);
+    slots.push(`${String(h).padStart(2, "0")}:30`);
+  }
+
+  const availability = teamMembers.map(member => {
+    const memberSlots = slots.map(slotTime => {
+      const [sh, sm] = slotTime.split(":").map(Number);
+      const slotStart = new Date(dateStr + "T00:00:00Z");
+      slotStart.setUTCHours(sh, sm, 0, 0);
+      const slotEnd = new Date(slotStart);
+      slotEnd.setUTCMinutes(slotEnd.getUTCMinutes() + 30);
+
+      // Check leave
+      if (chopalUserIds.has(member.id)) {
+        return { time: slotTime, status: "leave" as const };
+      }
+
+      // Check duty
+      const memberDuty = dutyByUser.get(member.id);
+      if (memberDuty?.some(ts => ts === slotTime || ts.startsWith(slotTime.split(":")[0]))) {
+        return { time: slotTime, status: "duty" as const };
+      }
+
+      // Check platoon events (blocks everyone)
+      const platoonBlock = platoonEvents.find(e => {
+        const es = new Date(e.startTime);
+        const ee = new Date(e.endTime);
+        return es < slotEnd && ee > slotStart;
+      });
+      if (platoonBlock) {
+        return { time: slotTime, status: "platoon-blocked" as const, eventTitle: platoonBlock.title };
+      }
+
+      // Check team assignments
+      const teamBlock = teamEvents.find(e => {
+        const es = new Date(e.startTime);
+        const ee = new Date(e.endTime);
+        return es < slotEnd && ee > slotStart && e.assignees.some(a => a.userId === member.id);
+      });
+      if (teamBlock) {
+        return { time: slotTime, status: "assigned" as const, eventTitle: teamBlock.title };
+      }
+
+      return { time: slotTime, status: "available" as const };
+    });
+
+    return { user: member, slots: memberSlots };
+  });
+
+  // Compute free slots (windows where no platoon event exists)
+  const freeSlots: { start: string; end: string; durationMin: number }[] = [];
+  let freeStart: string | null = null;
+  for (let i = 0; i < slots.length; i++) {
+    const slotTime = slots[i];
+    const [sh, sm] = slotTime.split(":").map(Number);
+    const slotStart = new Date(dateStr + "T00:00:00Z");
+    slotStart.setUTCHours(sh, sm, 0, 0);
+    const slotEnd = new Date(slotStart);
+    slotEnd.setUTCMinutes(slotEnd.getUTCMinutes() + 30);
+
+    const blocked = platoonEvents.some(e => {
+      const es = new Date(e.startTime);
+      const ee = new Date(e.endTime);
+      return es < slotEnd && ee > slotStart;
+    });
+
+    if (!blocked) {
+      if (!freeStart) freeStart = slotTime;
+    } else {
+      if (freeStart) {
+        freeSlots.push({ start: freeStart, end: slotTime, durationMin: (i - slots.indexOf(freeStart)) * 30 });
+        freeStart = null;
+      }
+    }
+  }
+  if (freeStart) {
+    freeSlots.push({ start: freeStart, end: "22:00", durationMin: (slots.length - slots.indexOf(freeStart)) * 30 });
+  }
+
+  return NextResponse.json({
+    events,
+    teamMembers,
+    availability,
+    freeSlots,
+    requirements,
+    changelog,
+    activeMamash: activeMamash ? { id: activeMamash.id, userId: activeMamash.userId, user: activeMamash.user } : null,
+  });
+}
