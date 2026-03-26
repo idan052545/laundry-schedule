@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 
 const TEAM_CALENDARS: Record<number, string> = {
   14: "30f097925245f0a2a0835cb2309c9370975d62eda1ca54faea63435892dd36b2@group.calendar.google.com",
+  15: "a21643c5718503b6784ffc58a2fc7b4d9964ab7a7ae97de00b76a81945251e42@group.calendar.google.com",
   16: "8531cf33e94556ea6180bbd1231262fcc7199e35ca56bbc198545f30439c245e@group.calendar.google.com",
   17: "94e55e159f2b5e6361f3cc23bd69cb4db0bf5fe2e00ee9d8bef5c9c5d5327caf@group.calendar.google.com",
 };

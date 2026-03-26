@@ -92,7 +92,7 @@ export async function GET(request: Request) {
     }
 
     // Sync team calendars
-    for (const team of [14, 16, 17]) {
+    for (const team of [14, 15, 16, 17]) {
       const teamResult = await safeFetch(
         `${baseUrl}/api/schedule/sync-team?secret=${encodeURIComponent(secret)}&team=${team}`,
         `team-${team}-sync`
