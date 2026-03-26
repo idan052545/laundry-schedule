@@ -136,6 +136,7 @@ const he = {
     simulator: "סימולטור פיקודי",
     profile: "פרופיל",
     chopal: 'חופ"ל',
+    mamash: 'ממ"ש',
     login: "התחברות",
     register: "הרשמה",
     logout: "התנתק",
@@ -1317,6 +1318,8 @@ const he = {
     selectPerson: "בחר אדם...",
     noChanges: "אין שינויים היום",
     todayChanges: "שינויים היום",
+    pushToCalendar: "הוסף ליומן Google",
+    pushToCalendarDesc: "מוסיף אירוע חדש ליומן Google של הצוות. לא מוחק ולא משנה אירועים קיימים.",
   },
 } as const;
 

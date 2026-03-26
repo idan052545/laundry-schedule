@@ -139,11 +139,32 @@ export function useMamash(date: string, team: number | null) {
     }
   }, [team, fetchOverview]);
 
+  // ── Calendar write ──
+  const pushToCalendar = useCallback(async (event: {
+    title: string; description?: string; startTime: string; endTime: string; allDay?: boolean;
+  }): Promise<{ ok: boolean; error?: string; needsSetup?: boolean }> => {
+    if (!team) return { ok: false, error: "No team" };
+    setActing(true);
+    try {
+      const res = await fetch("/api/mamash/calendar-write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team, ...event }),
+      });
+      const json = await res.json();
+      if (!res.ok) return { ok: false, error: json.error, needsSetup: json.needsSetup };
+      return { ok: true };
+    } finally {
+      setActing(false);
+    }
+  }, [team]);
+
   return {
     data, loading, error, acting,
     fetchOverview,
     activateRole, deactivateRole,
     addRequirement, updateRequirement, deleteRequirement,
     doBaltam,
+    pushToCalendar,
   };
 }

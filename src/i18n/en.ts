@@ -130,6 +130,7 @@ const en: Dictionary = {
     simulator: "Command Simulator",
     profile: "Profile",
     chopal: "Doctor",
+    mamash: "Commander",
     login: "Login",
     register: "Register",
     logout: "Logout",
@@ -1254,6 +1255,8 @@ const en: Dictionary = {
     selectPerson: "Select person...",
     noChanges: "No changes today",
     todayChanges: "Changes today",
+    pushToCalendar: "Push to Google Calendar",
+    pushToCalendarDesc: "Adds a new event to the team's Google Calendar. Never deletes or modifies existing events.",
   },
 };
 

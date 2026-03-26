@@ -11,7 +11,7 @@ import {
   MdCake, MdAssignment, MdPeople, MdStar, MdDescription, MdMenuBook,
   MdFolder, MdNotifications, MdNewspaper, MdMoreHoriz, MdBuild,
   MdPoll, MdEmojiEvents, MdFavorite, MdAutoAwesome, MdSecurity,
-  MdSmartToy, MdVolunteerActivism,
+  MdSmartToy, MdVolunteerActivism, MdFlashOn,
 } from "react-icons/md";
 import NotificationBell from "./NotificationBell";
 import { useLanguage } from "@/i18n";
@@ -86,6 +86,7 @@ export default function Navbar() {
     { href: "/birthdays", label: t.nav.birthdays, icon: MdCake },
     { href: "/volunteers", label: t.nav.volunteers, icon: MdVolunteerActivism },
     { href: "/guard-duty", label: t.nav.guardDuty, icon: MdSecurity },
+    { href: "/mamash", label: t.nav.mamash, icon: MdFlashOn },
     { href: "/daily-quote", label: t.nav.dailyQuote, icon: MdAutoAwesome },
     { href: "/amana", label: t.nav.teamAmana, icon: MdFavorite },
     { href: "/schedule", label: t.nav.laundry, icon: MdLocalLaundryService },
