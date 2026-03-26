@@ -36,6 +36,7 @@ export const authOptions: AuthOptions = {
           email: user.email,
           image: user.image,
           role: user.role,
+          team: user.team,
           mustChangePassword: user.mustChangePassword,
           language: user.language,
         };
@@ -51,17 +52,19 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
+        token.team = (user as { team?: number }).team;
         token.mustChangePassword = (user as { mustChangePassword?: boolean }).mustChangePassword;
         token.language = (user as { language?: string }).language;
       }
-      // Backfill old tokens missing role/mustChangePassword/language
-      if (token.id && !token.role) {
+      // Backfill old tokens missing role/mustChangePassword/language/team
+      if (token.id && (!token.role || token.team === undefined)) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, mustChangePassword: true, language: true },
+          select: { role: true, team: true, mustChangePassword: true, language: true },
         });
         if (dbUser) {
           token.role = dbUser.role;
+          token.team = dbUser.team;
           token.mustChangePassword = dbUser.mustChangePassword;
           token.language = dbUser.language;
         }
@@ -70,9 +73,10 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        const u = session.user as { id?: string; role?: string; mustChangePassword?: boolean; language?: string };
+        const u = session.user as { id?: string; role?: string; team?: number | null; mustChangePassword?: boolean; language?: string };
         u.id = token.id as string;
         u.role = token.role as string;
+        u.team = (token.team as number | null) ?? null;
         u.mustChangePassword = token.mustChangePassword as boolean;
         u.language = (token.language as string) || "he";
       }
