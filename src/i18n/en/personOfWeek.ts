@@ -1,0 +1,16 @@
+export const personOfWeek = {
+  title: "Person of the Week",
+  subtitle: "Choose who stood out this week",
+  currentWeek: "Current week",
+  leaderboard: "Leaderboard",
+  vote: "Vote",
+  votes: "Votes",
+  downloadVotes: "Download responses",
+  why: "Why",
+  noVotes: "No votes yet for this week",
+  changeVote: "Change vote",
+  castVote: "Vote",
+  searchSoldier: "Search soldier...",
+  whyOptional: "Why? (optional)",
+  updateVote: "Update vote",
+} as const;

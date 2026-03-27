@@ -1,0 +1,16 @@
+export const messages = {
+  title: "לוח הודעות",
+  newMessage: "הודעה חדשה",
+  allMessages: "כל ההודעות",
+  myMessages: "הודעות שלי",
+  messageTitle: "כותרת ההודעה",
+  messageContent: "תוכן ההודעה...",
+  attachImage: "צרף תמונה",
+  preview: "תצוגה מקדימה",
+  assignSoldiers: "שייך לחיילים",
+  assignedTo: "משויך ל:",
+  publishMessage: "פרסם הודעה",
+  deleteMessage: "למחוק הודעה זו?",
+  noAssignedMessages: "אין הודעות משויכות אליך",
+  noMessages: "אין הודעות עדיין. היה הראשון לפרסם!",
+} as const;

@@ -1,0 +1,16 @@
+export const messages = {
+  title: "Message Board",
+  newMessage: "New message",
+  allMessages: "All messages",
+  myMessages: "My messages",
+  messageTitle: "Message title",
+  messageContent: "Message content...",
+  attachImage: "Attach image",
+  preview: "Preview",
+  assignSoldiers: "Assign to soldiers",
+  assignedTo: "Assigned to:",
+  publishMessage: "Publish message",
+  deleteMessage: "Delete this message?",
+  noAssignedMessages: "No messages assigned to you",
+  noMessages: "No messages yet. Be the first to post!",
+} as const;

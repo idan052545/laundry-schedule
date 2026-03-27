@@ -1,0 +1,16 @@
+export const laundry = {
+  title: "Schedule",
+  washer: "Washer",
+  dryer: "Dryer",
+  noMachines: "No machines of this type",
+  hour: "Hour",
+  myBooking: "My booking",
+  room: "Room",
+  cancelBooking: "Cancel",
+  book: "Book",
+  myBookings: "My bookings",
+  cancelBookingBtn: "Cancel booking",
+  noBookings: "No bookings for this date",
+  cancelConfirm: "Are you sure you want to cancel this booking?",
+  bookingError: "Booking error",
+} as const;

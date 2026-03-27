@@ -1,4 +1,4 @@
-export interface UserMin { id: string; name: string; nameEn?: string | null; team: number | null; image: string | null; }
+export interface UserMin { id: string; name: string; nameEn?: string | null; team: number | null; image: string | null; roomNumber?: string | null; }
 
 export interface Assignment {
   id: string;
@@ -58,7 +58,7 @@ export const DEFAULT_GUARD_ROLES = [
 ];
 
 export const DEFAULT_GUARD_SLOTS = [
-  "08:00-12:00", "12:00-16:00", "16:00-20:00", "20:00-00:00", "00:00-04:00", "04:00-08:00",
+  "09:00-12:00", "12:00-16:00", "16:00-20:00", "20:00-00:00", "00:00-04:00", "04:00-08:00",
 ];
 
 export const DEFAULT_OBS_ROLES = ["08:30-11:30", "13:30-17:30", "18:30-20:00"];

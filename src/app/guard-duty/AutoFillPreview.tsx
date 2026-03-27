@@ -16,7 +16,7 @@ export interface AutoFillTable {
   title: string;
   roles: string[];
   timeSlots: string[];
-  assignments: { userId: string; timeSlot: string; role: string }[];
+  assignments: { userId: string; timeSlot: string; role: string; note?: string }[];
   stats: AutoFillStats;
 }
 
@@ -57,7 +57,7 @@ function EditableCell({
   role,
   onEdit,
 }: {
-  assignments: { userId: string; timeSlot: string; role: string }[];
+  assignments: { userId: string; timeSlot: string; role: string; note?: string }[];
   allUsers: UserMin[];
   locale: string;
   tableType: string;
@@ -97,9 +97,12 @@ function EditableCell({
       title="לחץ לשינוי"
     >
       {found.map((a, i) => (
-        <span key={i} className="inline-block px-1 py-0.5 rounded bg-dotan-mint-light text-dotan-green-dark font-medium text-[9px]">
+        <div key={i} className="inline-block px-1 py-0.5 rounded bg-dotan-mint-light text-dotan-green-dark font-medium text-[9px]">
           {getUserName(a.userId, allUsers, locale)}
-        </span>
+          {a.note && a.note !== a.timeSlot && (
+            <div className="text-[8px] text-gray-400 font-normal">{a.note}</div>
+          )}
+        </div>
       ))}
       {found.length === 0 && <span className="text-gray-300">-</span>}
     </td>
@@ -129,16 +132,8 @@ function TablePreview({
     people: table.assignments.filter(a => a.role === role),
   })).filter(r => r.people.length > 0);
 
-  // Count unfilled slots
-  let totalSlots = 0;
-  let filledSlots = 0;
-  for (const slot of table.timeSlots) {
-    for (const role of roles) {
-      totalSlots++;
-      if (table.assignments.some(a => a.timeSlot === slot && a.role === role)) filledSlots++;
-    }
-  }
-  const unfilled = totalSlots - filledSlots;
+  // Count filled assignments (excluding day roles)
+  const filledSlots = table.assignments.filter(a => !DAY_ROLES.includes(a.role)).length;
 
   return (
     <div className="mb-4">
@@ -146,8 +141,7 @@ function TablePreview({
         <span className={`text-xs font-bold ${isGuard ? "text-dotan-green-dark" : "text-amber-700"}`}>
           {table.title}
         </span>
-        <span className="text-[10px] text-gray-400">({filledSlots}/{totalSlots})</span>
-        {/* All slots guaranteed filled by algorithm */}
+        <span className="text-[10px] text-gray-400">({filledSlots} {t.guardDuty.people})</span>
       </div>
 
       {/* Stats */}
@@ -172,19 +166,26 @@ function TablePreview({
         />
       </div>
 
-      {/* Day roles */}
+      {/* Day roles (כ"כ) — show room number */}
       {dayAssigns.length > 0 && (
         <div className="flex gap-2 mb-2 flex-wrap">
-          {dayAssigns.map(({ role, people }) => (
-            <div key={role} className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 rounded-lg px-2 py-1 flex-wrap">
-              <span className="text-[10px] font-bold text-teal-700">{role}:</span>
-              {people.map(p => (
-                <span key={p.userId} className="text-[10px] font-medium text-teal-800">
-                  {getUserName(p.userId, allUsers, locale)}
+          {dayAssigns.map(({ role, people }) => {
+            const roomNum = people.length > 0
+              ? allUsers.find(u => u.id === people[0].userId)?.roomNumber
+              : null;
+            return (
+              <div key={role} className="flex items-center gap-1.5 bg-teal-50 border border-teal-200 rounded-lg px-2 py-1 flex-wrap">
+                <span className="text-[10px] font-bold text-teal-700">
+                  {role}{roomNum ? ` (חדר ${roomNum})` : ""}:
                 </span>
-              ))}
-            </div>
-          ))}
+                {people.map(p => (
+                  <span key={p.userId} className="text-[10px] font-medium text-teal-800">
+                    {getUserName(p.userId, allUsers, locale)}
+                  </span>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -243,9 +244,8 @@ function KitchenPreview({
   onEdit: AutoFillPreviewProps["onEditAssignment"];
 }) {
   const { t } = useLanguage();
-  const shifts = table.roles;
 
-  const shiftGroups = shifts.map(shift => ({
+  const shiftGroups = table.roles.map(shift => ({
     shift,
     label: KITCHEN_SHIFT_LABELS[shift] || shift,
     color: KITCHEN_SHIFT_COLORS[shift] || "bg-gray-600 text-white",
@@ -253,6 +253,8 @@ function KitchenPreview({
       .filter(a => a.role === shift)
       .sort((a, b) => parseInt(a.timeSlot) - parseInt(b.timeSlot)),
   }));
+
+  const maxRows = Math.max(...shiftGroups.map(g => g.people.length), 1);
 
   return (
     <div className="mb-4">
@@ -273,29 +275,52 @@ function KitchenPreview({
           color={table.stats.fairnessScore >= 70 ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}
         />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {shiftGroups.map(({ shift, label, color, people }) => (
-          <div key={shift} className="rounded-xl border border-gray-200 overflow-hidden">
-            <div className={`${color} px-3 py-2 text-center`}>
-              <div className="font-bold text-sm">{label}</div>
-              <div className="text-[10px] opacity-80">{shift}</div>
-              <div className="text-[10px] opacity-70">{people.length} {t.guardDuty.people}</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {people.map((a, i) => (
-                <EditableKitchenCell
-                  key={i}
-                  assignment={a}
-                  allUsers={allUsers}
-                  locale={locale}
-                  onEdit={(newUserId) => onEdit("kitchen", a.timeSlot, a.role, newUserId, a.userId)}
-                />
+      <div className="overflow-x-auto -mx-1 px-1">
+        <table className="w-full text-[10px] border-collapse">
+          <thead>
+            <tr>
+              <th className="border border-gray-200 bg-gray-50 px-1.5 py-1.5 text-gray-400 font-bold w-8">#</th>
+              {shiftGroups.map(({ shift, label, color }) => (
+                <th key={shift} className={`border border-gray-200 px-1.5 py-1.5 text-center ${color}`}>
+                  <div className="font-bold text-xs">{label}</div>
+                  <div className="text-[9px] opacity-80">{shift}</div>
+                </th>
               ))}
-            </div>
-          </div>
-        ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: maxRows }, (_, i) => (
+              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className={`border border-gray-200 px-1.5 py-0.5 text-center text-gray-400 font-bold ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                  {i + 1}
+                </td>
+                {shiftGroups.map(({ shift, people }) => {
+                  const a = people[i];
+                  if (!a) return <td key={shift} className="border border-gray-100 px-1 py-0.5 text-center text-gray-300">—</td>;
+                  return (
+                    <EditableKitchenCell
+                      key={shift}
+                      assignment={a}
+                      allUsers={allUsers}
+                      locale={locale}
+                      onEdit={(newUserId) => onEdit("kitchen", a.timeSlot, a.role, newUserId, a.userId)}
+                    />
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-gray-50">
+              <td className="border border-gray-200 px-1.5 py-1 text-center text-gray-500 font-bold">{t.guardDuty.people}</td>
+              {shiftGroups.map(({ shift, people }) => (
+                <td key={shift} className="border border-gray-200 px-1.5 py-1 text-center text-gray-500 font-bold">{people.length}</td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
       </div>
-      <p className="text-[9px] text-orange-400 mt-1 px-1">{t.guardDuty.clickToEdit || "לחץ על שם לשינוי"}</p>
+      <p className="text-[9px] text-orange-400 mt-1 px-1">{t.guardDuty.clickToEdit || "לחץ על תא לשינוי"}</p>
     </div>
   );
 }
@@ -315,10 +340,10 @@ function EditableKitchenCell({
 
   if (editing) {
     return (
-      <div className="px-3 py-1.5 bg-white">
+      <td className="border border-gray-100 px-0.5 py-0.5 text-center">
         <select
           autoFocus
-          className="w-full text-[10px] border border-orange-300 rounded px-1 py-0.5 bg-white outline-none"
+          className="w-full text-[9px] border border-orange-300 rounded px-0.5 py-0.5 bg-white outline-none min-w-[70px]"
           defaultValue={assignment.userId}
           onChange={(e) => { onEdit(e.target.value); setEditing(false); }}
           onBlur={() => setEditing(false)}
@@ -328,17 +353,19 @@ function EditableKitchenCell({
             <option key={u.id} value={u.id}>{displayName(u, locale)}</option>
           ))}
         </select>
-      </div>
+      </td>
     );
   }
 
   return (
-    <div
-      className="px-3 py-1.5 text-xs text-gray-700 bg-white cursor-pointer hover:bg-orange-50 transition"
+    <td
+      className="border border-gray-100 px-1 py-0.5 text-center cursor-pointer hover:bg-orange-50 transition"
       onClick={() => setEditing(true)}
     >
-      {getUserName(assignment.userId, allUsers, locale)}
-    </div>
+      <span className="inline-block px-1 py-0.5 rounded bg-orange-50 text-orange-800 font-medium text-[9px]">
+        {getUserName(assignment.userId, allUsers, locale)}
+      </span>
+    </td>
   );
 }
 

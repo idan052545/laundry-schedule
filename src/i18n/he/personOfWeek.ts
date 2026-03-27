@@ -1,0 +1,16 @@
+export const personOfWeek = {
+  title: "איש/אשת השבוע",
+  subtitle: "בחרו את מי שהכי בלט השבוע",
+  currentWeek: "שבוע נוכחי",
+  leaderboard: "טבלת מובילים",
+  vote: "הצביעו",
+  votes: "הצבעות",
+  downloadVotes: "הורד תשובות",
+  why: "למה",
+  noVotes: "אין הצבעות עדיין לשבוע זה",
+  changeVote: "שנה הצבעה",
+  castVote: "הצבע",
+  searchSoldier: "חפש חייל/ת...",
+  whyOptional: "למה? (אופציונלי)",
+  updateVote: "עדכן הצבעה",
+} as const;

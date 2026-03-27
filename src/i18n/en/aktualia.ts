@@ -1,0 +1,17 @@
+export const aktualia = {
+  title: "News",
+  waitForParade: "Wait for tomorrow's parade",
+  sagalNotAvailable: "This content is not available for command staff",
+  description: "Each room picks a topic for the morning discussion. Resets at 10:00.",
+  selected: "Selected",
+  waiting: "Waiting",
+  room: "Room",
+  inputPlaceholder: "Enter a news topic...",
+  updateRoomFirst: "Update your room number in your profile to choose a topic",
+  alreadyChosen: "You already chose a topic for today",
+  someoneChose: "Someone from your room already chose a topic",
+  noTopics: "No topics yet for today",
+  chooseHint: "Choose a topic for the morning news",
+  dateLabel: "Date:",
+  missingRooms: "Rooms that haven't chosen yet",
+} as const;

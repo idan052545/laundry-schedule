@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   // Get all users for replacement suggestions
   const allUsers = await prisma.user.findMany({
     where: { role: { not: "admin" } },
-    select: { id: true, name: true, nameEn: true, team: true, image: true },
+    select: { id: true, name: true, nameEn: true, team: true, image: true, roomNumber: true },
     orderBy: { name: "asc" },
   });
 
@@ -137,11 +137,12 @@ export async function POST(req: NextRequest) {
 
   if (assignments.length > 0) {
     await prisma.dutyAssignment.createMany({
-      data: assignments.map((a: { userId: string; timeSlot: string; role: string }) => ({
+      data: assignments.map((a: { userId: string; timeSlot: string; role: string; note?: string }) => ({
         tableId: table.id,
         userId: a.userId,
         timeSlot: a.timeSlot,
         role: a.role,
+        note: a.note || null,
       })),
     });
   }

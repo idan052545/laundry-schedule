@@ -13,7 +13,7 @@ import TimelinePanel from "./TimelinePanel";
 import AvailabilityMatrix from "./AvailabilityMatrix";
 import RequirementsPanel from "./RequirementsPanel";
 import ChangelogDrawer from "./ChangelogDrawer";
-import BaltamSheet from "./BaltamSheet";
+import BaltamSheet from "./baltam";
 import type { ScheduleEvent } from "./types";
 
 type Tab = "timeline" | "availability" | "requirements" | "changelog";

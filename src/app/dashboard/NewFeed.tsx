@@ -1,20 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import {
-  MdCalendarMonth, MdCheckCircle, MdAssignment, MdDescription,
-  MdPoll, MdCake, MdMessage, MdNewReleases, MdSecurity,
-  MdLocalHospital, MdAccessTime, MdPushPin, MdStickyNote2,
-  MdAutoAwesome, MdEmojiEvents, MdVolunteerActivism,
-  MdLocationOn, MdPeople, MdWarning, MdNotificationsActive,
-  MdThumbUp,
-} from "react-icons/md";
-import { useEffect, useState } from "react";
-import Avatar from "@/components/Avatar";
+import { useEffect } from "react";
 import { useTranslation } from "@/components/TranslateButton";
 import type { DashboardFeed, SectionKey } from "./types";
 import { useLanguage } from "@/i18n";
-import { displayName } from "@/lib/displayName";
+
+import DailyQuoteSection from "./feed/DailyQuoteSection";
+import ScheduleSection from "./feed/ScheduleSection";
+import DutyTablesSection from "./feed/DutyTablesSection";
+import TeamScheduleSection from "./feed/TeamScheduleSection";
+import MyScheduleSection from "./feed/MyScheduleSection";
+import VolunteerAssignmentsSection from "./feed/VolunteerAssignmentsSection";
+import CreatedRequestsSection from "./feed/CreatedRequestsSection";
+import QuickAssignCards from "./feed/QuickAssignCards";
+import ActionItemsGrid from "./feed/ActionItemsGrid";
+import BirthdaysSection from "./feed/BirthdaysSection";
+import TasksSection from "./feed/TasksSection";
+import CommanderPinnedSection from "./feed/CommanderPinnedSection";
+import LatestMessageSection from "./feed/LatestMessageSection";
 
 interface NewFeedProps {
   feed: DashboardFeed;
@@ -22,71 +25,6 @@ interface NewFeedProps {
   onRemindVolunteer?: (requestId: string) => void;
   onQuickAssign?: (requestId: string) => Promise<boolean>;
   isSagal?: boolean;
-}
-
-function QuickAssignCards({ requests, onQuickAssign, dateLocale, t, getTranslation }: {
-  requests: DashboardFeed["activeVolunteerRequests"];
-  onQuickAssign: (requestId: string) => Promise<boolean>;
-  dateLocale: string;
-  t: ReturnType<typeof useLanguage>["t"];
-  getTranslation: (text: string) => string;
-}) {
-  const [assigningId, setAssigningId] = useState<string | null>(null);
-  const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
-
-  const handleAssign = async (requestId: string) => {
-    setAssigningId(requestId);
-    const success = await onQuickAssign(requestId);
-    if (success) {
-      setDoneIds(prev => new Set(prev).add(requestId));
-    }
-    setAssigningId(null);
-  };
-
-  return (
-    <div className="space-y-2">
-      {requests.map(r => {
-        const fmtT = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-        const isDone = doneIds.has(r.id);
-        const isAssigning = assigningId === r.id;
-        return (
-          <div key={r.id} className={`rounded-2xl border-2 p-3 transition ${
-            r.priority === "urgent" ? "border-red-200 bg-red-50/20" :
-            r.isCommanderRequest ? "border-amber-200 bg-amber-50/20" :
-            "border-green-200 bg-green-50/20"
-          }`}>
-            <div className="flex items-center justify-between gap-2">
-              <Link href="/volunteers" className="flex items-center gap-2 min-w-0 flex-1">
-                <MdVolunteerActivism className={`text-lg shrink-0 ${r.priority === "urgent" ? "text-red-500" : "text-green-500"}`} />
-                <div className="min-w-0">
-                  <span className="text-sm font-bold text-gray-800 truncate block">{getTranslation(r.title)}</span>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                    <span className="flex items-center gap-0.5"><MdAccessTime className="text-[10px]" /> {fmtT(r.startTime)}–{fmtT(r.endTime)}</span>
-                    <span className="flex items-center gap-0.5"><MdPeople className="text-[10px]" /> {r._count?.assignments ?? 0}/{r.requiredCount}</span>
-                    {r.priority === "urgent" && <span className="text-red-500 font-bold">{t.volunteers.urgentBadge}</span>}
-                  </div>
-                </div>
-              </Link>
-              {isDone ? (
-                <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-green-100 text-green-700 text-xs font-bold shrink-0">
-                  <MdCheckCircle className="text-sm" /> {t.volunteers.iVolunteered}
-                </span>
-              ) : (
-                <button onClick={() => handleAssign(r.id)} disabled={isAssigning || assigningId !== null}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition disabled:opacity-50 shrink-0">
-                  {isAssigning ? (
-                    <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.volunteers.joining}</>
-                  ) : (
-                    <><MdThumbUp className="text-sm" /> {t.volunteers.iVolunteer}</>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export default function NewFeed({ feed, visible, onRemindVolunteer, onQuickAssign, isSagal }: NewFeedProps) {
@@ -114,296 +52,34 @@ export default function NewFeed({ feed, visible, onRemindVolunteer, onQuickAssig
 
   return (
     <div className="space-y-3 mb-5">
-      {/* Daily quote — elegant */}
       {visible.has("quote") && feed.dailyQuote && (
-        <Link href="/daily-quote" className="block bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-purple-100/60 rounded-2xl px-4 py-3.5 hover:shadow-md transition relative overflow-hidden">
-          <div className="absolute top-1 left-2 text-6xl text-purple-100 font-serif leading-none select-none">&ldquo;</div>
-          <p className="text-[13px] font-medium text-gray-700 leading-relaxed relative z-10">{getTranslation(feed.dailyQuote.text)}</p>
-          <span className="text-[10px] text-purple-400 mt-1.5 block relative z-10">— {displayName(feed.dailyQuote.user, locale)}</span>
-        </Link>
+        <DailyQuoteSection quote={feed.dailyQuote} locale={locale} getTranslation={getTranslation} />
       )}
 
-      {/* Schedule glance — show all current + next */}
       {visible.has("schedule") && ((feed.scheduleItems?.length > 0) || feed.allDaySchedule.length > 0) && (
-        <Link href="/schedule-daily" className="block bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition">
-          <div className="bg-gradient-to-l from-emerald-500 to-dotan-green px-3.5 py-2 flex items-center gap-2">
-            <MdCalendarMonth className="text-sm text-white/90" />
-            <span className="text-[11px] font-bold text-white/90">{t.dashboard.dailySchedule}</span>
-            {feed.scheduleItems?.some(s => s.status === "now") && (
-              <span className="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-bold mr-auto flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> {t.common.now}
-              </span>
-            )}
-          </div>
-          <div className="px-3.5 py-2.5 space-y-1.5">
-            {(feed.scheduleItems || []).map((ev) => {
-              const isNow = ev.status === "now";
-              return (
-                <div key={ev.id} className={`flex items-center gap-2.5 ${!isNow ? "opacity-60" : ""}`}>
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${isNow ? "bg-green-500 animate-pulse ring-4 ring-green-100" : "bg-gray-300"}`} />
-                  <span className="text-[11px] font-bold text-gray-500 tabular-nums shrink-0 w-[90px]" dir="ltr">
-                    {new Date(ev.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                    {" – "}
-                    {new Date(ev.endTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-800 truncate">{getTranslation(ev.title)}</span>
-                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${ev.target === "all" ? "bg-emerald-100 text-emerald-700" : "bg-cyan-100 text-cyan-700"}`}>
-                    {ev.target === "all" ? t.schedule.platoon : t.common.team}
-                  </span>
-                  {ev.assignees?.length > 0 && <span className="text-[8px] bg-teal-500 text-white px-1.5 py-0.5 rounded-full font-bold shrink-0">{t.schedule.forYou}</span>}
-                </div>
-              );
-            })}
-            {feed.allDaySchedule.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-gray-50">
-                {feed.allDaySchedule.map((e) => (
-                  <span key={e.id} className={`text-[10px] px-2 py-0.5 rounded-full border ${e.target === "all" ? "bg-gray-50 text-gray-600 border-gray-100" : "bg-cyan-50 text-cyan-700 border-cyan-100"}`}>
-                    {e.target !== "all" && <span className="font-bold ms-0.5">{t.common.team}</span>}
-                    {getTranslation(e.title)}
-                    {e.assignees?.length > 0 && <span className="text-teal-600 font-bold me-0.5"> ⭐</span>}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </Link>
+        <ScheduleSection scheduleItems={feed.scheduleItems} allDaySchedule={feed.allDaySchedule} dateLocale={dateLocale} t={t} getTranslation={getTranslation} />
       )}
 
-      {/* Duty tables — card style */}
       {visible.has("duty") && feed.nextDutyTables?.length > 0 && (
-        <div className="space-y-2">
-          {feed.nextDutyTables.map(dt => {
-            const isObs = dt.type === "obs";
-            return (
-              <Link key={dt.id} href="/guard-duty" className={`block rounded-2xl border overflow-hidden hover:shadow-md transition ${
-                isObs ? "border-blue-100" : "border-amber-100"
-              }`}>
-                <div className={`px-3.5 py-2 flex items-center gap-2 ${isObs ? "bg-gradient-to-l from-blue-500 to-indigo-500" : "bg-gradient-to-l from-amber-500 to-orange-500"}`}>
-                  <MdSecurity className="text-sm text-white/90" />
-                  <span className="text-[11px] font-bold text-white/90">{dt.title}</span>
-                  <span className="text-[10px] text-white/60 mr-auto">
-                    {new Date(dt.date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })}
-                  </span>
-                </div>
-                <div className="px-3.5 py-2 bg-white">
-                  {dt.myAssignments.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {dt.myAssignments.map((a, i) => (
-                        <span key={i} className={`text-[10px] font-medium px-2 py-1 rounded-lg ${
-                          isObs ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-amber-50 text-amber-700 border border-amber-100"
-                        }`}>
-                          {a.role} · {a.timeSlot}
-                          {a.partners.length > 0 && <span className="font-normal opacity-70"> ({a.partners.join(", ")})</span>}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-gray-400">{t.guardDuty.noAssignment}</span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <DutyTablesSection dutyTables={feed.nextDutyTables} dateLocale={dateLocale} t={t} />
       )}
 
-      {/* Team schedule assignments — prominent card */}
       {visible.has("teamSchedule") && feed.myTeamAssignments?.length > 0 && (
-        <Link href="/schedule-daily" className="block rounded-2xl overflow-hidden border border-teal-100 hover:shadow-md transition">
-          <div className="bg-gradient-to-l from-teal-500 to-cyan-500 px-3.5 py-2 flex items-center gap-2">
-            <MdCalendarMonth className="text-sm text-white/90" />
-            <span className="text-[11px] font-bold text-white/90">{t.dashboard.sectionTeamSchedule} — {t.schedule.forYou}</span>
-            <span className="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-bold mr-auto">{feed.myTeamAssignments.length}</span>
-          </div>
-          <div className="px-3 py-2.5 bg-gradient-to-br from-teal-50/50 to-white space-y-1.5">
-            {feed.myTeamAssignments.map((e) => {
-              const isPassed = !e.allDay && new Date(e.endTime) < new Date();
-              const isNow = !e.allDay && new Date(e.startTime) <= new Date() && new Date(e.endTime) > new Date();
-              return (
-                <div key={e.id} className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 border shadow-sm ${
-                  isPassed ? "bg-gray-50 border-gray-200 opacity-50" : isNow ? "bg-teal-50 border-teal-300 ring-1 ring-teal-200" : "bg-white border-teal-100"
-                }`}>
-                  <span className={`text-[11px] font-bold tabular-nums shrink-0 w-12 text-center ${isPassed ? "text-gray-400 line-through" : isNow ? "text-teal-700" : "text-teal-600"}`} dir="ltr">
-                    {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                  </span>
-                  <div className={`w-px h-4 ${isPassed ? "bg-gray-200" : "bg-teal-200"}`} />
-                  <span className={`text-xs font-medium truncate ${isPassed ? "text-gray-400 line-through" : "text-gray-800"}`}>{getTranslation(e.title)}</span>
-                  {isPassed && <span className="text-[8px] px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-full font-bold shrink-0">{t.common.passed}</span>}
-                  {isNow && <span className="text-[8px] px-1.5 py-0.5 bg-teal-500 text-white rounded-full font-bold animate-pulse shrink-0">{t.common.now}</span>}
-                </div>
-              );
-            })}
-          </div>
-        </Link>
+        <TeamScheduleSection myTeamAssignments={feed.myTeamAssignments} dateLocale={dateLocale} t={t} getTranslation={getTranslation} />
       )}
 
-      {/* My assigned schedule — events not already shown in team schedule */}
-      {visible.has("mySchedule") && (() => {
-        const teamIds = new Set((feed.myTeamAssignments || []).map((e: { id: string }) => e.id));
-        const myUniqueEvents = (feed.myAssignedSchedule || []).filter((e: { id: string }) => !teamIds.has(e.id));
-        if (myUniqueEvents.length === 0) return null;
-        return (
-          <Link href="/schedule-daily" className="block rounded-2xl overflow-hidden border border-indigo-100 hover:shadow-md transition">
-            <div className="bg-gradient-to-l from-indigo-500 to-violet-500 px-3.5 py-2.5 flex items-center gap-2">
-              <MdCalendarMonth className="text-base text-white/90" />
-              <span className="text-[12px] font-bold text-white">{t.dashboard.sectionMySchedule}</span>
-              <span className="text-[9px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold mr-auto">{myUniqueEvents.length}</span>
-            </div>
-            <div className="px-3 py-2.5 bg-gradient-to-br from-indigo-50/40 to-white space-y-1.5">
-              {myUniqueEvents.map((e) => {
-                const isPassed = !e.allDay && new Date(e.endTime) < new Date();
-                const isNow = !e.allDay && new Date(e.startTime) <= new Date() && new Date(e.endTime) > new Date();
-                return (
-                  <div key={e.id} className={`flex items-center gap-2.5 rounded-xl px-3 py-2 border shadow-sm transition ${
-                    isPassed ? "bg-gray-50 border-gray-200 opacity-50" : isNow ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-200" : "bg-white border-indigo-100"
-                  }`}>
-                    <span className={`text-[11px] font-bold tabular-nums shrink-0 w-12 text-center ${isPassed ? "text-gray-400 line-through" : isNow ? "text-indigo-600" : "text-indigo-400"}`} dir="ltr">
-                      {e.allDay ? t.common.allDay : new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                    </span>
-                    <div className={`w-px h-5 rounded-full ${isPassed ? "bg-gray-200" : "bg-indigo-200"}`} />
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-xs font-semibold truncate block ${isPassed ? "text-gray-400 line-through" : "text-gray-800"}`}>{getTranslation(e.title)}</span>
-                      {!e.allDay && !isPassed && (
-                        <span className="text-[10px] text-gray-400" dir="ltr">
-                          {new Date(e.startTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                          {" – "}
-                          {new Date(e.endTime).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" })}
-                        </span>
-                      )}
-                    </div>
-                    {isPassed && <span className="text-[8px] px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-full font-bold shrink-0">{t.common.passed}</span>}
-                    {isNow && (
-                      <span className="px-1.5 py-0.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-full text-[8px] font-bold animate-pulse shrink-0">
-                        {t.common.now}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Link>
-        );
-      })()}
+      {visible.has("mySchedule") && (
+        <MyScheduleSection myAssignedSchedule={feed.myAssignedSchedule} myTeamAssignments={feed.myTeamAssignments} dateLocale={dateLocale} t={t} getTranslation={getTranslation} />
+      )}
 
-      {/* Volunteer assignment details — schedule conflicts, team members, location */}
       {visible.has("volunteers") && feed.myVolunteerAssignments?.some(a => (a.overlappingSchedule?.length ?? 0) > 0 || (a.request.assignments?.length ?? 0) > 1) && (
-        <div className="space-y-2">
-          {feed.myVolunteerAssignments.map(a => {
-            const fmtT = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-            const isNow = new Date() >= new Date(a.request.startTime) && new Date() <= new Date(a.request.endTime);
-            const teammates = (a.request.assignments || []).filter(m => m.userId !== feed.myVolunteerAssignments?.[0]?.id?.slice(0, 0) /* always true */ );
-            return (
-              <Link key={a.id} href="/volunteers?tab=my" className={`block rounded-2xl border-2 p-3 transition hover:shadow-md ${isNow ? "border-emerald-300 bg-emerald-50/50" : "border-emerald-200 bg-emerald-50/30"}`}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <MdVolunteerActivism className={`text-lg ${isNow ? "text-emerald-600" : "text-emerald-500"}`} />
-                  <span className="text-sm font-bold text-gray-800">{a.request.title}</span>
-                  {isNow && <span className="text-[9px] px-1.5 py-0.5 bg-emerald-200 text-emerald-800 rounded font-bold">{t.common.now}</span>}
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-gray-500 mb-1.5">
-                  <span className="flex items-center gap-0.5"><MdAccessTime className="text-xs" /> {fmtT(a.request.startTime)}–{fmtT(a.request.endTime)}</span>
-                  {a.request.location && (
-                    <span className="flex items-center gap-0.5 text-orange-600"><MdLocationOn className="text-xs" /> {a.request.location}</span>
-                  )}
-                </div>
-                {/* Team members */}
-                {teammates.length > 1 && (
-                  <div className="flex items-center gap-1 mb-1.5 flex-wrap">
-                    <MdPeople className="text-xs text-gray-400" />
-                    {teammates.map(m => (
-                      <div key={m.userId} className="flex items-center gap-1 px-1.5 py-0.5 bg-white rounded border border-gray-100 text-[10px] text-gray-600">
-                        <Avatar name={m.user.name} image={m.user.image || null} size="xs" />
-                        <span>{displayName(m.user, locale)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* Schedule conflicts — what you'll miss */}
-                {a.overlappingSchedule && a.overlappingSchedule.length > 0 && (
-                  <div className="bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 mt-1">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-amber-700 mb-0.5">
-                      <MdWarning className="text-xs" /> {t.dashboard.youWillMiss}
-                    </div>
-                    {a.overlappingSchedule.map(ev => (
-                      <div key={ev.id} className="text-[10px] text-amber-600 flex items-center gap-1">
-                        <MdCalendarMonth className="text-[10px]" />
-                        <span>{ev.title}</span>
-                        <span className="text-amber-400">{fmtT(ev.startTime)}–{fmtT(ev.endTime)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        <VolunteerAssignmentsSection myVolunteerAssignments={feed.myVolunteerAssignments} dateLocale={dateLocale} locale={locale} t={t} />
       )}
 
-      {/* Creator's volunteer requests — expanded cards with functionalities */}
       {visible.has("volunteers") && feed.myCreatedRequests?.length > 0 && (
-        <div className="space-y-2">
-          {feed.myCreatedRequests.map(r => {
-            const fmtT = (iso: string) => new Date(iso).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
-            const isNow = new Date() >= new Date(r.startTime) && new Date() <= new Date(r.endTime);
-            const filled = r.assignments?.length ?? r._count.assignments;
-            const slotsLeft = r.requiredCount - filled;
-            return (
-              <div key={r.id} className={`rounded-2xl border-2 p-3 transition ${isNow ? "border-teal-300 bg-teal-50/50" : "border-teal-200 bg-teal-50/20"}`}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Link href="/volunteers" className="flex items-center gap-2 min-w-0">
-                    <MdVolunteerActivism className={`text-lg ${isNow ? "text-teal-600" : "text-teal-500"}`} />
-                    <span className="text-sm font-bold text-gray-800 truncate">{r.title}</span>
-                    {isNow && <span className="text-[9px] px-1.5 py-0.5 bg-teal-200 text-teal-800 rounded font-bold shrink-0">{t.common.now}</span>}
-                  </Link>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${slotsLeft > 0 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                      {filled}/{r.requiredCount}
-                    </span>
-                    {onRemindVolunteer && filled > 0 && (
-                      <button onClick={() => onRemindVolunteer(r.id)}
-                        className="p-1 rounded-lg border border-purple-200 text-purple-500 hover:bg-purple-50 transition"
-                        title={t.volunteers.remindBtn}>
-                        <MdNotificationsActive className="text-sm" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-gray-500 mb-1.5">
-                  <span className="flex items-center gap-0.5"><MdAccessTime className="text-xs" /> {fmtT(r.startTime)}–{fmtT(r.endTime)}</span>
-                  {r.location && (
-                    <span className="flex items-center gap-0.5 text-orange-600"><MdLocationOn className="text-xs" /> {r.location}</span>
-                  )}
-                </div>
-                {/* Assigned members */}
-                {(r.assignments?.length ?? 0) > 0 && (
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <MdPeople className="text-xs text-gray-400" />
-                    {r.assignments!.map(a => (
-                      <div key={a.userId} className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] ${
-                        a.assignmentType === "commander" ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-white border-gray-100 text-gray-600"
-                      }`}>
-                        <Avatar name={a.user.name} image={a.user.image || null} size="xs" />
-                        <span>{displayName(a.user, locale)}</span>
-                      </div>
-                    ))}
-                    {slotsLeft > 0 && (
-                      <Link href="/volunteers" className="text-[10px] text-teal-600 font-medium hover:underline">
-                        +{slotsLeft} {t.volunteers.assign}
-                      </Link>
-                    )}
-                  </div>
-                )}
-                {filled === 0 && (
-                  <Link href="/volunteers" className="text-[10px] text-amber-600 font-medium hover:underline">
-                    {t.volunteers.assign} →
-                  </Link>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <CreatedRequestsSection myCreatedRequests={feed.myCreatedRequests} locale={locale} dateLocale={dateLocale} t={t} onRemindVolunteer={onRemindVolunteer} />
       )}
 
-      {/* Quick-assign volunteer cards */}
       {visible.has("volunteers") && !isSagal && onQuickAssign && feed.activeVolunteerRequests?.length > 0 && (() => {
         const assignable = feed.activeVolunteerRequests.filter(r => {
           const isFull = (r._count?.assignments ?? 0) >= r.requiredCount;
@@ -411,140 +87,25 @@ export default function NewFeed({ feed, visible, onRemindVolunteer, onQuickAssig
           return !isFull && !isMine && r.status === "open";
         });
         if (assignable.length === 0) return null;
-        return (
-          <QuickAssignCards requests={assignable} onQuickAssign={onQuickAssign} dateLocale={dateLocale} t={t} getTranslation={getTranslation} />
-        );
+        return <QuickAssignCards requests={assignable} onQuickAssign={onQuickAssign} dateLocale={dateLocale} t={t} getTranslation={getTranslation} />;
       })()}
 
-      {/* Action items — 2-col grid for smaller items */}
-      {(() => {
-        const actionItems: { key: string; href: string; icon: typeof MdDescription; iconColor: string; bg: string; border: string; textColor: string; label: string }[] = [];
-        if (visible.has("notes") && feed.todayNotes?.length > 0)
-          actionItems.push({ key: "notes", href: "/schedule-daily", icon: MdStickyNote2, iconColor: "text-amber-500", bg: "from-amber-50 to-orange-50", border: "border-amber-100", textColor: "text-amber-700", label: `${feed.todayNotes.length} ${t.dashboard.sectionNotes}` });
-        if (visible.has("forms") && feed.pendingForms.length > 0)
-          actionItems.push({ key: "forms", href: "/forms", icon: MdDescription, iconColor: "text-orange-500", bg: "from-orange-50 to-amber-50", border: "border-orange-100", textColor: "text-orange-700", label: `${feed.pendingForms.length} ${t.dashboard.forms}` });
-        if (visible.has("chopal") && feed.chopalStatus?.isOpen && !feed.chopalStatus?.registered)
-          actionItems.push({ key: "chopal", href: "/chopal", icon: MdLocalHospital, iconColor: "text-rose-500", bg: "from-rose-50 to-pink-50", border: "border-rose-100", textColor: "text-rose-700", label: `${t.dashboard.chopal} — ${t.chopal.iNeedChopal}` });
-        if (visible.has("chopal") && feed.chopalStatus?.registered) {
-          const ca = feed.chopalStatus.assignment;
-          const chopalLabel = ca
-            ? ca.status === "pending" ? `${t.dashboard.chopal} ${ca.assignedTime} — ${t.chopal.approve}` : ca.status === "accepted" ? `${t.dashboard.chopal} ${ca.assignedTime} ✓` : `${t.dashboard.chopal} — ${t.chopal.appointmentRejected}`
-            : `${t.chopal.registeredForChopal} — ${t.chopal.waitingForAppointment}`;
-          const chopalIcon = ca?.status === "pending" ? MdAccessTime : MdCheckCircle;
-          const chopalColor = ca?.status === "pending" ? "text-amber-500" : "text-green-500";
-          const chopalBg = ca?.status === "pending" ? "from-amber-50 to-orange-50" : "from-green-50 to-emerald-50";
-          const chopalBorder = ca?.status === "pending" ? "border-amber-100" : "border-green-100";
-          const chopalText = ca?.status === "pending" ? "text-amber-700" : "text-green-700";
-          actionItems.push({ key: "chopal-done", href: "/chopal", icon: chopalIcon, iconColor: chopalColor, bg: chopalBg, border: chopalBorder, textColor: chopalText, label: chopalLabel });
-        }
-        if (visible.has("volunteers") && feed.urgentReplacement)
-          actionItems.push({ key: "vol-urgent", href: `/volunteers?highlight=${feed.urgentReplacement.request.id}`, icon: MdVolunteerActivism, iconColor: "text-red-500", bg: "from-red-50 to-rose-50", border: "border-red-200", textColor: "text-red-700", label: `${t.volAlerts.needsReplacement} ${feed.urgentReplacement.request.title}` });
-        if (visible.has("volunteers") && feed.activeVolunteerRequests?.length > 0)
-          actionItems.push({ key: "vol-active", href: "/volunteers", icon: MdVolunteerActivism, iconColor: "text-green-500", bg: "from-green-50 to-emerald-50", border: "border-green-100", textColor: "text-green-700", label: `${feed.activeVolunteerRequests.length} ${t.volunteers.title}` });
-        if (visible.has("volunteers") && feed.myVolunteerAssignments?.length > 0 && !feed.myVolunteerAssignments.some(a => (a.overlappingSchedule?.length ?? 0) > 0 || (a.request.assignments?.length ?? 0) > 1)) {
-          const nowVol = feed.myVolunteerAssignments.find(a => { const s = new Date(a.request.startTime); const e = new Date(a.request.endTime); const n = new Date(); return n >= s && n <= e; });
-          const volLabel = nowVol ? `${nowVol.request.title} — ${t.common.now}` : `${feed.myVolunteerAssignments.length} ${t.volunteers.title}`;
-          actionItems.push({ key: "vol-my", href: "/volunteers?tab=my", icon: MdCheckCircle, iconColor: nowVol ? "text-emerald-600" : "text-emerald-500", bg: nowVol ? "from-emerald-100 to-green-100" : "from-emerald-50 to-green-50", border: nowVol ? "border-emerald-300" : "border-emerald-100", textColor: nowVol ? "text-emerald-800" : "text-emerald-700", label: volLabel });
-        }
-        {/* Created requests are shown as expanded cards below */}
-        if (visible.has("surveys") && (feed.pendingSurveys?.length > 0 || feed.pendingPlatoonSurveys?.length > 0))
-          actionItems.push({ key: "surveys", href: "/surveys", icon: MdPoll, iconColor: "text-violet-500", bg: "from-violet-50 to-purple-50", border: "border-violet-100", textColor: "text-violet-700", label: `${(feed.pendingSurveys?.length || 0) + (feed.pendingPlatoonSurveys?.length || 0)} ${t.dashboard.surveys}` });
-        if (visible.has("vote") && feed.hasVotedThisWeek === false)
-          actionItems.push({ key: "vote", href: "/person-of-week", icon: MdEmojiEvents, iconColor: "text-yellow-500", bg: "from-yellow-50 to-amber-50", border: "border-yellow-100", textColor: "text-yellow-700", label: `${t.personOfWeek.vote} ${t.personOfWeek.title}!` });
-        if (visible.has("materials") && feed.unreadMaterials.length > 0)
-          actionItems.push({ key: "materials", href: "/materials", icon: MdNewReleases, iconColor: "text-rose-500", bg: "from-rose-50 to-red-50", border: "border-rose-100", textColor: "text-rose-700", label: `${feed.unreadMaterials.length} ${t.dashboard.materials}` });
+      <ActionItemsGrid feed={feed} visible={visible} t={t} />
 
-        if (actionItems.length === 0) return null;
-        return (
-          <div className={`grid gap-2 ${actionItems.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-            {actionItems.map(({ key, href, icon: Icon, iconColor, bg, border, textColor, label }) => (
-              <Link key={key} href={href} className={`flex items-center gap-2.5 bg-gradient-to-br ${bg} border ${border} rounded-2xl px-3 py-2.5 hover:shadow-md transition`}>
-                <div className={`w-8 h-8 rounded-xl bg-white/80 flex items-center justify-center shrink-0 shadow-sm`}>
-                  <Icon className={`text-lg ${iconColor}`} />
-                </div>
-                <span className={`text-[11px] font-semibold ${textColor} leading-tight`}>{label}</span>
-              </Link>
-            ))}
-          </div>
-        );
-      })()}
-
-      {/* Birthdays — special */}
       {visible.has("birthdays") && feed.birthdayUsers.length > 0 && (
-        <Link href="/birthdays" className="flex items-center gap-3 bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-100 rounded-2xl px-3.5 py-3 hover:shadow-md transition">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center shadow-sm shrink-0">
-            <MdCake className="text-lg text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[10px] text-pink-400 font-bold block">{t.birthdays.birthdayToday}!</span>
-            <span className="text-xs font-semibold text-pink-700 truncate block">{feed.birthdayUsers.map((u) => displayName(u, locale)).join(", ")}</span>
-          </div>
-          <div className="flex -space-x-1.5 shrink-0">
-            {feed.birthdayUsers.slice(0, 3).map((u) => (
-              <Avatar key={u.id} name={u.name} image={u.image} size="xs" />
-            ))}
-          </div>
-        </Link>
+        <BirthdaysSection birthdayUsers={feed.birthdayUsers} locale={locale} t={t} />
       )}
 
-      {/* Tasks — card with list */}
       {visible.has("tasks") && feed.todayTasks.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-l from-purple-500 to-indigo-500 px-3.5 py-2 flex items-center gap-2">
-            <MdAssignment className="text-sm text-white/90" />
-            <span className="text-[11px] font-bold text-white/90">{t.dashboard.tasks} ({feed.todayTasks.length})</span>
-          </div>
-          <div className="px-3.5 py-2.5 space-y-1.5">
-            {feed.todayTasks.slice(0, 4).map((task) => {
-              const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
-              return (
-                <Link key={task.id} href="/tasks" className="flex items-center gap-2 group">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${
-                    task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-orange-400" : "bg-gray-300"
-                  }`} />
-                  <span className={`text-xs truncate flex-1 group-hover:underline ${isOverdue ? "text-red-600 font-medium" : "text-gray-600"}`}>{getTranslation(task.title)}</span>
-                  {isOverdue && <span className="text-[9px] text-red-500 font-bold shrink-0">{t.tasks.completed}</span>}
-                </Link>
-              );
-            })}
-            {feed.todayTasks.length > 4 && (
-              <Link href="/tasks" className="text-[10px] text-purple-500 hover:underline block">+ {feed.todayTasks.length - 4}</Link>
-            )}
-          </div>
-        </div>
+        <TasksSection todayTasks={feed.todayTasks} t={t} getTranslation={getTranslation} />
       )}
 
-      {/* Commander pinned */}
       {visible.has("commander") && feed.pinnedPosts.length > 0 && (
-        <div className="space-y-2">
-          {feed.pinnedPosts.map((post) => (
-            <Link key={post.id} href="/commander" className="flex items-center gap-2.5 bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-100 rounded-2xl px-3.5 py-2.5 hover:shadow-md transition">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-sm shrink-0">
-                <MdPushPin className="text-sm text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs font-semibold text-gray-800 truncate block">{getTranslation(post.title)}</span>
-                <span className="text-[10px] text-yellow-600">
-                  {displayName(post.author, locale)}
-                  {post.dueDate && <> · {new Date(post.dueDate + "T12:00:00").toLocaleDateString(dateLocale, { day: "numeric", month: "short" })}</>}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <CommanderPinnedSection pinnedPosts={feed.pinnedPosts} locale={locale} dateLocale={dateLocale} t={t} getTranslation={getTranslation} />
       )}
 
-      {/* Messages */}
       {visible.has("messages") && feed.latestMessage && (
-        <Link href="/messages" className="flex items-center gap-2.5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl px-3.5 py-2.5 hover:shadow-md transition">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-sm shrink-0">
-            <MdMessage className="text-sm text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold text-gray-800 truncate block">{getTranslation(feed.latestMessage.title)}</span>
-            <span className="text-[10px] text-blue-500">{displayName(feed.latestMessage.author, locale)}</span>
-          </div>
-        </Link>
+        <LatestMessageSection latestMessage={feed.latestMessage} locale={locale} t={t} getTranslation={getTranslation} />
       )}
     </div>
   );

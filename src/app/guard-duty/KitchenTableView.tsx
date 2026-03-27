@@ -14,12 +14,12 @@ interface KitchenTableViewProps {
   onExport: () => void;
 }
 
-export default function KitchenTableView({ table, dateDisplay, userId, isRoni, onSwap, onExport }: KitchenTableViewProps) {
+export default function KitchenTableView({ table, dateDisplay, userId, isRoni, onSwap }: KitchenTableViewProps) {
   const { t, locale } = useLanguage();
-  const roles: string[] = JSON.parse(table.roles); // shifts
+  const shifts: string[] = JSON.parse(table.roles);
 
-  // Group assignments by shift (role)
-  const shiftGroups = roles.map(shift => ({
+  // Group assignments by shift
+  const shiftGroups = shifts.map(shift => ({
     shift,
     label: KITCHEN_SHIFT_LABELS[shift] || shift,
     color: KITCHEN_SHIFT_COLORS[shift] || "bg-gray-600 text-white",
@@ -27,6 +27,9 @@ export default function KitchenTableView({ table, dateDisplay, userId, isRoni, o
       .filter(a => a.role === shift)
       .sort((a, b) => parseInt(a.timeSlot) - parseInt(b.timeSlot)),
   }));
+
+  // Max rows across all shifts
+  const maxRows = Math.max(...shiftGroups.map(g => g.people.length), 1);
 
   return (
     <div className="mb-6">
@@ -36,36 +39,62 @@ export default function KitchenTableView({ table, dateDisplay, userId, isRoni, o
         <span className="text-[10px] text-gray-400">{dateDisplay}</span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {shiftGroups.map(({ shift, label, color, people }) => (
-          <div key={shift} className="rounded-xl border border-gray-200 overflow-hidden">
-            <div className={`${color} px-3 py-2 text-center`}>
-              <div className="font-bold text-sm">{label}</div>
-              <div className="text-[10px] opacity-80">{shift}</div>
-              <div className="text-[10px] opacity-70">{people.length} {t.guardDuty.people}</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {people.map((a) => {
-                const isMe = a.userId === userId;
-                return (
-                  <div key={a.id} className={`flex items-center justify-between px-3 py-1.5 text-xs ${isMe ? "bg-orange-50 font-bold" : "bg-white"}`}>
-                    <span className={isMe ? "text-orange-700" : "text-gray-700"}>
-                      {displayName(a.user, locale)}
-                    </span>
-                    {isRoni && (
-                      <button onClick={() => onSwap(a)} className="text-gray-400 hover:text-orange-500 transition p-0.5">
-                        <MdSwapHoriz className="text-sm" />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {people.length === 0 && (
-                <div className="px-3 py-4 text-center text-gray-300 text-xs">—</div>
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="overflow-x-auto -mx-1 px-1">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr>
+              <th className="border border-gray-200 bg-gray-50 px-2 py-1.5 text-gray-400 font-bold text-[10px] w-8">#</th>
+              {shiftGroups.map(({ shift, label, color }) => (
+                <th key={shift} className={`border border-gray-200 px-2 py-2 text-center ${color}`}>
+                  <div className="font-bold text-sm">{label}</div>
+                  <div className="text-[10px] opacity-80">{shift}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: maxRows }, (_, i) => (
+              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className={`border border-gray-200 px-2 py-1 text-center text-[10px] text-gray-400 font-bold ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                  {i + 1}
+                </td>
+                {shiftGroups.map(({ shift, people }) => {
+                  const a = people[i];
+                  if (!a) {
+                    return <td key={shift} className="border border-gray-100 px-2 py-1 text-center text-gray-300">—</td>;
+                  }
+                  const isMe = a.userId === userId;
+                  return (
+                    <td key={shift} className={`border border-gray-100 px-2 py-1 ${isMe ? "bg-orange-50" : ""}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={`${isMe ? "text-orange-700 font-bold" : "text-gray-700"}`}>
+                          {displayName(a.user, locale)}
+                        </span>
+                        {isRoni && (
+                          <button onClick={() => onSwap(a)} className="text-gray-400 hover:text-orange-500 transition p-0.5 shrink-0">
+                            <MdSwapHoriz className="text-sm" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-gray-50">
+              <td className="border border-gray-200 px-2 py-1 text-center text-[10px] text-gray-500 font-bold">
+                {t.guardDuty.people}
+              </td>
+              {shiftGroups.map(({ shift, people }) => (
+                <td key={shift} className="border border-gray-200 px-2 py-1 text-center text-[10px] text-gray-500 font-bold">
+                  {people.length}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
       </div>
     </div>
   );

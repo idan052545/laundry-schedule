@@ -1,0 +1,16 @@
+export const laundry = {
+  title: "לוח זמנים",
+  washer: "כביסה",
+  dryer: "מייבש",
+  noMachines: "אין מכונות מסוג זה",
+  hour: "שעה",
+  myBooking: "ההזמנה שלי",
+  room: "חדר",
+  cancelBooking: "בטל",
+  book: "הזמן",
+  myBookings: "ההזמנות שלי",
+  cancelBookingBtn: "בטל הזמנה",
+  noBookings: "אין לך הזמנות לתאריך זה",
+  cancelConfirm: "האם אתה בטוח שברצונך לבטל את ההזמנה?",
+  bookingError: "שגיאה בהזמנה",
+} as const;

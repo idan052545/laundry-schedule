@@ -1,0 +1,17 @@
+export const aktualia = {
+  title: "אקטואליה",
+  waitForParade: "חכו למסדר מחר",
+  sagalNotAvailable: "תוכן זה אינו זמין לסגל מפקד",
+  description: "כל חדר בוחר נושא לדיון בוקר. מתאפס בשעה 10:00.",
+  selected: "בחרו",
+  waiting: "ממתינים",
+  room: "חדר",
+  inputPlaceholder: "הזן נושא לאקטואליה...",
+  updateRoomFirst: "עדכן מספר חדר בפרופיל כדי לבחור נושא",
+  alreadyChosen: "כבר בחרת נושא להיום",
+  someoneChose: "מישהו מהחדר שלך כבר בחר נושא",
+  noTopics: "אין נושאים עדיין להיום",
+  chooseHint: "בחרו נושא לאקטואליה של הבוקר",
+  dateLabel: "תאריך:",
+  missingRooms: "חדרים שעדיין לא בחרו",
+} as const;
