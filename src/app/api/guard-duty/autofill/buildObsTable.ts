@@ -135,6 +135,16 @@ export function buildObsTable(
             if (haH <= laH) continue;
             if (ha.role === la.role) continue;
 
+            // Ensure no duplicate: low person must not already be in ha's shift column
+            const lowAlreadyInHaShift = assignments.some((a, idx) =>
+              a.userId === lowId && a.role === ha.role && idx !== la.idx
+            );
+            // high person must not already be in la's shift column
+            const highAlreadyInLaShift = assignments.some((a, idx) =>
+              a.userId === highId && a.role === la.role && idx !== ha.idx
+            );
+            if (lowAlreadyInHaShift || highAlreadyInLaShift) continue;
+
             const newHighTH = highTH - haH + laH;
             const newLowTH = lowTH - laH + haH;
             if (Math.abs(newHighTH - newLowTH) >= Math.abs(highTH - lowTH)) continue;
@@ -151,7 +161,7 @@ export function buildObsTable(
         if (!improved && highShifts.length >= 2 && lowShifts.length <= 1) {
           for (const ha of highShifts) {
             const haH = parseTimeSlot(ha.role).hours;
-            // Check low person doesn't already have this shift type (overlap)
+            // Check low person doesn't already have this shift type
             const lowHasShiftType = assignments.some((a, idx) =>
               a.userId === lowId && a.role === ha.role && idx !== ha.idx
             );
