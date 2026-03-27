@@ -185,7 +185,10 @@ export async function POST(req: Request) {
         const a = rawAdded[ai];
         const oldTime = r.allDay ? "כל היום" : `${formatTime(r.startTime)}–${formatTime(r.endTime)}`;
         const newTime = a.allDay ? "כל היום" : `${formatTime(a.startTime)}–${formatTime(a.endTime)}`;
-        updated.push(`${a.title} (${oldTime} ← ${newTime})`);
+        // Only count as "updated" if the time actually changed
+        if (oldTime !== newTime) {
+          updated.push(`${a.title} (${newTime} ← ${oldTime})`);
+        }
         matchedAddedIdx.add(ai);
         matchedRemovedIdx.add(ri);
         break;

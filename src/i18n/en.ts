@@ -277,6 +277,7 @@ const en: Dictionary = {
     showAll: "Show all notifications",
     last24h: "Last 24 hours",
     markAll: "Mark all",
+    unread: "unread notifications",
     updated: "Updated",
     added: "Added",
     removed: "Removed",

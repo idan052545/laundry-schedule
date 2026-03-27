@@ -290,6 +290,7 @@ const he = {
     showAll: "הצג את כל ההתראות",
     last24h: "24 שעות אחרונות",
     markAll: "סמן הכל",
+    unread: "התראות שלא נקראו",
     updated: "עודכנו",
     added: "נוספו",
     removed: "הוסרו",

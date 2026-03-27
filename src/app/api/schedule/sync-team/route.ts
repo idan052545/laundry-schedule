@@ -313,7 +313,9 @@ export async function POST(req: NextRequest) {
         const a = rawAdded[ai];
         const oldTime = r.allDay ? "כל היום" : `${formatTime(r.startTime)}–${formatTime(r.endTime)}`;
         const newTime = a.allDay ? "כל היום" : `${formatTime(a.startTime)}–${formatTime(a.endTime)}`;
-        updated.push(`${a.title} (${oldTime} ← ${newTime})`);
+        if (oldTime !== newTime) {
+          updated.push(`${a.title} (${newTime} ← ${oldTime})`);
+        }
         matchedAddedIdx.add(ai);
         matchedRemovedIdx.add(ri);
         break;
@@ -378,7 +380,7 @@ export async function PUT(req: NextRequest) {
   });
 
   if (teamUsers.length > 0) {
-    await sendPushToUsers(teamUsers.map(u => u.id), {
+    await sendPushToUsers(teamUsers.map((u: { id: string }) => u.id), {
       title: `עדכון לו"ז צוות ${teamNumber}`,
       body: changes,
       url: "/schedule-daily",
