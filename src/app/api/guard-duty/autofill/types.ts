@@ -13,4 +13,6 @@ export interface TableResult {
   timeSlots: string[];
   assignments: { userId: string; timeSlot: string; role: string; note?: string }[];
   stats: { totalHours: number; usersUsed: number; fairnessScore: number };
+  /** Maps userId → כ"כ role ('כ"כא' or 'כ"כב') for guard table. Used to filter obs eligibility. */
+  kkRoleByUser?: Record<string, string>;
 }

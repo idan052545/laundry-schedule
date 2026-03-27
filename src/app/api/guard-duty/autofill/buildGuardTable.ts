@@ -72,6 +72,17 @@ export function buildGuardTable(
     }
   }
 
+  // Track כ"כ user IDs for the per-slot limit (max 1 כ"כ person guarding per slot)
+  const kkUserIds = new Set<string>();
+  for (const a of assignments) {
+    if (DAY_ROLES.includes(a.role)) kkUserIds.add(a.userId);
+  }
+  // Track which כ"כ role each user has (for obs eligibility later)
+  const kkRoleByUser: Record<string, string> = {};
+  for (const a of assignments) {
+    if (DAY_ROLES.includes(a.role)) kkRoleByUser[a.userId] = a.role;
+  }
+
   // ─── 2. Build slot×role work items ───
   const slotRolePairs: { slot: string; role: string; count: number; hardness: number }[] = [];
 
@@ -206,6 +217,9 @@ export function buildGuardTable(
 
     let filled = 0;
     const nightCount: Record<string, number> = {};
+    // Track how many כ"כ people are guarding per time slot (max 1 allowed)
+    const kkPerSlot: Record<string, number> = {};
+    for (const s of slots) kkPerSlot[s] = 0;
 
     for (const { slot, role, count } of sorted) {
       const isReserve = RESERVE_ROLES.includes(role);
@@ -219,9 +233,13 @@ export function buildGuardTable(
         const slotH = parseTimeSlot(note || slot).hours;
 
         // For night slots, filter out people who already have 2+ night shifts
-        const eligibleForSlot = isNight && !isReserve
+        // For non-reserve non-day roles: if slot already has a כ"כ person, exclude other כ"כ people
+        let eligibleForSlot = isNight && !isReserve
           ? users.filter(u => (nightCount[u.id] || 0) < 2)
-          : users;
+          : [...users];
+        if (!isReserve && !DAY_ROLES.includes(role) && (kkPerSlot[slot] || 0) >= 1) {
+          eligibleForSlot = eligibleForSlot.filter(u => !kkUserIds.has(u.id));
+        }
 
         const candidate = findBestCandidate(
           eligibleForSlot, hoursMap, debtMap, tryLocal, tryBusy, slot, role, false, isReserve, squadMembers, "guard", slotH, targetHoursPerPerson
@@ -238,6 +256,7 @@ export function buildGuardTable(
             if (!tryBusy[fallback.id]) tryBusy[fallback.id] = [];
             if (!isReserve) tryBusy[fallback.id].push(note || slot);
             nightCount[fallback.id] = (nightCount[fallback.id] || 0) + 1;
+            if (kkUserIds.has(fallback.id)) kkPerSlot[slot] = (kkPerSlot[slot] || 0) + 1;
             filled++;
           } else {
             hardToPlace[`${slot}|${role}`] = (hardToPlace[`${slot}|${role}`] || 0) + 1;
@@ -249,6 +268,7 @@ export function buildGuardTable(
           if (!tryBusy[candidate.id]) tryBusy[candidate.id] = [];
           if (!isReserve) tryBusy[candidate.id].push(note || slot);
           if (isNight) nightCount[candidate.id] = (nightCount[candidate.id] || 0) + 1;
+          if (!isReserve && !DAY_ROLES.includes(role) && kkUserIds.has(candidate.id)) kkPerSlot[slot] = (kkPerSlot[slot] || 0) + 1;
           filled++;
         } else {
           hardToPlace[`${slot}|${role}`] = (hardToPlace[`${slot}|${role}`] || 0) + 1;
@@ -285,6 +305,13 @@ export function buildGuardTable(
             .map(a => a.timeSlot);
 
           if (canAssignToSlot(unassigned, shift.timeSlot, shift.role, busy, localSlots, tryLocal[unassigned.id] || [], "guard")) {
+            // כ"כ constraint: if unassigned is כ"כ, ensure slot won't exceed 1 כ"כ after transfer
+            if (kkUserIds.has(unassigned.id)) {
+              const kkInSlot = tryAssignments.filter((a, i) =>
+                i !== shift.idx && a.timeSlot === shift.timeSlot && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && kkUserIds.has(a.userId)
+              ).length;
+              if (kkInSlot >= 1) continue;
+            }
             // Check gender pairing for night shifts
             if (isNightSlot(shift.timeSlot)) {
               const partners = tryAssignments.filter(a =>
@@ -378,6 +405,18 @@ export function buildGuardTable(
               const newDiff = Math.abs(newHighWH - newLowWH);
               if (newDiff >= oldDiff) continue;
 
+              // כ"כ constraint: max 1 כ"כ per slot after swap
+              if (kkUserIds.has(highId) || kkUserIds.has(lowId)) {
+                // Count כ"כ in each target slot after swap (exclude the person leaving)
+                const kkInHaSlot = tryAssignments.filter((a, i) =>
+                  i !== ha.idx && i !== la.idx && a.timeSlot === ha.timeSlot && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && kkUserIds.has(a.userId)
+                ).length + (kkUserIds.has(lowId) ? 1 : 0);
+                const kkInLaSlot = tryAssignments.filter((a, i) =>
+                  i !== ha.idx && i !== la.idx && a.timeSlot === la.timeSlot && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && kkUserIds.has(a.userId)
+                ).length + (kkUserIds.has(highId) ? 1 : 0);
+                if (kkInHaSlot > 1 || kkInLaSlot > 1) continue;
+              }
+
               // Perform swap
               tryAssignments[ha.idx] = { ...tryAssignments[ha.idx], userId: lowId };
               tryAssignments[la.idx] = { ...tryAssignments[la.idx], userId: highId };
@@ -403,6 +442,13 @@ export function buildGuardTable(
                   .filter(a => !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && a.timeSlot.includes("-"))
                   .map(a => a.timeSlot);
                 if (canAssignToSlot(lowUser, ha.timeSlot, ha.role, lowBusy, lowLocalSlots, tryLocal[lowId] || [], "guard")) {
+                  // כ"כ constraint: if lowId is כ"כ, ensure slot won't have >1 כ"כ after move
+                  if (kkUserIds.has(lowId)) {
+                    const kkInSlot = tryAssignments.filter((a, i) =>
+                      i !== ha.idx && a.timeSlot === ha.timeSlot && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && kkUserIds.has(a.userId)
+                    ).length;
+                    if (kkInSlot >= 1) continue;
+                  }
                   tryAssignments[ha.idx] = { ...tryAssignments[ha.idx], userId: lowId };
                   tryLocal[highId] = (tryLocal[highId] || []).filter(a => !(a.role === ha.role && a.timeSlot === ha.timeSlot));
                   if (!tryLocal[lowId]) tryLocal[lowId] = [];
@@ -463,6 +509,26 @@ export function buildGuardTable(
                     const newVar = (newAWH ** 2 + newBWH ** 2 + newCWH ** 2) / 3;
 
                     if (newVar >= oldVar) continue;
+
+                    // כ"כ constraint: after cycle A→cS.slot, B→aS.slot, C→bS.slot
+                    if (kkUserIds.has(aId) || kkUserIds.has(bId) || kkUserIds.has(cId)) {
+                      const slotsToCheck = [
+                        { slot: cS.timeSlot, newUser: aId, excludeIdxs: [aS.idx, bS.idx, cS.idx] },
+                        { slot: aS.timeSlot, newUser: bId, excludeIdxs: [aS.idx, bS.idx, cS.idx] },
+                        { slot: bS.timeSlot, newUser: cId, excludeIdxs: [aS.idx, bS.idx, cS.idx] },
+                      ];
+                      let kkViolation = false;
+                      for (const { slot, newUser, excludeIdxs } of slotsToCheck) {
+                        if (!kkUserIds.has(newUser)) continue;
+                        const existingKk = tryAssignments.filter((a, i) =>
+                          !excludeIdxs.includes(i) && a.timeSlot === slot && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && kkUserIds.has(a.userId)
+                        ).length;
+                        // Also count other cycle participants landing in same slot
+                        const otherCycleKk = slotsToCheck.filter(s => s !== slotsToCheck.find(s2 => s2.newUser === newUser) && s.slot === slot && kkUserIds.has(s.newUser)).length;
+                        if (existingKk + otherCycleKk + 1 > 1) { kkViolation = true; break; }
+                      }
+                      if (kkViolation) continue;
+                    }
 
                     // Perform cycle swap
                     tryAssignments[aS.idx] = { ...tryAssignments[aS.idx], userId: bId };
@@ -527,5 +593,6 @@ export function buildGuardTable(
     timeSlots: slots,
     assignments: finalAssignments,
     stats: { totalHours, usersUsed: usedUsers.size, fairnessScore: Math.round(fairnessScore) },
+    kkRoleByUser,
   };
 }

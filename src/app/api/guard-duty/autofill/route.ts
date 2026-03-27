@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
     timeSlots: string[];
     assignments: { userId: string; timeSlot: string; role: string; note?: string }[];
     stats: { totalHours: number; usersUsed: number; fairnessScore: number };
+    kkRoleByUser?: Record<string, string>;
   }> = {};
 
   if (types.includes("kitchen")) {
@@ -123,7 +124,10 @@ export async function POST(req: NextRequest) {
         userBusy[a.userId].push(a.note || a.timeSlot);
       }
     }
-    result.obs = buildObsTable(obsEligible, combinedHoursMap, debtMap, userBusy);
+    // כ"כא cannot do עב"ס, כ"כב can
+    const kkRoleByUser = result.guard?.kkRoleByUser || {};
+    const obsFiltered = obsEligible.filter(u => kkRoleByUser[u.id] !== 'כ"כא');
+    result.obs = buildObsTable(obsFiltered, combinedHoursMap, debtMap, userBusy);
   }
 
   // ─── Cross-table swap optimization: equalize guard+obs combined hours ───
@@ -144,11 +148,23 @@ export async function POST(req: NextRequest) {
       return h;
     };
 
-    /** Check if a guard swap is valid (role eligibility, time overlap, gender, rest) */
+    const kkUserIds = new Set<string>();
+    const kkRoleByUser = result.guard!.kkRoleByUser || {};
+    for (const [uid] of Object.entries(kkRoleByUser)) kkUserIds.add(uid);
+
+    /** Check if a guard swap is valid (role eligibility, time overlap, gender, rest, כ"כ limit) */
     const canSwapGuard = (userId: string, slot: string, role: string, excludeIdx: number) => {
       const user = userMap.get(userId);
       if (!user) return false;
       if (!canUserTakeRole(user.name, role, slot, "guard")) return false;
+
+      // כ"כ constraint: max 1 כ"כ per slot
+      if (kkUserIds.has(userId) && !DAY_ROLES.includes(role) && !RESERVE_ROLES.includes(role)) {
+        const kkInSlot = result.guard!.assignments.filter((a, i) =>
+          i !== excludeIdx && a.timeSlot === slot && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role) && kkUserIds.has(a.userId)
+        ).length;
+        if (kkInSlot >= 1) return false;
+      }
 
       // Collect all other slots this user has (guard + obs busy)
       const otherGuardSlots: string[] = [];
