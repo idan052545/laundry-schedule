@@ -126,6 +126,29 @@ export async function POST(req: NextRequest) {
     result.obs = buildObsTable(obsEligible, combinedHoursMap, debtMap, userBusy);
   }
 
+  // ─── Compute combined fairness across guard + obs ───
+  if (result.guard && result.obs) {
+    const combinedUserHours: Record<string, number> = {};
+    for (const a of result.guard.assignments) {
+      if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
+      const h = parseTimeSlot(a.note || a.timeSlot).hours;
+      if (h > 0) combinedUserHours[a.userId] = (combinedUserHours[a.userId] || 0) + h;
+    }
+    for (const a of result.obs.assignments) {
+      const h = parseTimeSlot(a.role).hours;
+      if (h > 0) combinedUserHours[a.userId] = (combinedUserHours[a.userId] || 0) + h;
+    }
+    const vals = Object.values(combinedUserHours);
+    const avg = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+    const variance = vals.length > 0 ? vals.reduce((s, v) => s + (v - avg) ** 2, 0) / vals.length : 0;
+    const combinedFairness = avg > 0 ? Math.max(0, 100 - (Math.sqrt(variance) / avg) * 100) : 100;
+    const rounded = Math.round(combinedFairness);
+
+    // Override both tables with the combined score
+    result.guard.stats.fairnessScore = rounded;
+    result.obs.stats.fairnessScore = rounded;
+  }
+
   // ─── עב"ס גדודי: 3 people (one per obs shift), rotating through teams ───
   let obsGdudi: { userId: string; name: string; team: number; obsShift: string }[] = [];
   if (types.includes("guard") || types.includes("obs")) {

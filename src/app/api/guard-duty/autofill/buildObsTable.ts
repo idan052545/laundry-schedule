@@ -95,47 +95,76 @@ export function buildObsTable(
   }
 
   // ─── Post-assignment: swap optimization for obs fairness ───
-  const computeWH = (): Record<string, number> => {
+  // Use total hours (historical + local) for swap decisions
+  const computeTotalH = (): Record<string, number> => {
     const h: Record<string, number> = {};
     for (const a of assignments) {
-      h[a.userId] = (h[a.userId] || 0) + weightedHours(a.role);
+      const local = parseTimeSlot(a.role).hours;
+      h[a.userId] = (hoursMap[a.userId] || 0) + (h[a.userId] || 0) + local;
+    }
+    // For users with hist hours but no obs assignment, add them too
+    for (const u of users) {
+      if (!(u.id in h)) h[u.id] = hoursMap[u.id] || 0;
     }
     return h;
   };
 
-  for (let swapRound = 0; swapRound < 30; swapRound++) {
-    const userWH = computeWH();
-    const entries = Object.entries(userWH).sort((a, b) => b[1] - a[1]);
-    if (entries.length < 2) break;
+  for (let swapRound = 0; swapRound < 50; swapRound++) {
+    const totalH = computeTotalH();
+    const assignedEntries = Object.entries(totalH)
+      .filter(([id]) => assignments.some(a => a.userId === id))
+      .sort((a, b) => b[1] - a[1]);
+    if (assignedEntries.length < 2) break;
 
     let improved = false;
-    for (let hi = 0; hi < Math.min(5, entries.length) && !improved; hi++) {
-      for (let lo = entries.length - 1; lo >= Math.max(entries.length - 5, hi + 1) && !improved; lo--) {
-        const [highId, highWH] = entries[hi];
-        const [lowId, lowWH] = entries[lo];
-        if (highWH - lowWH < 1) continue;
+    // Wider search: top 10 × bottom 10
+    for (let hi = 0; hi < Math.min(10, assignedEntries.length) && !improved; hi++) {
+      for (let lo = assignedEntries.length - 1; lo >= Math.max(assignedEntries.length - 10, hi + 1) && !improved; lo--) {
+        const [highId, highTH] = assignedEntries[hi];
+        const [lowId, lowTH] = assignedEntries[lo];
+        if (highTH - lowTH < 0.5) continue;
 
         const highShifts = assignments.map((a, idx) => ({ ...a, idx })).filter(a => a.userId === highId);
         const lowShifts = assignments.map((a, idx) => ({ ...a, idx })).filter(a => a.userId === lowId);
 
+        // Pairwise swap: give high's heavy shift to low, low's light shift to high
         for (const ha of highShifts) {
-          const haWH = weightedHours(ha.role);
+          const haH = parseTimeSlot(ha.role).hours;
           for (const la of lowShifts) {
-            const laWH = weightedHours(la.role);
-            if (haWH <= laWH) continue;
-            if (ha.role === la.role) continue; // same shift type, no point
+            const laH = parseTimeSlot(la.role).hours;
+            if (haH <= laH) continue;
+            if (ha.role === la.role) continue;
 
-            const newHighWH = highWH - haWH + laWH;
-            const newLowWH = lowWH - laWH + haWH;
-            if (Math.abs(newHighWH - newLowWH) >= Math.abs(highWH - lowWH)) continue;
+            const newHighTH = highTH - haH + laH;
+            const newLowTH = lowTH - laH + haH;
+            if (Math.abs(newHighTH - newLowTH) >= Math.abs(highTH - lowTH)) continue;
 
-            // Swap
             assignments[ha.idx] = { ...assignments[ha.idx], userId: lowId };
             assignments[la.idx] = { ...assignments[la.idx], userId: highId };
             improved = true;
             break;
           }
           if (improved) break;
+        }
+
+        // Move: if high person has 2+ shifts and low has 1, move a shift
+        if (!improved && highShifts.length >= 2 && lowShifts.length <= 1) {
+          for (const ha of highShifts) {
+            const haH = parseTimeSlot(ha.role).hours;
+            // Check low person doesn't already have this shift type (overlap)
+            const lowHasShiftType = assignments.some((a, idx) =>
+              a.userId === lowId && a.role === ha.role && idx !== ha.idx
+            );
+            if (lowHasShiftType) continue;
+
+            const newHighTH = highTH - haH;
+            const newLowTH = lowTH + haH;
+            if (Math.abs(newHighTH - newLowTH) < Math.abs(highTH - lowTH)) {
+              assignments[ha.idx] = { ...assignments[ha.idx], userId: lowId };
+              improved = true;
+              break;
+            }
+          }
         }
       }
     }

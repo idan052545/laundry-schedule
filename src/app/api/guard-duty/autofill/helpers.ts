@@ -247,15 +247,20 @@ export function findBestCandidate(
       }
     }
 
-    // Soft cap: penalize people who already have many shifts to spread load
-    const shiftCountPenalty = localCount >= 3 ? (localCount - 2) * 4 : localCount >= 2 ? 2 : 0;
+    // Shift count penalty: exponential to strongly discourage piling shifts on same person
+    // 0 shifts: 0, 1 shift: 0, 2 shifts: +6, 3 shifts: +18, 4 shifts: +36
+    const shiftCountPenalty = localCount >= 2 ? (localCount - 1) * (localCount - 1) * 6 : 0;
 
-    // Unassigned bonus: people with 0 local shifts get a boost to ensure everyone participates
-    const unassignedBonus = localCount === 0 ? -3 : 0;
+    // כ"כ penalty: people already assigned to a day role (כ"כא/כ"כב) get penalized for additional shifts
+    const hasDayRoleAlready = (localAssignments[u.id] || []).some(a => DAY_ROLES.includes(a.role));
+    const dayRolePenalty = hasDayRoleAlready && !isDayRole ? 10 : 0;
+
+    // Unassigned bonus: people with 0 local shifts get a strong boost to ensure everyone participates
+    const unassignedBonus = localCount === 0 ? -8 : 0;
 
     return {
       user: u,
-      score: projected + (debt * 2) + squadBonus + consecutivePenalty + shiftCountPenalty + targetPenalty + unassignedBonus,
+      score: projected + (debt * 2) + squadBonus + consecutivePenalty + shiftCountPenalty + dayRolePenalty + targetPenalty + unassignedBonus,
       localCount,
     };
   });
@@ -298,6 +303,14 @@ export function findBestCandidate(
     if (isDayRole) {
       const hasDayRole = (localAssignments[user.id] || []).some(a => DAY_ROLES.includes(a.role));
       if (hasDayRole) continue;
+    }
+
+    // Hard cap: max 3 real shifts per person (excludes day roles and reserve)
+    if (!isDayRole && !isReserve) {
+      const realShiftCount = (localAssignments[user.id] || [])
+        .filter(a => !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role))
+        .length;
+      if (realShiftCount >= 3) continue;
     }
 
     const busy = userBusy[user.id] || [];
