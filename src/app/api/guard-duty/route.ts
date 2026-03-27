@@ -53,10 +53,18 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   }) : [];
 
-  // Compute hours per person across all tables (fairness)
-  const allAssignments = await prisma.dutyAssignment.findMany({
-    select: { userId: true, timeSlot: true, role: true },
+  // Compute hours per person for this specific date only (fairness per day)
+  const dateTables = await prisma.dutyTable.findMany({
+    where: { date },
+    select: { id: true },
   });
+  const dateTableIds = dateTables.map(t => t.id);
+  const dateAssignments = dateTableIds.length > 0
+    ? await prisma.dutyAssignment.findMany({
+        where: { tableId: { in: dateTableIds } },
+        select: { userId: true, timeSlot: true, role: true },
+      })
+    : [];
 
   function parseHours(range: string): number {
     const parts = range.split("-");
@@ -69,12 +77,14 @@ export async function GET(req: NextRequest) {
     return h;
   }
 
-  // Roles that are per-day (not per-shift) — exclude from hours
+  // Roles to exclude from hours: day roles + reserve (עתודה)
   const DAY_ROLES = ['כ"כא', 'כ"כב'];
+  const RESERVE_ROLES = ["עתודה"];
 
   const hoursMap: Record<string, number> = {};
-  for (const a of allAssignments) {
+  for (const a of dateAssignments) {
     if (DAY_ROLES.includes(a.role)) continue;
+    if (RESERVE_ROLES.includes(a.role)) continue;
     // Guard: timeSlot is time range. OBS: role is the time range, timeSlot is row number.
     const hours = parseHours(a.timeSlot) || parseHours(a.role);
     if (hours > 0) {
