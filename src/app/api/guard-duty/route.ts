@@ -100,7 +100,12 @@ export async function GET(req: NextRequest) {
   });
 
   const isCreator = table?.createdById === userId;
-  return NextResponse.json({ table, allUsers, isRoni: roni, isCreator, appeals, hoursMap, availableDates: availableDates.map(d => d.date) });
+
+  // Day type config (kitchen vs duty)
+  const dayTypeConfig = await prisma.dayTypeConfig.findUnique({ where: { date } });
+  const dayType = dayTypeConfig?.type || "duty";
+
+  return NextResponse.json({ table, allUsers, isRoni: roni, isCreator, appeals, hoursMap, dayType, availableDates: availableDates.map(d => d.date) });
 }
 
 // POST — create or update entire duty table (Roni only)
@@ -111,18 +116,20 @@ export async function POST(req: NextRequest) {
   const userId = (session.user as { id: string }).id;
   if (!(await isRoni(userId))) return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
 
-  const { date, type, title, roles, timeSlots, assignments } = await req.json();
+  const { date, type, title, roles, timeSlots, assignments, metadata } = await req.json();
   // assignments: { userId: string, timeSlot: string, role: string }[]
 
   if (!date || !type || !title || !roles || !timeSlots || !assignments) {
     return NextResponse.json({ error: "חסרים שדות" }, { status: 400 });
   }
 
+  const metaStr = metadata ? JSON.stringify(metadata) : null;
+
   // Upsert table
   const table = await prisma.dutyTable.upsert({
     where: { date_type: { date, type } },
-    update: { title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots), updatedAt: new Date() },
-    create: { date, type, title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots), createdById: userId },
+    update: { title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots), metadata: metaStr, updatedAt: new Date() },
+    create: { date, type, title, roles: JSON.stringify(roles), timeSlots: JSON.stringify(timeSlots), metadata: metaStr, createdById: userId },
   });
 
   // Delete old assignments and recreate

@@ -7,6 +7,7 @@ import {
   DutyTable, UserMin, Appeal, Assignment, DAY_ROLES, Overlap,
   toDateStr, parseTimeRange,
   DEFAULT_GUARD_ROLES, DEFAULT_GUARD_SLOTS, DEFAULT_OBS_ROLES, DEFAULT_OBS_SLOTS,
+  KITCHEN_SHIFTS,
 } from "./constants";
 import { useLanguage } from "@/i18n";
 
@@ -17,7 +18,8 @@ export function useGuardDuty() {
   const userId = session?.user ? (session.user as { id: string }).id : null;
 
   const [date, setDate] = useState(toDateStr(new Date()));
-  const [tableType, setTableType] = useState<"guard" | "obs">("guard");
+  const [tableType, setTableType] = useState<"guard" | "obs" | "kitchen">("guard");
+  const [dayType, setDayType] = useState<"duty" | "kitchen">("duty");
   const [table, setTable] = useState<DutyTable | null>(null);
   const [allUsers, setAllUsers] = useState<UserMin[]>([]);
   const [isRoni, setIsRoni] = useState(false);
@@ -53,6 +55,7 @@ export function useGuardDuty() {
     assignments: { userId: string; timeSlot: string; role: string }[];
     stats: { totalHours: number; usersUsed: number; fairnessScore: number };
   }> | null>(null);
+  const [autoFillObsGdudi, setAutoFillObsGdudi] = useState<{ userId: string; name: string; team: number }[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -66,12 +69,17 @@ export function useGuardDuty() {
       setIsCreator(data.isCreator || false);
       setAppeals(data.appeals);
       setHoursMap(data.hoursMap);
+      if (data.dayType) setDayType(data.dayType);
       if (data.availableDates) setAvailableDates(data.availableDates);
 
-      const otherType = tableType === "guard" ? "obs" : "guard";
-      fetch(`/api/guard-duty?date=${date}&type=${otherType}`).then(r => r.ok ? r.json() : null).then(d => {
-        setOtherTable(d?.table || null);
-      }).catch(() => setOtherTable(null));
+      const otherType = tableType === "guard" ? "obs" : tableType === "obs" ? "guard" : null;
+      if (otherType) {
+        fetch(`/api/guard-duty?date=${date}&type=${otherType}`).then(r => r.ok ? r.json() : null).then(d => {
+          setOtherTable(d?.table || null);
+        }).catch(() => setOtherTable(null));
+      } else {
+        setOtherTable(null);
+      }
 
       if (!initialDateSet && !data.table && data.availableDates?.length > 0) {
         const today = toDateStr(new Date());
@@ -151,11 +159,16 @@ export function useGuardDuty() {
   };
 
   const initCreateForm = () => {
-    const roles = tableType === "guard" ? [...DEFAULT_GUARD_ROLES] : [...DEFAULT_OBS_ROLES];
-    const slots = tableType === "guard" ? [...DEFAULT_GUARD_SLOTS] : [...DEFAULT_OBS_SLOTS];
+    const roles = tableType === "kitchen" ? [...KITCHEN_SHIFTS]
+      : tableType === "guard" ? [...DEFAULT_GUARD_ROLES] : [...DEFAULT_OBS_ROLES];
+    const slots = tableType === "kitchen" ? Array.from({ length: 20 }, (_, i) => String(i + 1))
+      : tableType === "guard" ? [...DEFAULT_GUARD_SLOTS] : [...DEFAULT_OBS_SLOTS];
     setCreateRoles(roles);
     setCreateSlots(slots);
-    setCreateTitle(tableType === "guard" ? t.guardDuty.guardDefaultTitle : t.guardDuty.obsDefaultTitle);
+    setCreateTitle(
+      tableType === "kitchen" ? t.guardDuty.kitchenTitle
+      : tableType === "guard" ? t.guardDuty.guardDefaultTitle : t.guardDuty.obsDefaultTitle
+    );
     setCreateAssignments({});
     setShowCreate(true);
   };
@@ -200,11 +213,12 @@ export function useGuardDuty() {
       const res = await fetch("/api/guard-duty/autofill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, types: ["guard", "obs"] }),
+        body: JSON.stringify({ date, types: dayType === "kitchen" ? ["kitchen"] : ["guard", "obs"] }),
       });
       if (res.ok) {
         const data = await res.json();
         setAutoFillPreview(data.tables);
+        setAutoFillObsGdudi(data.obsGdudi || []);
       } else {
         const err = await res.json();
         alert(err.error || t.common.error);
@@ -241,6 +255,10 @@ export function useGuardDuty() {
     setSubmitting(true);
     try {
       for (const [type, tbl] of Object.entries(autoFillPreview)) {
+        // Attach obsGdudi metadata to the guard table
+        const metadata = type === "guard" && autoFillObsGdudi.length > 0
+          ? { obsGdudi: autoFillObsGdudi.map(g => g.name) }
+          : undefined;
         await fetch("/api/guard-duty", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -248,6 +266,7 @@ export function useGuardDuty() {
             date, type, title: tbl.title,
             roles: tbl.roles, timeSlots: tbl.timeSlots,
             assignments: tbl.assignments,
+            metadata,
           }),
         });
       }
@@ -487,6 +506,23 @@ export function useGuardDuty() {
     .sort((a, b) => b.hours - a.hours);
   const avgHours = fairnessData.length > 0 ? fairnessData.reduce((s, u) => s + u.hours, 0) / fairnessData.length : 0;
 
+  const handleToggleDayType = async (newType: "duty" | "kitchen") => {
+    setSubmitting(true);
+    try {
+      await fetch("/api/guard-duty/day-type", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, type: newType }),
+      });
+      setDayType(newType);
+      setTableType(newType === "kitchen" ? "kitchen" : "guard");
+      await fetchData();
+    } catch {
+      alert(t.common.error);
+    }
+    setSubmitting(false);
+  };
+
   const dateDisplay = new Date(date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" });
 
   const assignedPeople = table ? [...new Map(table.assignments.map(a => [a.userId, a.user])).values()] : [];
@@ -501,7 +537,7 @@ export function useGuardDuty() {
     roles, slots, dayRoleAssignments, squads, obsGdudi, overlaps,
     fairnessData, avgHours, assignedPeople, myAssignments,
     // UI state
-    date, tableType, setTableType, loading,
+    date, tableType, setTableType, dayType, loading,
     showCreate, setShowCreate, showPersonSummary, setShowPersonSummary,
     showFairness, setShowFairness, showOverlaps, setShowOverlaps,
     swapping, setSwapping, swapUserId, setSwapUserId,
@@ -511,12 +547,12 @@ export function useGuardDuty() {
     // Create form
     createTitle, setCreateTitle, createRoles, createSlots, createAssignments,
     // Auto-fill
-    autoFillPreview, setAutoFillPreview,
+    autoFillPreview, setAutoFillPreview, autoFillObsGdudi,
     // Actions
     changeDate, handleSwap, handleAppeal, handleResolveAppeal,
     initCreateForm, setAssignment, handleCreate,
     handleExportXlsx, handleExportAllXlsx, handleDeleteTable, handleNotifyAll,
-    handleAutoFill, handleApplyAutoFill, handleEditAutoFillAssignment,
+    handleAutoFill, handleApplyAutoFill, handleEditAutoFillAssignment, handleToggleDayType,
     // Helpers
     dateDisplay, getPersonAssignments, getPersonHours, otherTable, setDate, fetchData,
   };

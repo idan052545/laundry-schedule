@@ -1063,6 +1063,17 @@ const he = {
     exportAll: "ייצוא הכל",
     unfilled: "חסרים",
     clickToEdit: "לחץ על תא לשינוי",
+    // Kitchen
+    kitchen: "מטבח",
+    kitchenDuty: "תורנות מטבח",
+    kitchenTitle: "שיבוץ מטבח",
+    dayTypeKitchen: "יום מטבח",
+    dayTypeDuty: "יום שמירות",
+    toggleDayType: "שנה סוג יום",
+    shiftMorning: "בוקר",
+    shiftNoon: "צהריים",
+    shiftEvening: "ערב",
+    people: "אנשים",
   },
 
   // Chopal

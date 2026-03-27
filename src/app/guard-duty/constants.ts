@@ -83,3 +83,19 @@ export function parseTimeRange(range: string) {
 }
 
 export type Overlap = { type: "same-slot" | "cross-table"; userId: string; userName: string; details: string };
+
+// ─── Kitchen duty ───
+
+export const KITCHEN_SHIFTS = ["06:00-10:30", "10:30-16:00", "16:00-22:00"];
+
+export const KITCHEN_SHIFT_LABELS: Record<string, string> = {
+  "06:00-10:30": "בוקר",
+  "10:30-16:00": "צהריים",
+  "16:00-22:00": "ערב",
+};
+
+export const KITCHEN_SHIFT_COLORS: Record<string, string> = {
+  "06:00-10:30": "bg-orange-600 text-white",
+  "10:30-16:00": "bg-orange-500 text-white",
+  "16:00-22:00": "bg-amber-600 text-white",
+};

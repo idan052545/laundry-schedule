@@ -1006,6 +1006,17 @@ const en: Dictionary = {
     exportAll: "Export all",
     unfilled: "unfilled",
     clickToEdit: "Click a cell to change",
+    // Kitchen
+    kitchen: "Kitchen",
+    kitchenDuty: "Kitchen Duty",
+    kitchenTitle: "Kitchen Assignment",
+    dayTypeKitchen: "Kitchen Day",
+    dayTypeDuty: "Duty Day",
+    toggleDayType: "Change day type",
+    shiftMorning: "Morning",
+    shiftNoon: "Noon",
+    shiftEvening: "Evening",
+    people: "people",
   },
 
   chopal: {

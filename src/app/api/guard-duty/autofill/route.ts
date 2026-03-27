@@ -252,6 +252,10 @@ export async function POST(req: NextRequest) {
     stats: { totalHours: number; usersUsed: number; fairnessScore: number };
   }> = {};
 
+  if (types.includes("kitchen")) {
+    result.kitchen = buildKitchenTable(allEligible, hoursMap, debtMap);
+  }
+
   if (types.includes("guard")) {
     result.guard = buildGuardTable(guardEligible, hoursMap, debtMap, userBusy);
   }
@@ -267,7 +271,34 @@ export async function POST(req: NextRequest) {
     result.obs = buildObsTable(obsEligible, hoursMap, debtMap, userBusy);
   }
 
-  return NextResponse.json({ success: true, tables: result });
+  // ─── עב"ס גדודי: 1 person per team (14-17), weekly rotation ───
+  let obsGdudi: { userId: string; name: string; team: number }[] = [];
+  if (types.includes("guard") || types.includes("obs")) {
+    const TEAMS = [14, 15, 16, 17];
+    // Collect all users already assigned in guard + obs for this day
+    const allAssigned = new Set<string>();
+    if (result.guard) result.guard.assignments.forEach(a => allAssigned.add(a.userId));
+    if (result.obs) result.obs.assignments.forEach(a => allAssigned.add(a.userId));
+
+    for (const team of TEAMS) {
+      const teamMembers = allEligible.filter(u => u.team === team);
+      if (teamMembers.length === 0) continue;
+
+      // Sort by debt ascending (least debt = most priority), prefer non-busy users
+      const sorted = [...teamMembers].sort((a, b) => {
+        const aDebt = debtMap[a.id] || 0;
+        const bDebt = debtMap[b.id] || 0;
+        const aBusy = allAssigned.has(a.id) ? 1 : 0;
+        const bBusy = allAssigned.has(b.id) ? 1 : 0;
+        if (aBusy !== bBusy) return aBusy - bBusy;
+        return aDebt - bDebt;
+      });
+
+      obsGdudi.push({ userId: sorted[0].id, name: sorted[0].name, team });
+    }
+  }
+
+  return NextResponse.json({ success: true, tables: result, obsGdudi });
 }
 
 // ─── Types ───
@@ -523,6 +554,84 @@ function buildObsTable(
     title: 'עב"ס בהד"י',
     roles: obsTimeRanges,
     timeSlots: obsPositions,
+    assignments,
+    stats: { totalHours, usersUsed: usedUsers.size, fairnessScore: Math.round(fairnessScore) },
+  };
+}
+
+// ─── BUILD KITCHEN TABLE ───
+// All ~60 users split across 3 shifts. No exemptions. Fairness-based.
+
+const KITCHEN_SHIFTS = ["06:00-10:30", "10:30-16:00", "16:00-22:00"];
+const KITCHEN_SHIFT_HOURS: Record<string, number> = {
+  "06:00-10:30": 4.5,
+  "10:30-16:00": 5.5,
+  "16:00-22:00": 6,
+};
+
+function buildKitchenTable(
+  users: EligibleUser[],
+  hoursMap: Record<string, number>,
+  debtMap: Record<string, number>,
+) {
+  const assignments: { userId: string; timeSlot: string; role: string }[] = [];
+
+  // Score users: lower = higher priority (less hours historically + less debt)
+  const scored = users.map(u => ({
+    user: u,
+    score: (hoursMap[u.id] || 0) + (debtMap[u.id] || 0) * 2,
+  }));
+  scored.sort((a, b) => a.score - b.score);
+
+  // Split evenly across 3 shifts
+  const perShift = Math.ceil(scored.length / 3);
+  const shifts: { shift: string; users: EligibleUser[] }[] = KITCHEN_SHIFTS.map((shift, i) => ({
+    shift,
+    users: scored.slice(i * perShift, (i + 1) * perShift).map(s => s.user),
+  }));
+
+  // Users with most debt (over-assigned) get the shortest shift (בוקר 4.5h)
+  // Users with least debt (under-assigned) get longest shift (ערב 6h) — they were scored lowest, so they appear first
+  // Actually: lowest score users are first in the array → first group = ערב (longest, compensates)
+  // Let's reverse: assign first group (lowest debt) to ערב, last group (highest debt) to בוקר
+  const shiftOrder = ["16:00-22:00", "10:30-16:00", "06:00-10:30"]; // longest → shortest
+  const reorderedShifts = shiftOrder.map((shift, i) => ({
+    shift,
+    users: scored.slice(i * perShift, (i + 1) * perShift).map(s => s.user),
+  }));
+
+  // Create positions within each shift
+  const maxPerShift = Math.max(...reorderedShifts.map(s => s.users.length));
+  const timeSlots = Array.from({ length: maxPerShift }, (_, i) => String(i + 1));
+
+  for (const { shift, users: shiftUsers } of reorderedShifts) {
+    for (let i = 0; i < shiftUsers.length; i++) {
+      assignments.push({
+        userId: shiftUsers[i].id,
+        timeSlot: String(i + 1),
+        role: shift,
+      });
+    }
+  }
+
+  // Stats
+  const usedUsers = new Set(assignments.map(a => a.userId));
+  let totalHours = 0;
+  const userHoursLocal: Record<string, number> = {};
+  for (const a of assignments) {
+    const h = KITCHEN_SHIFT_HOURS[a.role] || 0;
+    totalHours += h;
+    userHoursLocal[a.userId] = (userHoursLocal[a.userId] || 0) + h;
+  }
+  const hoursValues = Object.values(userHoursLocal);
+  const avg = hoursValues.length > 0 ? hoursValues.reduce((s, v) => s + v, 0) / hoursValues.length : 0;
+  const variance = hoursValues.length > 0 ? hoursValues.reduce((s, v) => s + (v - avg) ** 2, 0) / hoursValues.length : 0;
+  const fairnessScore = avg > 0 ? Math.max(0, 100 - (Math.sqrt(variance) / avg) * 100) : 100;
+
+  return {
+    title: "שיבוץ מטבח",
+    roles: KITCHEN_SHIFTS,
+    timeSlots,
     assignments,
     stats: { totalHours, usersUsed: usedUsers.size, fairnessScore: Math.round(fairnessScore) },
   };

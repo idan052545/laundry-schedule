@@ -3,7 +3,7 @@
 import {
   MdSecurity, MdAdd, MdClose, MdDownload, MdDelete, MdRefresh,
   MdBarChart, MdNotifications, MdErrorOutline, MdGavel, MdPerson,
-  MdAutoAwesome, MdCalendarMonth, MdFileDownload,
+  MdAutoAwesome, MdCalendarMonth, MdFileDownload, MdRestaurant,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
@@ -14,6 +14,7 @@ import FairnessPanel from "./FairnessPanel";
 import OverlapsPanel from "./OverlapsPanel";
 import AppealsPanel from "./AppealsPanel";
 import DutyTableView from "./DutyTable";
+import KitchenTableView from "./KitchenTableView";
 import SwapModal from "./SwapModal";
 import AppealModal from "./AppealModal";
 import PersonSummary from "./PersonSummary";
@@ -53,17 +54,39 @@ export default function GuardDutyPage() {
         </div>
       </div>
 
-      {/* Type tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-3">
-        <button onClick={() => g.setTableType("guard")}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "guard" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
-          {t.guardDuty.guards}
-        </button>
-        <button onClick={() => g.setTableType("obs")}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "obs" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}>
-          {t.guardDuty.avs}
-        </button>
-      </div>
+      {/* Day type toggle (Roni only) */}
+      {g.isRoni && (
+        <div className="flex gap-1 bg-gray-200 rounded-xl p-1 mb-2">
+          <button onClick={() => g.handleToggleDayType("duty")}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${g.dayType === "duty" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
+            <MdSecurity className="text-sm" /> {t.guardDuty.dayTypeDuty}
+          </button>
+          <button onClick={() => g.handleToggleDayType("kitchen")}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${g.dayType === "kitchen" ? "bg-white text-orange-700 shadow-sm" : "text-gray-500"}`}>
+            <MdRestaurant className="text-sm" /> {t.guardDuty.dayTypeKitchen}
+          </button>
+        </div>
+      )}
+
+      {/* Type tabs — duty day: guard/obs, kitchen day: kitchen only */}
+      {g.dayType === "duty" ? (
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-3">
+          <button onClick={() => g.setTableType("guard")}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "guard" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
+            {t.guardDuty.guards}
+          </button>
+          <button onClick={() => g.setTableType("obs")}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "obs" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}>
+            {t.guardDuty.avs}
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-1 bg-orange-100 rounded-xl p-1 mb-3">
+          <div className="flex-1 py-2 px-4 rounded-lg text-sm font-bold bg-white text-orange-700 shadow-sm text-center flex items-center justify-center gap-1.5">
+            <MdRestaurant /> {t.guardDuty.kitchen}
+          </div>
+        </div>
+      )}
 
       {/* Date selector — inline compact bar with calendar toggle */}
       <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3 py-2 mb-3">
@@ -141,6 +164,7 @@ export default function GuardDutyPage() {
           tables={g.autoFillPreview}
           allUsers={g.allUsers}
           submitting={g.submitting}
+          obsGdudi={g.autoFillObsGdudi}
           onApply={g.handleApplyAutoFill}
           onCancel={() => g.setAutoFillPreview(null)}
           onEditAssignment={g.handleEditAutoFillAssignment}
@@ -199,20 +223,31 @@ export default function GuardDutyPage() {
       {/* Main table */}
       {g.table && (
         <>
-          <DutyTableView
-            table={g.table}
-            roles={g.roles}
-            slots={g.slots}
-            dayRoleAssignments={g.dayRoleAssignments}
-            squads={g.squads}
-            obsGdudi={g.obsGdudi}
-            dateDisplay={g.dateDisplay}
-            userId={g.userId}
-            isRoni={g.isRoni}
-            onSwap={(a) => { g.setSwapping(a); g.setSwapUserId(""); }}
-            onAppeal={(a) => { g.setAppealing(a); g.setAppealReason(""); g.setAppealSuggestion(""); }}
-            onExport={g.handleExportXlsx}
-          />
+          {g.dayType === "kitchen" ? (
+            <KitchenTableView
+              table={g.table}
+              dateDisplay={g.dateDisplay}
+              userId={g.userId}
+              isRoni={g.isRoni}
+              onSwap={(a) => { g.setSwapping(a); g.setSwapUserId(""); }}
+              onExport={g.handleExportXlsx}
+            />
+          ) : (
+            <DutyTableView
+              table={g.table}
+              roles={g.roles}
+              slots={g.slots}
+              dayRoleAssignments={g.dayRoleAssignments}
+              squads={g.squads}
+              obsGdudi={g.obsGdudi}
+              dateDisplay={g.dateDisplay}
+              userId={g.userId}
+              isRoni={g.isRoni}
+              onSwap={(a) => { g.setSwapping(a); g.setSwapUserId(""); }}
+              onAppeal={(a) => { g.setAppealing(a); g.setAppealReason(""); g.setAppealSuggestion(""); }}
+              onExport={g.handleExportXlsx}
+            />
+          )}
 
           {/* My assignments card */}
           {g.myAssignments.length > 0 && (

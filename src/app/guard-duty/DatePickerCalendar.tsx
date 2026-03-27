@@ -8,7 +8,7 @@ interface DatePickerCalendarProps {
   selectedDate: string;
   onSelectDate: (date: string) => void;
   availableDates: string[];
-  tableType: "guard" | "obs";
+  tableType: "guard" | "obs" | "kitchen";
 }
 
 const HE_DAYS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];

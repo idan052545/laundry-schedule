@@ -485,6 +485,15 @@ model DutyFairness {
   @@index([userId])
 }
 
+// ─── Day Type Config (מטבח vs שמירות+עב"ס) ───
+
+model DayTypeConfig {
+  id        String   @id @default(uuid())
+  date      String   @unique  // YYYY-MM-DD
+  type      String            // "kitchen" or "duty"
+  createdAt DateTime @default(now())
+}
+
 // ─── מסדר חופ"ל (Daily Leave Registration) ───
 
 model ChopalRequest {
