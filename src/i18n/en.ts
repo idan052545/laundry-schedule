@@ -999,6 +999,13 @@ const en: Dictionary = {
     hoursTotal: "hours (total)",
     shifts: "shifts",
     daily: "daily",
+    autoFill: "Auto-fill",
+    autoFillPreview: "Preview — Auto-fill",
+    autoFillDesc: "Review assignments before saving",
+    applyAutoFill: "Save assignments",
+    exportAll: "Export all",
+    unfilled: "unfilled",
+    clickToEdit: "Click a cell to change",
   },
 
   chopal: {

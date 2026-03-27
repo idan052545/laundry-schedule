@@ -1056,6 +1056,13 @@ const he = {
     hoursTotal: 'שעות (סה"כ)',
     shifts: "משמרות",
     daily: "יומי",
+    autoFill: "מילוי אוטומטי",
+    autoFillPreview: "תצוגה מקדימה — מילוי אוטומטי",
+    autoFillDesc: "בדוק את השיבוץ לפני שמירה",
+    applyAutoFill: "שמור שיבוץ",
+    exportAll: "ייצוא הכל",
+    unfilled: "חסרים",
+    clickToEdit: "לחץ על תא לשינוי",
   },
 
   // Chopal

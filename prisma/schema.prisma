@@ -58,6 +58,7 @@ model User {
   dutyAssignments   DutyAssignment[] @relation("dutyAssignments")
   dutyAppeals       DutyAppeal[]     @relation("dutyAppeals")
   dutySuggested     DutyAppeal[]     @relation("dutySuggested")
+  dutyFairness      DutyFairness[]   @relation("dutyFairness")
   simSessions       SimSession[]     @relation("simSessions")
   chopalRequests    ChopalRequest[]  @relation("chopalRequests")
   chopalAssignments ChopalAssignment[] @relation("chopalAssignments")
@@ -462,6 +463,26 @@ model DutyAppeal {
   suggestedUser   User?    @relation("dutySuggested", fields: [suggestedUserId], references: [id])
   status          String   @default("pending") // "pending", "approved", "rejected"
   createdAt       DateTime @default(now())
+}
+
+// ─── טבלת צדק (Fairness Debt Tracking) ───
+// After each auto-fill, records how many hours each user got vs the average.
+// Positive debt = user got MORE than average (deprioritize next time).
+// Negative debt = user got LESS than average (prioritize next time).
+
+model DutyFairness {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("dutyFairness", fields: [userId], references: [id])
+  date      String   // YYYY-MM-DD — the date this assignment was for
+  type      String   // "guard" or "obs"
+  hours     Float    // actual hours assigned this date
+  avgHours  Float    // the average hours that date
+  debt      Float    // hours - avgHours (positive = over-assigned, negative = under-assigned)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date, type])
+  @@index([userId])
 }
 
 // ─── מסדר חופ"ל (Daily Leave Registration) ───

@@ -47,6 +47,14 @@ export function useGuardDuty() {
   const [createSlots, setCreateSlots] = useState<string[]>([]);
   const [createAssignments, setCreateAssignments] = useState<Record<string, Record<string, string>>>({});
 
+  // Auto-fill
+  const [autoFillPreview, setAutoFillPreview] = useState<Record<string, {
+    title: string; roles: string[]; timeSlots: string[];
+    assignments: { userId: string; timeSlot: string; role: string }[];
+    stats: { totalHours: number; usersUsed: number; fairnessScore: number };
+  }> | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     const res = await fetch(`/api/guard-duty?date=${date}&type=${tableType}`);
@@ -183,6 +191,114 @@ export function useGuardDuty() {
       await fetchData();
     }
     setSubmitting(false);
+  };
+
+  // Auto-fill: generate optimized assignments
+  const handleAutoFill = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/guard-duty/autofill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, types: ["guard", "obs"] }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAutoFillPreview(data.tables);
+      } else {
+        const err = await res.json();
+        alert(err.error || t.common.error);
+      }
+    } catch {
+      alert(t.common.error);
+    }
+    setSubmitting(false);
+  };
+
+  // Edit a single assignment in the auto-fill preview (before saving)
+  const handleEditAutoFillAssignment = (tableType: string, slot: string, role: string, newUserId: string, oldUserId?: string) => {
+    if (!autoFillPreview) return;
+    setAutoFillPreview(prev => {
+      if (!prev || !prev[tableType]) return prev;
+      const tbl = { ...prev[tableType] };
+      // Remove old assignment for this slot+role (and optionally specific user)
+      tbl.assignments = tbl.assignments.filter(a => {
+        if (a.timeSlot !== slot || a.role !== role) return true;
+        if (oldUserId) return a.userId !== oldUserId;
+        return false; // remove all for this cell
+      });
+      // Add new if userId provided
+      if (newUserId) {
+        tbl.assignments = [...tbl.assignments, { userId: newUserId, timeSlot: slot, role }];
+      }
+      return { ...prev, [tableType]: tbl };
+    });
+  };
+
+  // Apply auto-fill: save both tables
+  const handleApplyAutoFill = async () => {
+    if (!autoFillPreview) return;
+    setSubmitting(true);
+    try {
+      for (const [type, tbl] of Object.entries(autoFillPreview)) {
+        await fetch("/api/guard-duty", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date, type, title: tbl.title,
+            roles: tbl.roles, timeSlots: tbl.timeSlots,
+            assignments: tbl.assignments,
+          }),
+        });
+      }
+      // Record fairness debt (טבלת צדק) so next autofill prioritizes under-assigned users
+      await fetch("/api/guard-duty/fairness", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, tables: autoFillPreview }),
+      });
+      setAutoFillPreview(null);
+      await fetchData();
+    } catch {
+      alert(t.common.error);
+    }
+    setSubmitting(false);
+  };
+
+  // Export all tables for current date (both guard + obs in one file)
+  const handleExportAllXlsx = async () => {
+    const XLSX = await import("xlsx");
+    const wb = XLSX.utils.book_new();
+
+    // Fetch both tables
+    for (const tp of ["guard", "obs"] as const) {
+      const res = await fetch(`/api/guard-duty?date=${date}&type=${tp}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data.table) continue;
+
+      const tbl = data.table;
+      const roles: string[] = JSON.parse(tbl.roles);
+      const slots: string[] = JSON.parse(tbl.timeSlots);
+
+      const header = [t.guardDuty.shift, ...roles];
+      const rows = slots.map((slot: string) => {
+        const row: Record<string, string> = { [t.guardDuty.shift]: slot };
+        roles.forEach(role => {
+          const found = tbl.assignments.filter((a: { timeSlot: string; role: string; note?: string; user: { name: string } }) => a.timeSlot === slot && a.role === role);
+          row[role] = found.map((a: { note?: string; user: { name: string } }) => a.note ? `${a.note} ${a.user.name}` : a.user.name).join(", ");
+        });
+        return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows, { header });
+      ws["!cols"] = header.map(() => ({ wch: 18 }));
+      XLSX.utils.book_append_sheet(wb, ws, tbl.title);
+    }
+
+    if (wb.SheetNames.length > 0) {
+      XLSX.writeFile(wb, `תורנויות_${date}.xlsx`);
+    }
   };
 
   const handleExportXlsx = async () => {
@@ -391,12 +507,16 @@ export function useGuardDuty() {
     swapping, setSwapping, swapUserId, setSwapUserId,
     appealing, setAppealing, appealReason, setAppealReason,
     appealSuggestion, setAppealSuggestion, submitting,
+    showCalendar, setShowCalendar,
     // Create form
     createTitle, setCreateTitle, createRoles, createSlots, createAssignments,
+    // Auto-fill
+    autoFillPreview, setAutoFillPreview,
     // Actions
     changeDate, handleSwap, handleAppeal, handleResolveAppeal,
     initCreateForm, setAssignment, handleCreate,
-    handleExportXlsx, handleDeleteTable, handleNotifyAll,
+    handleExportXlsx, handleExportAllXlsx, handleDeleteTable, handleNotifyAll,
+    handleAutoFill, handleApplyAutoFill, handleEditAutoFillAssignment,
     // Helpers
     dateDisplay, getPersonAssignments, getPersonHours, otherTable, setDate, fetchData,
   };

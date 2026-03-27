@@ -2,12 +2,12 @@
 
 import {
   MdSecurity, MdAdd, MdClose, MdDownload, MdDelete, MdRefresh,
-  MdChevronRight, MdChevronLeft, MdBarChart, MdNotifications,
-  MdErrorOutline, MdGavel, MdPerson,
+  MdBarChart, MdNotifications, MdErrorOutline, MdGavel, MdPerson,
+  MdAutoAwesome, MdCalendarMonth, MdFileDownload,
 } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
-import { ROLE_COLORS, DAY_ROLES } from "./constants";
+import { ROLE_COLORS } from "./constants";
 import { useGuardDuty } from "./useGuardDuty";
 import CreateForm from "./CreateForm";
 import FairnessPanel from "./FairnessPanel";
@@ -17,6 +17,8 @@ import DutyTableView from "./DutyTable";
 import SwapModal from "./SwapModal";
 import AppealModal from "./AppealModal";
 import PersonSummary from "./PersonSummary";
+import DatePickerCalendar from "./DatePickerCalendar";
+import AutoFillPreview from "./AutoFillPreview";
 
 export default function GuardDutyPage() {
   const { t } = useLanguage();
@@ -48,62 +50,101 @@ export default function GuardDutyPage() {
               <MdDelete />
             </button>
           )}
-          {g.isRoni && (
-            <button onClick={() => g.showCreate ? g.setShowCreate(false) : g.initCreateForm()}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg bg-dotan-green-dark text-white text-xs sm:text-sm font-medium hover:bg-dotan-green transition">
-              {g.showCreate ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.guardDuty.newTable}</>}
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Type tabs + date nav */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-          <button onClick={() => g.setTableType("guard")}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "guard" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
-            {t.guardDuty.guards}
-          </button>
-          <button onClick={() => g.setTableType("obs")}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "obs" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}>
-            {t.guardDuty.avs}
-          </button>
-        </div>
-        <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-3 py-2 flex-1 justify-between">
-          <button onClick={() => g.changeDate(-1)} className="text-gray-400 hover:text-gray-600"><MdChevronRight /></button>
-          <div className="text-center">
-            <span className="text-sm font-bold text-gray-700">{g.dateDisplay}</span>
-            {g.availableDates.includes(g.date) && <span className="inline-block w-1.5 h-1.5 rounded-full bg-dotan-green me-1 align-middle" />}
-            <input type="date" value={g.date} onChange={e => g.setDate(e.target.value)} className="block text-[10px] text-gray-400 text-center mt-0.5 bg-transparent border-none outline-none cursor-pointer" />
-          </div>
-          <button onClick={() => g.changeDate(1)} className="text-gray-400 hover:text-gray-600"><MdChevronLeft /></button>
-        </div>
+      {/* Type tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-3">
+        <button onClick={() => g.setTableType("guard")}
+          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "guard" ? "bg-white text-dotan-green-dark shadow-sm" : "text-gray-500"}`}>
+          {t.guardDuty.guards}
+        </button>
+        <button onClick={() => g.setTableType("obs")}
+          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition ${g.tableType === "obs" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}>
+          {t.guardDuty.avs}
+        </button>
       </div>
+
+      {/* Date selector — inline compact bar with calendar toggle */}
+      <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 px-3 py-2 mb-3">
+        <button onClick={() => g.setShowCalendar(!g.showCalendar)}
+          className={`p-1.5 rounded-lg transition ${g.showCalendar ? "bg-dotan-green-dark text-white" : "text-gray-400 hover:bg-gray-100"}`}>
+          <MdCalendarMonth className="text-lg" />
+        </button>
+        <div className="flex-1 text-center">
+          <span className="text-sm font-bold text-gray-700">{g.dateDisplay}</span>
+          {g.availableDates.includes(g.date) && <span className="inline-block w-1.5 h-1.5 rounded-full bg-dotan-green ms-1 align-middle" />}
+        </div>
+        <input type="date" value={g.date} onChange={e => g.setDate(e.target.value)}
+          className="text-[10px] text-gray-400 bg-transparent border-none outline-none cursor-pointer w-24" />
+      </div>
+
+      {/* Calendar date picker */}
+      {g.showCalendar && (
+        <DatePickerCalendar
+          selectedDate={g.date}
+          onSelectDate={(d) => { g.setDate(d); g.setShowCalendar(false); }}
+          availableDates={g.availableDates}
+          tableType={g.tableType}
+        />
+      )}
 
       {/* Roni quick actions */}
       {g.isRoni && (
         <div className="flex gap-2 mb-4 flex-wrap">
+          {/* Auto-fill button — the star feature */}
+          <button onClick={g.handleAutoFill} disabled={g.submitting}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border-2 bg-gradient-to-l from-indigo-500 to-purple-600 text-white border-indigo-300 hover:from-indigo-600 hover:to-purple-700 transition shadow-md disabled:opacity-50">
+            <MdAutoAwesome className="text-sm" /> {t.guardDuty.autoFill}
+          </button>
+
+          <button onClick={() => g.showCreate ? g.setShowCreate(false) : g.initCreateForm()}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-dotan-green-dark text-white text-xs font-medium hover:bg-dotan-green transition">
+            {g.showCreate ? <><MdClose /> {t.common.close}</> : <><MdAdd /> {t.guardDuty.newTable}</>}
+          </button>
+
           <button onClick={() => g.setShowFairness(!g.showFairness)}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${g.showFairness ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border transition ${g.showFairness ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
             <MdBarChart /> {t.guardDuty.fairness}
           </button>
+
           {g.table && (
             <button onClick={g.handleNotifyAll} disabled={g.submitting}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border bg-dotan-green-dark text-white hover:bg-dotan-green transition disabled:opacity-50">
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border bg-dotan-green-dark text-white hover:bg-dotan-green transition disabled:opacity-50">
               <MdNotifications /> {g.submitting ? t.guardDuty.sending : t.guardDuty.sendAssignments}
             </button>
           )}
+
           <button onClick={() => g.setShowOverlaps(!g.showOverlaps)}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${g.showOverlaps ? "bg-red-50 border-red-300 text-red-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border transition ${g.showOverlaps ? "bg-red-50 border-red-300 text-red-700" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
             <MdErrorOutline /> {t.guardDuty.overlaps}
             {g.overlaps.length > 0 && <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{g.overlaps.length}</span>}
           </button>
+
+          {/* Export all */}
+          <button onClick={g.handleExportAllXlsx}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium border bg-white border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+            <MdFileDownload className="text-green-600" /> {t.guardDuty.exportAll}
+          </button>
+
           {g.appeals.filter(a => a.status === "pending").length > 0 && (
-            <span className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 border border-red-200 text-red-600">
+            <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 border border-red-200 text-red-600">
               <MdGavel /> {g.appeals.filter(a => a.status === "pending").length} {t.guardDuty.pendingDisputes}
             </span>
           )}
         </div>
+      )}
+
+      {/* Auto-fill preview */}
+      {g.autoFillPreview && g.isRoni && (
+        <AutoFillPreview
+          tables={g.autoFillPreview}
+          allUsers={g.allUsers}
+          submitting={g.submitting}
+          onApply={g.handleApplyAutoFill}
+          onCancel={() => g.setAutoFillPreview(null)}
+          onEditAssignment={g.handleEditAutoFillAssignment}
+        />
       )}
 
       {/* Create form */}
@@ -139,11 +180,19 @@ export default function GuardDutyPage() {
       )}
 
       {/* No table */}
-      {!g.table && !g.showCreate && (
+      {!g.table && !g.showCreate && !g.autoFillPreview && (
         <div className="text-center py-16 text-gray-400">
           <MdSecurity className="text-5xl mx-auto mb-3 text-gray-300" />
           <p className="font-medium">{t.guardDuty.noAssignment}</p>
-          {g.isRoni && <p className="text-sm mt-1">{t.guardDuty.createTable}</p>}
+          {g.isRoni && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm">{t.guardDuty.createTable}</p>
+              <button onClick={g.handleAutoFill} disabled={g.submitting}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-l from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition shadow-md disabled:opacity-50">
+                <MdAutoAwesome /> {t.guardDuty.autoFill}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
