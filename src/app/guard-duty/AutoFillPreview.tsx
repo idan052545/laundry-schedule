@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MdAutoAwesome, MdCheck, MdClose, MdTrendingUp, MdPeople, MdAccessTime, MdSecurity, MdSummarize, MdWarning } from "react-icons/md";
 import { useLanguage } from "@/i18n";
-import { ROLE_COLORS, DAY_ROLES, UserMin, KITCHEN_SHIFT_LABELS, KITCHEN_SHIFT_COLORS, EXEMPTIONS, parseTimeRange } from "./constants";
+import { ROLE_COLORS, DAY_ROLES, RESERVE_ROLES, UserMin, KITCHEN_SHIFT_LABELS, KITCHEN_SHIFT_COLORS, EXEMPTIONS, parseTimeRange } from "./constants";
 import { displayName } from "@/lib/displayName";
 
 interface AutoFillStats {
@@ -460,7 +460,7 @@ function SummarySection({
   for (const [, tbl] of Object.entries(tables)) {
     for (const a of tbl.assignments) {
       allAssignedIds.add(a.userId);
-      if (!DAY_ROLES.includes(a.role)) {
+      if (!DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role)) {
         const h = parseTimeRange(a.note || a.timeSlot) || parseTimeRange(a.role);
         totalHours += h;
         totalSlots++;
@@ -488,7 +488,7 @@ function SummarySection({
   const personHours: Record<string, number> = {};
   for (const [, tbl] of Object.entries(tables)) {
     for (const a of tbl.assignments) {
-      if (DAY_ROLES.includes(a.role)) continue;
+      if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
       const h = parseTimeRange(a.note || a.timeSlot) || parseTimeRange(a.role);
       if (h > 0) personHours[a.userId] = (personHours[a.userId] || 0) + h;
     }

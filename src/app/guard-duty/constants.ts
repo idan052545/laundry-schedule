@@ -65,6 +65,7 @@ export const DEFAULT_OBS_ROLES = ["08:30-11:30", "13:30-17:30", "18:30-20:00"];
 export const DEFAULT_OBS_SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"];
 
 export const DAY_ROLES = ['כ"כא', 'כ"כב'];
+export const RESERVE_ROLES = ["עתודה"];
 
 export function toDateStr(d: Date) {
   return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
