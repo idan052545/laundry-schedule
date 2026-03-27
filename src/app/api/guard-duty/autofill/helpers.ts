@@ -34,6 +34,64 @@ export function isNightSlot(slot: string): boolean {
   return h >= 20 || h < 8;
 }
 
+/** Night hardship multiplier — night hours are harder and count as more */
+export const NIGHT_WEIGHT = 1.3;
+
+/** Get weighted hours for a shift (night shifts count as 1.3x) */
+export function weightedHours(slot: string, noteOrSlot?: string): number {
+  const raw = parseTimeSlot(noteOrSlot || slot).hours;
+  return isNightSlot(slot) ? raw * NIGHT_WEIGHT : raw;
+}
+
+/** Check if a user has enough rest (7h) before a given shift start.
+ *  Returns false if any of their existing shifts ends less than 7 hours before `shiftStart`. */
+export function hasEnoughRest(
+  shiftStartMin: number,
+  existingSlots: string[],
+  minRestMinutes: number = 420, // 7 hours
+): boolean {
+  for (const s of existingSlots) {
+    const parsed = parseTimeSlot(s);
+    if (parsed.hours === 0) continue;
+    const endMin = parsed.endMin;
+    const start = shiftStartMin;
+    // Check gap: end → start
+    let gap = start - endMin;
+    if (gap < -720) gap += 1440; // wrap around midnight
+    if (gap >= 0 && gap < minRestMinutes) return false;
+    // Also check the reverse direction for overnight edge cases
+    const gap2 = start + 1440 - endMin;
+    if (gap2 >= 0 && gap2 < minRestMinutes && gap < 0) return false;
+  }
+  return true;
+}
+
+/** Check if a user can be assigned to a slot considering all hard constraints (overlap, rest, role eligibility).
+ *  Useful for validating swaps. */
+export function canAssignToSlot(
+  user: EligibleUser,
+  timeSlot: string,
+  role: string,
+  userBusy: string[],
+  localSlots: string[],
+  localAssignments: { role: string; timeSlot: string }[],
+  tableType: "guard" | "obs" = "guard",
+): boolean {
+  if (!canUserTakeRole(user.name, role, timeSlot, tableType)) return false;
+  // Overlap with cross-table busy
+  if (userBusy.some(b => b.includes("-") && slotsOverlap(b, timeSlot))) return false;
+  // Overlap with local assignments
+  if (localSlots.some(s => slotsOverlap(s, timeSlot))) return false;
+  // Rest constraint for night shifts
+  if (isNightSlot(timeSlot)) {
+    const { startMin } = parseTimeSlot(timeSlot);
+    const allSlots = [...userBusy.filter(b => b.includes("-")), ...localSlots];
+    if (!hasEnoughRest(startMin, allSlots)) return false;
+  }
+  // Gender pairing for night shifts handled externally
+  return true;
+}
+
 // ─── NAME / GENDER / SQUAD HELPERS ───
 
 export function nameMatch(dbName: string, ruleName: string): boolean {
@@ -130,9 +188,11 @@ export function findBestCandidate(
   squadMembers: { squadIdx: number; userIds: string[] }[],
   tableType: "guard" | "obs" = "guard",
   shiftHours: number = 0,
+  targetHoursPerPerson: number = 0,
 ): EligibleUser | null {
   // Hours of the shift being assigned (for hour-weighted fairness)
   const slotH = shiftHours > 0 ? shiftHours : parseTimeSlot(timeSlot).hours || parseTimeSlot(role).hours;
+  const wH = isNightSlot(timeSlot) ? slotH * NIGHT_WEIGHT : slotH;
 
   // Score each user — lower score = higher priority
   const scored = users.map(u => {
@@ -141,7 +201,8 @@ export function findBestCandidate(
       .filter(a => !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role))
       .reduce((sum, a) => {
         const h = parseTimeSlot(a.timeSlot).hours;
-        return sum + (h > 0 ? h : 0);
+        const w = isNightSlot(a.timeSlot) ? h * NIGHT_WEIGHT : h;
+        return sum + (w > 0 ? w : 0);
       }, 0);
     const localCount = (localAssignments[u.id] || []).length;
 
@@ -163,12 +224,40 @@ export function findBestCandidate(
       }
     }
 
-    // Hour-weighted fairness: projected total hours if this person gets this shift
-    // Heavy shifts go to low-hours people, light shifts can go to higher-hours people
-    const projected = hist + local + slotH;
+    // Hour-weighted fairness: projected total if this person gets this shift
+    const projected = hist + local + wH;
 
-    // debt is weighted x2 to make fairness correction stronger than raw hours
-    return { user: u, score: projected + (debt * 2) + squadBonus, localCount };
+    // Target deviation: how far from ideal this person would be after assignment
+    let targetPenalty = 0;
+    if (targetHoursPerPerson > 0) {
+      const deviation = projected - targetHoursPerPerson;
+      // Penalize going over target more than being under
+      targetPenalty = deviation > 0 ? deviation * 1.5 : deviation * 0.3;
+    }
+
+    // Penalize back-to-back shifts (consecutive time slots) — people need breaks
+    let consecutivePenalty = 0;
+    const { startMin: newStart, endMin: newEnd } = parseTimeSlot(timeSlot);
+    for (const a of (localAssignments[u.id] || [])) {
+      if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
+      const existing = parseTimeSlot(a.timeSlot);
+      if (existing.hours === 0) continue;
+      if (Math.abs(existing.endMin - newStart) <= 30 || Math.abs(newEnd - existing.startMin) <= 30) {
+        consecutivePenalty += 8;
+      }
+    }
+
+    // Soft cap: penalize people who already have many shifts to spread load
+    const shiftCountPenalty = localCount >= 3 ? (localCount - 2) * 4 : localCount >= 2 ? 2 : 0;
+
+    // Unassigned bonus: people with 0 local shifts get a boost to ensure everyone participates
+    const unassignedBonus = localCount === 0 ? -3 : 0;
+
+    return {
+      user: u,
+      score: projected + (debt * 2) + squadBonus + consecutivePenalty + shiftCountPenalty + targetPenalty + unassignedBonus,
+      localCount,
+    };
   });
 
   // For night multi-person roles: prefer the gender with more available candidates
@@ -220,6 +309,13 @@ export function findBestCandidate(
       .map(a => a.timeSlot);
     const hasLocalOverlap = localSlots.some(s => slotsOverlap(s, timeSlot));
     if (hasLocalOverlap) continue;
+
+    // 7-hour rest constraint: ensure enough sleep before night shifts
+    if (isNightSlot(timeSlot) && !isReserve) {
+      const { startMin } = parseTimeSlot(timeSlot);
+      const allExistingSlots = [...busy.filter(b => b.includes("-")), ...localSlots];
+      if (!hasEnoughRest(startMin, allExistingSlots)) continue;
+    }
 
     if (isReserve) {
       const alreadyReserve = (localAssignments[user.id] || []).some(a => RESERVE_ROLES.includes(a.role));

@@ -15,7 +15,7 @@ interface DutyTableProps {
   slots: string[];
   dayRoleAssignments: { role: string; people: Assignment[] }[];
   squads: { number: number; members: string[] }[];
-  obsGdudi: string[];
+  obsGdudi: { name: string; team?: number; obsShift?: string }[];
   dateDisplay: string;
   userId: string | null;
   isRoni: boolean;
@@ -157,9 +157,11 @@ export default function DutyTableView({
             <MdSecurity className="text-amber-600" /> {t.guardDuty.obsGdudi}
           </h3>
           <div className="flex flex-wrap gap-2">
-            {obsGdudi.map((name, i) => (
+            {obsGdudi.map((entry, i) => (
               <span key={i} className="bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-1.5 text-xs font-medium">
-                {name}
+                {entry.name}
+                {entry.team && <span className="text-[10px] text-amber-500"> ({t.guardDuty.squadNumber} {entry.team})</span>}
+                {entry.obsShift && <span className="text-[9px] text-amber-400 block">{entry.obsShift}</span>}
               </span>
             ))}
           </div>

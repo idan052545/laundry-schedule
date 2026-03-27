@@ -42,7 +42,7 @@ export function useGuardDutyState() {
     assignments: { userId: string; timeSlot: string; role: string; note?: string }[];
     stats: { totalHours: number; usersUsed: number; fairnessScore: number };
   }> | null>(null);
-  const [autoFillObsGdudi, setAutoFillObsGdudi] = useState<{ userId: string; name: string; team: number }[]>([]);
+  const [autoFillObsGdudi, setAutoFillObsGdudi] = useState<{ userId: string; name: string; team: number; obsShift?: string }[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
 
   return {

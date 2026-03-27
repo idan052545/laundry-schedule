@@ -1,4 +1,4 @@
-import { findBestCandidate, parseTimeSlot } from "./helpers";
+import { canAssignToSlot, findBestCandidate, parseTimeSlot, weightedHours } from "./helpers";
 import type { EligibleUser, TableResult } from "./types";
 
 export function buildObsTable(
@@ -15,6 +15,10 @@ export function buildObsTable(
     return parseTimeSlot(b).hours - parseTimeSlot(a).hours;
   });
 
+  // Compute target hours per person for obs
+  const totalWH = obsTimeRanges.reduce((s, r) => s + weightedHours(r) * obsPositions.length, 0);
+  const targetPerPerson = users.length > 0 ? totalWH / users.length : 0;
+
   const assignments: { userId: string; timeSlot: string; role: string }[] = [];
   const localAssignments: Record<string, { role: string; timeSlot: string }[]> = {};
   const obsShiftCount: Record<string, number> = {};
@@ -22,7 +26,6 @@ export function buildObsTable(
   for (const s of obsTimeRanges) filledPerShift[s] = 0;
 
   // Pass 1: round-robin across shifts, 1 person per shift max
-  // Fill 1 slot from each shift in rotation until all 20 per shift are filled
   for (let pos = 0; pos < obsPositions.length; pos++) {
     for (const timeRange of shiftsByHours) {
       if (filledPerShift[timeRange] >= obsPositions.length) continue;
@@ -30,7 +33,7 @@ export function buildObsTable(
       const candidate = findBestCandidate(
         users.filter(u => (obsShiftCount[u.id] || 0) < 1),
         hoursMap, debtMap, localAssignments, userBusy,
-        timeRange, timeRange, false, false, [], "obs", slotH
+        timeRange, timeRange, false, false, [], "obs", slotH, targetPerPerson
       );
       if (candidate) {
         const posStr = String(filledPerShift[timeRange] + 1);
@@ -54,7 +57,7 @@ export function buildObsTable(
         const candidate = findBestCandidate(
           users.filter(u => (obsShiftCount[u.id] || 0) < 2),
           hoursMap, debtMap, localAssignments, userBusy,
-          timeRange, timeRange, false, false, [], "obs", slotH
+          timeRange, timeRange, false, false, [], "obs", slotH, targetPerPerson
         );
         if (!candidate) break;
         const posStr = String(filledPerShift[timeRange] + 1);
@@ -76,7 +79,7 @@ export function buildObsTable(
         const slotH = parseTimeSlot(timeRange).hours;
         const candidate = findBestCandidate(
           users, hoursMap, debtMap, localAssignments, userBusy,
-          timeRange, timeRange, false, false, [], "obs", slotH
+          timeRange, timeRange, false, false, [], "obs", slotH, targetPerPerson
         );
         if (!candidate) break;
         const posStr = String(filledPerShift[timeRange] + 1);
@@ -89,6 +92,54 @@ export function buildObsTable(
         filledPerShift[timeRange]++;
       }
     }
+  }
+
+  // ─── Post-assignment: swap optimization for obs fairness ───
+  const computeWH = (): Record<string, number> => {
+    const h: Record<string, number> = {};
+    for (const a of assignments) {
+      h[a.userId] = (h[a.userId] || 0) + weightedHours(a.role);
+    }
+    return h;
+  };
+
+  for (let swapRound = 0; swapRound < 30; swapRound++) {
+    const userWH = computeWH();
+    const entries = Object.entries(userWH).sort((a, b) => b[1] - a[1]);
+    if (entries.length < 2) break;
+
+    let improved = false;
+    for (let hi = 0; hi < Math.min(5, entries.length) && !improved; hi++) {
+      for (let lo = entries.length - 1; lo >= Math.max(entries.length - 5, hi + 1) && !improved; lo--) {
+        const [highId, highWH] = entries[hi];
+        const [lowId, lowWH] = entries[lo];
+        if (highWH - lowWH < 1) continue;
+
+        const highShifts = assignments.map((a, idx) => ({ ...a, idx })).filter(a => a.userId === highId);
+        const lowShifts = assignments.map((a, idx) => ({ ...a, idx })).filter(a => a.userId === lowId);
+
+        for (const ha of highShifts) {
+          const haWH = weightedHours(ha.role);
+          for (const la of lowShifts) {
+            const laWH = weightedHours(la.role);
+            if (haWH <= laWH) continue;
+            if (ha.role === la.role) continue; // same shift type, no point
+
+            const newHighWH = highWH - haWH + laWH;
+            const newLowWH = lowWH - laWH + haWH;
+            if (Math.abs(newHighWH - newLowWH) >= Math.abs(highWH - lowWH)) continue;
+
+            // Swap
+            assignments[ha.idx] = { ...assignments[ha.idx], userId: lowId };
+            assignments[la.idx] = { ...assignments[la.idx], userId: highId };
+            improved = true;
+            break;
+          }
+          if (improved) break;
+        }
+      }
+    }
+    if (!improved) break;
   }
 
   const usedUsers = new Set(assignments.map(a => a.userId));

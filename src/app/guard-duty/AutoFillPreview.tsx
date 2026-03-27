@@ -24,7 +24,7 @@ interface AutoFillPreviewProps {
   tables: Record<string, AutoFillTable>;
   allUsers: UserMin[];
   submitting: boolean;
-  obsGdudi?: { userId: string; name: string; team: number }[];
+  obsGdudi?: { userId: string; name: string; team: number; obsShift?: string }[];
   onApply: () => void;
   onCancel: () => void;
   onEditAssignment: (tableType: string, slot: string, role: string, newUserId: string, oldUserId?: string) => void;
@@ -377,7 +377,7 @@ function SummarySection({
 }: {
   tables: Record<string, AutoFillTable>;
   allUsers: UserMin[];
-  obsGdudi?: { userId: string; name: string; team: number }[];
+  obsGdudi?: { userId: string; name: string; team: number; obsShift?: string }[];
   locale: string;
 }) {
   const { t } = useLanguage();
@@ -506,6 +506,7 @@ export default function AutoFillPreview({ tables, allUsers, submitting, obsGdudi
             {obsGdudi.map(g => (
               <span key={g.userId} className="bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-1.5 text-xs font-medium">
                 {g.name} <span className="text-[10px] text-amber-500">({t.guardDuty.squadNumber} {g.team})</span>
+                {g.obsShift && <span className="text-[9px] text-amber-400 block">{g.obsShift}</span>}
               </span>
             ))}
           </div>

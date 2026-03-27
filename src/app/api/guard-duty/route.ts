@@ -33,9 +33,9 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  // Get all users for replacement suggestions
+  // Get all users for replacement suggestions (include admins for exception list)
   const allUsers = await prisma.user.findMany({
-    where: { role: { not: "admin" } },
+    where: { role: { notIn: ["sagal", "simulator", "simulator-admin"] } },
     select: { id: true, name: true, nameEn: true, team: true, image: true, roomNumber: true },
     orderBy: { name: "asc" },
   });

@@ -58,7 +58,7 @@ export function useGuardDutyAutoFill(
     try {
       for (const [type, tbl] of Object.entries(autoFillPreview)) {
         const metadata = type === "guard" && autoFillObsGdudi.length > 0
-          ? { obsGdudi: autoFillObsGdudi.map(g => g.name) }
+          ? { obsGdudi: autoFillObsGdudi.map(g => ({ name: g.name, team: g.team, obsShift: g.obsShift })) }
           : undefined;
         await fetch("/api/guard-duty", {
           method: "POST",

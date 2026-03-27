@@ -126,28 +126,75 @@ export async function POST(req: NextRequest) {
     result.obs = buildObsTable(obsEligible, combinedHoursMap, debtMap, userBusy);
   }
 
-  // ─── עב"ס גדודי: 1 person per team (14-17), weekly rotation ───
-  let obsGdudi: { userId: string; name: string; team: number }[] = [];
+  // ─── עב"ס גדודי: 3 people (one per obs shift), rotating through teams ───
+  let obsGdudi: { userId: string; name: string; team: number; obsShift: string }[] = [];
   if (types.includes("guard") || types.includes("obs")) {
     const TEAMS = [14, 15, 16, 17];
+    const OBS_SHIFTS = ["08:30-11:30", "13:30-17:30", "18:30-20:00"];
     const allAssigned = new Set<string>();
     if (result.guard) result.guard.assignments.forEach(a => allAssigned.add(a.userId));
     if (result.obs) result.obs.assignments.forEach(a => allAssigned.add(a.userId));
 
+    // Check who already did עב"ס גדודי (stored in metadata of past guard tables)
+    const pastGuardTables = await prisma.dutyTable.findMany({
+      where: { type: "guard", metadata: { not: null } },
+      select: { metadata: true },
+    });
+    const pastObsGdudiNames = new Set<string>();
+    for (const t of pastGuardTables) {
+      try {
+        const meta = JSON.parse(t.metadata!);
+        if (meta.obsGdudi && Array.isArray(meta.obsGdudi)) {
+          for (const entry of meta.obsGdudi) {
+            // Could be string (name) or object
+            if (typeof entry === "string") pastObsGdudiNames.add(entry);
+            else if (entry.name) pastObsGdudiNames.add(entry.name);
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Collect candidates from all teams, prefer those who haven't done it yet
+    const candidates: { id: string; name: string; team: number; didBefore: boolean; debt: number; busy: boolean }[] = [];
     for (const team of TEAMS) {
       const teamMembers = allEligible.filter(u => u.team === team);
-      if (teamMembers.length === 0) continue;
+      for (const u of teamMembers) {
+        candidates.push({
+          id: u.id,
+          name: u.name,
+          team,
+          didBefore: pastObsGdudiNames.has(u.name),
+          debt: debtMap[u.id] || 0,
+          busy: allAssigned.has(u.id),
+        });
+      }
+    }
 
-      const sorted = [...teamMembers].sort((a, b) => {
-        const aDebt = debtMap[a.id] || 0;
-        const bDebt = debtMap[b.id] || 0;
-        const aBusy = allAssigned.has(a.id) ? 1 : 0;
-        const bBusy = allAssigned.has(b.id) ? 1 : 0;
-        if (aBusy !== bBusy) return aBusy - bBusy;
-        return aDebt - bDebt;
+    // Sort: not-done-before first, then not-busy, then lowest debt
+    candidates.sort((a, b) => {
+      if (a.didBefore !== b.didBefore) return a.didBefore ? 1 : -1;
+      if (a.busy !== b.busy) return a.busy ? 1 : -1;
+      return a.debt - b.debt;
+    });
+
+    // Pick 3 people from different teams
+    const usedTeams = new Set<number>();
+    const picked: typeof candidates = [];
+    for (const c of candidates) {
+      if (picked.length >= 3) break;
+      if (usedTeams.has(c.team)) continue;
+      usedTeams.add(c.team);
+      picked.push(c);
+    }
+
+    // Assign each to an obs shift
+    for (let i = 0; i < picked.length; i++) {
+      obsGdudi.push({
+        userId: picked[i].id,
+        name: picked[i].name,
+        team: picked[i].team,
+        obsShift: OBS_SHIFTS[i],
       });
-
-      obsGdudi.push({ userId: sorted[0].id, name: sorted[0].name, team });
     }
   }
 

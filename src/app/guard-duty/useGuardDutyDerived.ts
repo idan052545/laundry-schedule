@@ -32,11 +32,15 @@ export function useGuardDutyDerived(
     } catch { return []; }
   })();
 
-  const obsGdudi: string[] = (() => {
+  const obsGdudi: { name: string; team?: number; obsShift?: string }[] = (() => {
     if (!table?.metadata) return [];
     try {
       const meta = JSON.parse(table.metadata);
-      return meta.obsGdudi || [];
+      if (!meta.obsGdudi) return [];
+      // Handle both old format (string[]) and new format (object[])
+      return meta.obsGdudi.map((entry: string | { name: string; team?: number; obsShift?: string }) =>
+        typeof entry === "string" ? { name: entry } : entry
+      );
     } catch { return []; }
   })();
 
