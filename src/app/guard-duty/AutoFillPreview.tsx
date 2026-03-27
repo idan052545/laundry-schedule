@@ -369,6 +369,76 @@ function EditableKitchenCell({
   );
 }
 
+function PersonHoursBreakdown({
+  personHours,
+  allUsers,
+  locale,
+  avgH,
+}: {
+  personHours: Record<string, number>;
+  allUsers: UserMin[];
+  locale: string;
+  avgH: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const entries = Object.entries(personHours)
+    .map(([id, hours]) => ({ id, hours, name: getUserName(id, allUsers, locale) }))
+    .sort((a, b) => b.hours - a.hours);
+  const maxH = entries.length > 0 ? entries[0].hours : 1;
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition flex items-center gap-1"
+      >
+        <MdPeople className="text-xs" />
+        {open ? "▾" : "▸"} פירוט שעות לפי חייל ({entries.length})
+      </button>
+      {open && (
+        <div className="mt-2 max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg bg-white">
+          <table className="w-full text-[10px]">
+            <thead className="sticky top-0 bg-gray-50">
+              <tr>
+                <th className="text-start px-2 py-1.5 text-gray-500 font-bold border-b border-gray-200">#</th>
+                <th className="text-start px-2 py-1.5 text-gray-500 font-bold border-b border-gray-200">שם</th>
+                <th className="text-start px-2 py-1.5 text-gray-500 font-bold border-b border-gray-200 w-1/2"></th>
+                <th className="text-end px-2 py-1.5 text-gray-500 font-bold border-b border-gray-200">שעות</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((e, i) => {
+                const pct = maxH > 0 ? (e.hours / maxH) * 100 : 0;
+                const isHigh = e.hours > avgH * 1.3;
+                const isLow = e.hours < avgH * 0.7;
+                return (
+                  <tr key={e.id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="px-2 py-1 text-gray-400">{i + 1}</td>
+                    <td className="px-2 py-1 font-medium text-gray-700 whitespace-nowrap">{e.name}</td>
+                    <td className="px-2 py-1">
+                      <div className="w-full bg-gray-100 rounded-full h-2.5">
+                        <div
+                          className={`h-2.5 rounded-full ${isHigh ? "bg-red-400" : isLow ? "bg-amber-400" : "bg-green-400"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </td>
+                    <td className={`px-2 py-1 text-end font-bold whitespace-nowrap ${isHigh ? "text-red-600" : isLow ? "text-amber-600" : "text-green-700"}`}>
+                      {e.hours.toFixed(1)}h
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SummarySection({
   tables,
   allUsers,
@@ -453,6 +523,9 @@ function SummarySection({
           <div className="text-[9px] text-amber-400">{t.guardDuty.average}: {avgH.toFixed(1)}h</div>
         </div>
       </div>
+
+      {/* Per-person hours breakdown */}
+      <PersonHoursBreakdown personHours={personHours} allUsers={allUsers} locale={locale} avgH={avgH} />
 
       {/* Exempted people info */}
       {exemptedNotAssigned.length > 0 && (
