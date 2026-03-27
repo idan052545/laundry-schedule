@@ -305,12 +305,19 @@ export function findBestCandidate(
       if (hasDayRole) continue;
     }
 
-    // Hard cap: max 3 real shifts per person (excludes day roles and reserve)
+    // Hours-based cap: max 12 weighted hours per person per day (excludes day roles and reserve)
     if (!isDayRole && !isReserve) {
-      const realShiftCount = (localAssignments[user.id] || [])
+      const currentLocalHours = (localAssignments[user.id] || [])
         .filter(a => !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role))
-        .length;
-      if (realShiftCount >= 3) continue;
+        .reduce((sum, a) => {
+          const h = parseTimeSlot(a.timeSlot).hours;
+          return sum + (h > 0 ? h : 0);
+        }, 0);
+      // Also count cross-table hours from userBusy
+      const busyHours = (userBusy[user.id] || [])
+        .filter(b => b.includes("-"))
+        .reduce((sum, b) => sum + parseTimeSlot(b).hours, 0);
+      if (currentLocalHours + busyHours + slotH > 14) continue;
     }
 
     const busy = userBusy[user.id] || [];

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { DAY_ROLES, RESERVE_ROLES } from "./constants";
-import { getPersonalRule, parseTimeSlot } from "./helpers";
+import { canUserTakeRole, getPersonalRule, isFemaleByRoom, isNightSlot, parseTimeSlot, slotsOverlap, hasEnoughRest } from "./helpers";
 import { buildGuardTable } from "./buildGuardTable";
 import { buildObsTable } from "./buildObsTable";
 import { buildKitchenTable } from "./buildKitchenTable";
@@ -126,27 +126,194 @@ export async function POST(req: NextRequest) {
     result.obs = buildObsTable(obsEligible, combinedHoursMap, debtMap, userBusy);
   }
 
-  // ─── Compute combined fairness across guard + obs ───
+  // ─── Cross-table swap optimization: equalize guard+obs combined hours ───
   if (result.guard && result.obs) {
-    const combinedUserHours: Record<string, number> = {};
-    for (const a of result.guard.assignments) {
-      if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
-      const h = parseTimeSlot(a.note || a.timeSlot).hours;
-      if (h > 0) combinedUserHours[a.userId] = (combinedUserHours[a.userId] || 0) + h;
+    const userMap = new Map(allEligible.map(u => [u.id, u]));
+
+    const computeCombined = () => {
+      const h: Record<string, number> = {};
+      for (const a of result.guard!.assignments) {
+        if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
+        const hrs = parseTimeSlot(a.note || a.timeSlot).hours;
+        if (hrs > 0) h[a.userId] = (h[a.userId] || 0) + hrs;
+      }
+      for (const a of result.obs!.assignments) {
+        const hrs = parseTimeSlot(a.role).hours;
+        if (hrs > 0) h[a.userId] = (h[a.userId] || 0) + hrs;
+      }
+      return h;
+    };
+
+    /** Check if a guard swap is valid (role eligibility, time overlap, gender, rest) */
+    const canSwapGuard = (userId: string, slot: string, role: string, excludeIdx: number) => {
+      const user = userMap.get(userId);
+      if (!user) return false;
+      if (!canUserTakeRole(user.name, role, slot, "guard")) return false;
+
+      // Collect all other slots this user has (guard + obs busy)
+      const otherGuardSlots: string[] = [];
+      for (let i = 0; i < result.guard!.assignments.length; i++) {
+        if (i === excludeIdx) continue;
+        const a = result.guard!.assignments[i];
+        if (a.userId !== userId) continue;
+        if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
+        otherGuardSlots.push(a.note || a.timeSlot);
+      }
+      const obsSlots: string[] = [];
+      for (const a of result.obs!.assignments) {
+        if (a.userId === userId) obsSlots.push(a.role);
+      }
+      const allSlots = [...otherGuardSlots, ...obsSlots];
+
+      // Time overlap check
+      if (allSlots.some(s => s.includes("-") && slotsOverlap(s, slot))) return false;
+
+      // Rest constraint for night
+      if (isNightSlot(slot)) {
+        const { startMin } = parseTimeSlot(slot);
+        if (!hasEnoughRest(startMin, allSlots.filter(s => s.includes("-")))) return false;
+      }
+
+      // Gender pairing for night multi-person roles
+      if (isNightSlot(slot)) {
+        const partners = result.guard!.assignments.filter((a, i) =>
+          i !== excludeIdx && a.role === role && a.timeSlot === slot
+        );
+        if (partners.length > 0) {
+          const partnerUser = userMap.get(partners[0].userId);
+          if (partnerUser && isFemaleByRoom(partnerUser.roomNumber) !== isFemaleByRoom(user.roomNumber)) return false;
+        }
+      }
+
+      return true;
+    };
+
+    for (let round = 0; round < 80; round++) {
+      const combined = computeCombined();
+      const entries = Object.entries(combined).sort((a, b) => b[1] - a[1]);
+      if (entries.length < 2) break;
+
+      let improved = false;
+      for (let hi = 0; hi < Math.min(12, entries.length) && !improved; hi++) {
+        for (let lo = entries.length - 1; lo >= Math.max(entries.length - 12, hi + 1) && !improved; lo--) {
+          const [highId, highH] = entries[hi];
+          const [lowId, lowH] = entries[lo];
+          if (highH - lowH < 1.5) continue;
+
+          // ── Strategy 1: Swap obs shifts (heavy obs ↔ light obs) ──
+          const highObs = result.obs!.assignments.map((a, idx) => ({ ...a, idx })).filter(a => a.userId === highId);
+          const lowObs = result.obs!.assignments.map((a, idx) => ({ ...a, idx })).filter(a => a.userId === lowId);
+
+          for (const ho of highObs) {
+            if (improved) break;
+            const hoH = parseTimeSlot(ho.role).hours;
+            for (const lo2 of lowObs) {
+              const loH = parseTimeSlot(lo2.role).hours;
+              if (hoH <= loH || ho.role === lo2.role) continue;
+              // No duplicate in same shift column
+              if (result.obs!.assignments.some((a, i) => a.userId === lowId && a.role === ho.role && i !== lo2.idx)) continue;
+              if (result.obs!.assignments.some((a, i) => a.userId === highId && a.role === lo2.role && i !== ho.idx)) continue;
+
+              const newDiff = Math.abs((highH - hoH + loH) - (lowH - loH + hoH));
+              if (newDiff >= Math.abs(highH - lowH)) continue;
+
+              result.obs!.assignments[ho.idx] = { ...result.obs!.assignments[ho.idx], userId: lowId };
+              result.obs!.assignments[lo2.idx] = { ...result.obs!.assignments[lo2.idx], userId: highId };
+              improved = true;
+              break;
+            }
+          }
+
+          // ── Strategy 2: Swap guard shifts (heavy guard ↔ light guard) ──
+          if (!improved) {
+            const highGuard = result.guard!.assignments.map((a, idx) => ({ ...a, idx }))
+              .filter(a => a.userId === highId && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role));
+            const lowGuard = result.guard!.assignments.map((a, idx) => ({ ...a, idx }))
+              .filter(a => a.userId === lowId && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role));
+
+            for (const hg of highGuard) {
+              if (improved) break;
+              const hgH = parseTimeSlot(hg.note || hg.timeSlot).hours;
+              for (const lg of lowGuard) {
+                const lgH = parseTimeSlot(lg.note || lg.timeSlot).hours;
+                if (hgH <= lgH) continue;
+
+                // Validate both can do each other's role+slot
+                if (!canSwapGuard(highId, lg.timeSlot, lg.role, hg.idx)) continue;
+                if (!canSwapGuard(lowId, hg.timeSlot, hg.role, lg.idx)) continue;
+
+                const newDiff = Math.abs((highH - hgH + lgH) - (lowH - lgH + hgH));
+                if (newDiff >= Math.abs(highH - lowH)) continue;
+
+                result.guard!.assignments[hg.idx] = { ...result.guard!.assignments[hg.idx], userId: lowId };
+                result.guard!.assignments[lg.idx] = { ...result.guard!.assignments[lg.idx], userId: highId };
+                improved = true;
+                break;
+              }
+            }
+          }
+
+          // ── Strategy 3: Move guard shift from high→low (if high has many, low has few) ──
+          if (!improved) {
+            const highGuard = result.guard!.assignments.map((a, idx) => ({ ...a, idx }))
+              .filter(a => a.userId === highId && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role));
+            const lowGuardCount = result.guard!.assignments.filter(a => a.userId === lowId && !DAY_ROLES.includes(a.role) && !RESERVE_ROLES.includes(a.role)).length;
+
+            if (highGuard.length >= 2 && lowGuardCount <= 1) {
+              for (const hg of highGuard) {
+                const hgH = parseTimeSlot(hg.note || hg.timeSlot).hours;
+                if (!canSwapGuard(lowId, hg.timeSlot, hg.role, hg.idx)) continue;
+
+                const newDiff = Math.abs((highH - hgH) - (lowH + hgH));
+                if (newDiff < Math.abs(highH - lowH)) {
+                  result.guard!.assignments[hg.idx] = { ...result.guard!.assignments[hg.idx], userId: lowId };
+                  improved = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          // ── Strategy 4: Move obs shift from high→low ──
+          if (!improved && highObs.length >= 2 && lowObs.length <= 1) {
+            for (const ho of highObs) {
+              const hoH = parseTimeSlot(ho.role).hours;
+              if (result.obs!.assignments.some((a, i) => a.userId === lowId && a.role === ho.role && i !== ho.idx)) continue;
+
+              const newDiff = Math.abs((highH - hoH) - (lowH + hoH));
+              if (newDiff < Math.abs(highH - lowH)) {
+                result.obs!.assignments[ho.idx] = { ...result.obs!.assignments[ho.idx], userId: lowId };
+                improved = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (!improved) break;
     }
-    for (const a of result.obs.assignments) {
-      const h = parseTimeSlot(a.role).hours;
-      if (h > 0) combinedUserHours[a.userId] = (combinedUserHours[a.userId] || 0) + h;
-    }
+
+    // Compute combined fairness
+    const combinedUserHours = computeCombined();
     const vals = Object.values(combinedUserHours);
     const avg = vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
     const variance = vals.length > 0 ? vals.reduce((s, v) => s + (v - avg) ** 2, 0) / vals.length : 0;
     const combinedFairness = avg > 0 ? Math.max(0, 100 - (Math.sqrt(variance) / avg) * 100) : 100;
     const rounded = Math.round(combinedFairness);
 
-    // Override both tables with the combined score
     result.guard.stats.fairnessScore = rounded;
     result.obs.stats.fairnessScore = rounded;
+    // Update stats after swaps
+    let guardHours = 0;
+    for (const a of result.guard.assignments) {
+      if (DAY_ROLES.includes(a.role) || RESERVE_ROLES.includes(a.role)) continue;
+      guardHours += parseTimeSlot(a.note || a.timeSlot).hours;
+    }
+    result.guard.stats.totalHours = guardHours;
+    result.guard.stats.usersUsed = new Set(result.guard.assignments.map(a => a.userId)).size;
+    const obsHours = result.obs.assignments.reduce((s, a) => s + parseTimeSlot(a.role).hours, 0);
+    result.obs.stats.totalHours = obsHours;
+    result.obs.stats.usersUsed = new Set(result.obs.assignments.map(a => a.userId)).size;
   }
 
   // ─── עב"ס גדודי: 3 people (one per obs shift), rotating through teams ───
