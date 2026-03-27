@@ -11,16 +11,20 @@ function getWeekStart(date: Date): string {
 }
 
 /**
- * Legacy fallback patterns — only used when no auto-detect data exists
- * and no manual override is set.
+ * Patterns that are ALWAYS schedulable — these are inherently free time
+ * where the ממ״ש can schedule team activities.
+ * (Assignees still get 15-20 min for meals — enforced at scheduling time.)
  */
-const LEGACY_WINDOW_PATTERNS = [
-  /חל["״]ז/i,
-  /זמני?\s*חניכה/i,
-  /זמן\s*סימולציו/i,
-  /עצור\s*אמצע/i,
-  /חסום/i,
-  /שיבוץ\s*ע["״]י\s*ממ/i,
+const ALWAYS_SCHEDULABLE_PATTERNS = [
+  /חל["״]ז/i,                   // חל״ז תכנים מחייבים
+  /זמני?\s*חניכה/i,             // זמני חניכה / עע / לע
+  /זמן\s*סימולציו/i,           // זמן סימולציות
+  /עצור\s*אמצע/i,              // עצור אמצע צוותי
+  /חסום/i,                       // חסום (blocked for team use)
+  /שיבוץ\s*ע["״]י\s*ממ/i,     // שיבוץ ע״י ממשים
+  /הפסקה/i,                     // הפסקה (break)
+  /ארוחה/i,                     // ארוחה (meal - generic)
+  /ארוחת\s*(בוקר|צהר|ערב)/i,  // ארוחת בוקר/צהריים/ערב
 ];
 
 /**
@@ -176,8 +180,8 @@ export async function GET(request: Request) {
     // 2. Auto-detect from historical overlap
     const norm = normalizeTitle(title);
     if (autoSchedulable.has(norm)) return true;
-    // 3. Legacy regex fallback
-    return LEGACY_WINDOW_PATTERNS.some(p => p.test(title));
+    // 3. Always-schedulable patterns (breaks, meals, scheduling windows)
+    return ALWAYS_SCHEDULABLE_PATTERNS.some(p => p.test(title));
   }
 
   // Build classification map for the response — only for platoon events
