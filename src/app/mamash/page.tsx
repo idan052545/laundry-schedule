@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { MdCalendarMonth, MdGridView, MdChecklist, MdHistory, MdFlashOn, MdSync } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
+import { israelToday } from "@/lib/israel-tz";
 import { useMamash } from "./useMamash";
 import DayHeader from "./DayHeader";
 import TimelinePanel from "./TimelinePanel";
@@ -22,7 +23,7 @@ export default function MamashPage() {
   const router = useRouter();
   const { t } = useLanguage();
 
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(israelToday);
   const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const [baltamEvent, setBaltamEvent] = useState<ScheduleEvent | null>(null);
 

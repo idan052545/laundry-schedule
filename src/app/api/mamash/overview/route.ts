@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { israelDate, israelDayRange } from "@/lib/israel-tz";
 
 function getWeekStart(date: Date): string {
   const d = new Date(date);
@@ -54,8 +55,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "אין הרשאה — רק ממ״ש פעיל או מפקד" }, { status: 403 });
   }
 
-  const dayStart = new Date(dateStr + "T00:00:00Z");
-  const dayEnd = new Date(dateStr + "T23:59:59Z");
+  // Israel day boundaries — auto-detects IST/IDT offset
+  const { dayStart, dayEnd } = israelDayRange(dateStr);
   const weekStart = getWeekStart(new Date(dateStr));
 
   // Parallel fetches
@@ -130,13 +131,16 @@ export async function GET(request: Request) {
     slots.push(`${String(h).padStart(2, "0")}:30`);
   }
 
+  // Convert Israel local HH:MM to UTC Date — auto-detects IST/IDT
+  function slotToUTC(hh: number, mm: number): Date {
+    return israelDate(dateStr!, `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
+  }
+
   const availability = teamMembers.map(member => {
     const memberSlots = slots.map(slotTime => {
       const [sh, sm] = slotTime.split(":").map(Number);
-      const slotStart = new Date(dateStr + "T00:00:00Z");
-      slotStart.setUTCHours(sh, sm, 0, 0);
-      const slotEnd = new Date(slotStart);
-      slotEnd.setUTCMinutes(slotEnd.getUTCMinutes() + 30);
+      const slotStart = slotToUTC(sh, sm);
+      const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
 
       // Check leave
       if (chopalUserIds.has(member.id)) {
@@ -194,10 +198,8 @@ export async function GET(request: Request) {
   for (let i = 0; i < slots.length; i++) {
     const slotTime = slots[i];
     const [sh, sm] = slotTime.split(":").map(Number);
-    const slotStart = new Date(dateStr + "T00:00:00Z");
-    slotStart.setUTCHours(sh, sm, 0, 0);
-    const slotEnd = new Date(slotStart);
-    slotEnd.setUTCMinutes(slotEnd.getUTCMinutes() + 30);
+    const slotStart = slotToUTC(sh, sm);
+    const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
 
     const blocked = blockingPlatoon.some(e => {
       const es = new Date(e.startTime);

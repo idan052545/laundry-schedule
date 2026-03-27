@@ -16,8 +16,8 @@ export async function GET(request: Request) {
   const where: Record<string, unknown> = {};
   if (status !== "all") where.status = status;
   if (dateStr) {
-    const dayStart = new Date(dateStr + "T00:00:00Z");
-    const dayEnd = new Date(dateStr + "T23:59:59Z");
+    const { israelDayRange } = await import("@/lib/israel-tz");
+    const { dayStart, dayEnd } = israelDayRange(dateStr);
     where.startTime = { lte: dayEnd };
     where.endTime = { gte: dayStart };
   }

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { sendPushToUsers } from "@/lib/push";
+import { israelDate } from "@/lib/israel-tz";
 
 // Helper: check if user is נעמה (קארית) or admin
 async function isChopalAdmin(userId: string): Promise<boolean> {
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
 
   // Create schedule event for the user's personal לו"ז
   const eventDate = chopalRequest.date;
-  const startTime = new Date(`${eventDate}T${assignedTime}:00+03:00`);
+  const startTime = israelDate(eventDate, assignedTime);
   // Default 30 min duration
   const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { israelDate } from "@/lib/israel-tz";
 
 const CALENDAR_ID =
   "7590b2db7ff25ede43ffcec312f64af8ff12a5baa4703494c765c1c8cca0d72f@group.calendar.google.com";
@@ -112,10 +113,10 @@ export async function POST(req: Request) {
     const allDay = !e.start.dateTime;
     const startTime = e.start.dateTime
       ? new Date(e.start.dateTime)
-      : new Date(e.start.date + "T00:00:00+03:00");
+      : israelDate(e.start.date!);
     const endTime = e.end.dateTime
       ? new Date(e.end.dateTime)
-      : new Date(e.end.date + "T00:00:00+03:00");
+      : israelDate(e.end.date!);
 
     return {
       title: e.summary || "ללא כותרת",

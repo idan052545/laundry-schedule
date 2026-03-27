@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getAccessToken, deleteGoogleEvent, TEAM_CALENDARS } from "@/lib/google-calendar";
+import { israelToday } from "@/lib/israel-tz";
 
 async function verifyMamash(userId: string, team: number) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } });
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   const hasAccess = await verifyMamash(userId, team);
   if (!hasAccess) return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = israelToday();
 
   if (action === "reschedule") {
     const { eventId, newStartTime, newEndTime, reason } = body;
@@ -181,7 +182,7 @@ export async function POST(request: Request) {
     // but ONLY if the event is for today or future (never touch past dates)
     if (event.googleEventId) {
       const eventDate = event.startTime.toISOString().split("T")[0];
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = israelToday();
       if (eventDate >= todayStr) {
         const calendarId = TEAM_CALENDARS[team as number];
         if (calendarId && process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {

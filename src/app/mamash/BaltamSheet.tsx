@@ -7,6 +7,7 @@ import {
   MdRemove, MdAdd, MdTimelapse,
 } from "react-icons/md";
 import { useLanguage } from "@/i18n";
+import { israelDate } from "@/lib/israel-tz";
 import type { ScheduleEvent, TeamMember, BaltamAction } from "./types";
 
 interface Props {
@@ -41,10 +42,7 @@ function fmt(iso: string) {
 }
 
 function toLocalISO(date: string, time: string) {
-  const [h, m] = time.split(":").map(Number);
-  const d = new Date(date + "T00:00:00+03:00");
-  d.setHours(h, m, 0, 0);
-  return d.toISOString();
+  return israelDate(date, time).toISOString();
 }
 
 function addMinutesToISO(iso: string, minutes: number) {
@@ -600,10 +598,10 @@ export default function BaltamSheet({ event, teamMembers, allEvents, onClose, on
                   <input type="time" value={newStart} onChange={e => {
                     setNewStart(e.target.value);
                     // Auto-set end based on original duration
-                    const [h, m] = e.target.value.split(":").map(Number);
-                    const end = new Date(date + "T00:00:00+03:00");
-                    end.setHours(h, m + durationMin, 0, 0);
-                    setNewEnd(`${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`);
+                    const start = israelDate(date, e.target.value);
+                    const end = new Date(start.getTime() + durationMin * 60000);
+                    const endIL = end.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+                    setNewEnd(endIL);
                   }}
                     className="w-full mt-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs" />
                 </label>

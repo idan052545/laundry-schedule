@@ -7,6 +7,7 @@ import {
   TEAM_CALENDARS, getAccessToken,
   createGoogleEvent, patchGoogleEvent,
 } from "@/lib/google-calendar";
+import { israelToday } from "@/lib/israel-tz";
 
 /**
  * POST — One-button calendar sync for a team's daily schedule.
@@ -52,14 +53,14 @@ export async function POST(request: Request) {
   }
 
   // Safety: only sync today or future dates, never past
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = israelToday();
   if (date < todayStr) {
     return NextResponse.json({ error: "אי אפשר לסנכרן תאריכים שעברו" }, { status: 400 });
   }
 
   // Get all team events for this date that need syncing
-  const dayStart = new Date(date + "T00:00:00Z");
-  const dayEnd = new Date(date + "T23:59:59Z");
+  const { israelDayRange } = await import("@/lib/israel-tz");
+  const { dayStart, dayEnd } = israelDayRange(date);
 
   const events = await prisma.scheduleEvent.findMany({
     where: {

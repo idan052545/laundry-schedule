@@ -2,6 +2,7 @@
 
 import { MdChevronRight, MdChevronLeft, MdToday, MdSync, MdPerson } from "react-icons/md";
 import { useLanguage } from "@/i18n";
+import { israelToday } from "@/lib/israel-tz";
 import type { MamashOverview } from "./types";
 
 interface Props {
@@ -19,7 +20,7 @@ interface Props {
 export default function DayHeader({ date, setDate, team, data, myUserId, onActivate, onDeactivate, onRefresh, acting }: Props) {
   const { t } = useLanguage();
   const d = new Date(date + "T12:00:00");
-  const isToday = date === new Date().toISOString().split("T")[0];
+  const isToday = date === israelToday();
   const isMamash = data?.activeMamash?.userId === myUserId;
 
   function shift(days: number) {
@@ -78,7 +79,7 @@ export default function DayHeader({ date, setDate, team, data, myUserId, onActiv
             {d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
           </span>
           {!isToday && (
-            <button onClick={() => setDate(new Date().toISOString().split("T")[0])} className="p-1 rounded hover:bg-gray-100">
+            <button onClick={() => setDate(israelToday())} className="p-1 rounded hover:bg-gray-100">
               <MdToday className="text-sm text-dotan-green" />
             </button>
           )}

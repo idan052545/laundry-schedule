@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
+  const { israelToday } = await import("@/lib/israel-tz");
+  const date = searchParams.get("date") || israelToday();
   const sessionName = searchParams.get("session") || "morning";
 
   // Exclude commanders & simulator users from attendance lists

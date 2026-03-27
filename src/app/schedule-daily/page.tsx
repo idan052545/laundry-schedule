@@ -7,6 +7,7 @@ import { MdCalendarMonth, MdStickyNote2, MdMyLocation } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import TranslateButton, { useTranslation } from "@/components/TranslateButton";
 import { useLanguage } from "@/i18n";
+import { israelToday } from "@/lib/israel-tz";
 import { ScheduleEvent, EventFormData } from "./types";
 import EventForm from "./EventForm";
 import EventDetailModal from "./EventDetailModal";
@@ -26,7 +27,7 @@ export default function ScheduleDailyPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const { translateTexts, getTranslation, isEnglish } = useTranslation();
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(israelToday);
   const [typeFilter, setTypeFilter] = useState("all");
   const [targetFilter, setTargetFilter] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
@@ -67,7 +68,7 @@ export default function ScheduleDailyPage() {
   const isCommander = myRole === "commander";
   const canEdit = ev.isAdmin && !isSagal;
 
-  const isToday = date === new Date().toISOString().split("T")[0];
+  const isToday = date === israelToday();
 
   const filteredEvents = targetFilter === "all"
     ? ev.events
@@ -125,7 +126,7 @@ export default function ScheduleDailyPage() {
           <DateNavigation
             date={date} isToday={isToday}
             onChangeDate={changeDate}
-            onGoToToday={() => setDate(new Date().toISOString().split("T")[0])}
+            onGoToToday={() => setDate(israelToday())}
           />
         </div>
         {isEnglish && filteredEvents.length > 0 && (

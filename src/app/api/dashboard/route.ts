@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { israelToday, israelDayRange } from "@/lib/israel-tz";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -10,9 +11,9 @@ export async function GET() {
   }
 
   const userId = (session.user as { id: string }).id;
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
-  const todayMonthDay = `${(today.getMonth() + 1).toString().padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+  const todayStr = israelToday();
+  const todayMonthDay = todayStr.slice(5); // "MM-DD"
+  const { dayStart: todayStart, dayEnd: todayEnd } = israelDayRange(todayStr);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -69,17 +70,17 @@ export async function GET() {
         OR: [
           // Tasks starting today
           {
-            startDate: { gte: new Date(todayStr + "T00:00:00"), lte: new Date(todayStr + "T23:59:59") },
+            startDate: { gte: todayStart, lte: todayEnd },
             OR: [{ userId }, { userId: null }],
           },
           // Overdue tasks (due date passed but still open)
           {
-            dueDate: { lt: new Date(todayStr + "T00:00:00") },
+            dueDate: { lt: todayStart },
             OR: [{ userId }, { userId: null }],
           },
           // Due soon (within 3 days)
           {
-            dueDate: { gte: new Date(todayStr + "T00:00:00"), lte: new Date(new Date().getTime() + 3 * 86400000) },
+            dueDate: { gte: todayStart, lte: new Date(new Date().getTime() + 3 * 86400000) },
             OR: [{ userId }, { userId: null }],
           },
         ],
@@ -124,7 +125,7 @@ export async function GET() {
     prisma.scheduleEvent.findMany({
       where: {
         endTime: { gte: now },
-        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
+        startTime: { lte: todayEnd },
         allDay: false,
         OR: targetFilter,
       },
@@ -139,8 +140,8 @@ export async function GET() {
     // Today's all-day events
     prisma.scheduleEvent.findMany({
       where: {
-        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
-        endTime: { gt: new Date(todayStr + "T00:00:00Z") },
+        startTime: { lte: todayEnd },
+        endTime: { gt: todayStart },
         allDay: true,
         OR: targetFilter,
       },
@@ -190,8 +191,8 @@ export async function GET() {
     // Today's team schedule events where user is personally assigned
     prisma.scheduleEvent.findMany({
       where: {
-        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
-        endTime: { gt: new Date(todayStr + "T00:00:00Z") },
+        startTime: { lte: todayEnd },
+        endTime: { gt: todayStart },
         target: { not: "all" },
         assignees: { some: { userId } },
       },
@@ -204,8 +205,8 @@ export async function GET() {
     // All schedule events assigned to the user today (team + platoon)
     prisma.scheduleEvent.findMany({
       where: {
-        startTime: { lte: new Date(todayStr + "T23:59:59Z") },
-        endTime: { gt: new Date(todayStr + "T00:00:00Z") },
+        startTime: { lte: todayEnd },
+        endTime: { gt: todayStart },
         assignees: { some: { userId } },
       },
       orderBy: { startTime: "asc" },

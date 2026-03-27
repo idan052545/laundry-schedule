@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { israelDate } from "@/lib/israel-tz";
 
 const TEAM_CALENDARS: Record<number, string> = {
   14: "30f097925245f0a2a0835cb2309c9370975d62eda1ca54faea63435892dd36b2@group.calendar.google.com",
@@ -165,10 +166,10 @@ export async function POST(req: NextRequest) {
     const allDay = !e.start.dateTime;
     const startTime = e.start.dateTime
       ? new Date(e.start.dateTime)
-      : new Date(e.start.date + "T00:00:00+03:00");
+      : israelDate(e.start.date!);
     const endTime = e.end.dateTime
       ? new Date(e.end.dateTime)
-      : new Date(e.end.date + "T00:00:00+03:00");
+      : israelDate(e.end.date!);
 
     const title = e.summary || "ללא כותרת";
     const descRaw = e.description || "";

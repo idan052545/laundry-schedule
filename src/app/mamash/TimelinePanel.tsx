@@ -2,6 +2,7 @@
 
 import { MdLock, MdPeople, MdMoreVert } from "react-icons/md";
 import { useLanguage } from "@/i18n";
+import { israelDate } from "@/lib/israel-tz";
 import type { ScheduleEvent, FreeSlot } from "./types";
 
 interface Props {
@@ -43,11 +44,16 @@ export default function TimelinePanel({ events, freeSlots, team, onEventAction, 
     }
   }
 
-  // Sort by start time
+  // Sort by start time — free slot times are Israel local (HH:MM),
+  // event times are ISO/UTC, so convert both to comparable timestamps
   items.sort((a, b) => {
-    const aTime = a.type === "event" ? a.event.startTime : `${date}T${a.slot.start}:00Z`;
-    const bTime = b.type === "event" ? b.event.startTime : `${date}T${b.slot.start}:00Z`;
-    return new Date(aTime).getTime() - new Date(bTime).getTime();
+    const aTime = a.type === "event"
+      ? new Date(a.event.startTime).getTime()
+      : israelDate(date, a.slot.start).getTime();
+    const bTime = b.type === "event"
+      ? new Date(b.event.startTime).getTime()
+      : israelDate(date, b.slot.start).getTime();
+    return aTime - bTime;
   });
 
   return (

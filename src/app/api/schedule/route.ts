@@ -24,8 +24,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "חסר תאריך" }, { status: 400 });
   }
 
-  const dayStart = new Date(dateStr + "T00:00:00Z");
-  const dayEnd = new Date(dateStr + "T23:59:59Z");
+  const { israelDayRange } = await import("@/lib/israel-tz");
+  const { dayStart, dayEnd } = israelDayRange(dateStr);
 
   // Overlapping range: show events that overlap with this day
   // (starts before day ends AND ends after day starts)
