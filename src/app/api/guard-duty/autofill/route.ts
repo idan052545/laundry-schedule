@@ -39,30 +39,40 @@ function isNightSlot(slot: string): boolean {
 // Key = user name, Value = constraint
 // All exemptions apply to GUARD (שמירות) table only — everyone can do עב"ס
 interface PersonalRule {
-  type: "no-guard" | "roles-only" | "no-night" | "no-kk" | "night-role-only" | "day-role-only-no-night";
+  type: "no-guard" | "roles-only" | "no-night" | "no-kk" | "no-night-must-pair";
   allowedRoles?: string[];  // for "roles-only"
-  nightOnlyRole?: string;   // for "night-role-only": at night can only do this role
-  dayOnlyRole?: string;     // for "day-role-only-no-night": during day can only do this role, no night
 }
 
 const PERSONAL_RULES: Record<string, PersonalRule> = {
   "טל הנגבי": { type: "no-guard" },
   "יובל ישר": { type: "no-guard" },
-  "אוהד אבדי": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "דור מנשה קיפגן": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "עמנואל נמרודי": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "הגרה שווגר": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "נעם שילה": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "רננה ישראלוב": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "ליאורה אייזק": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "עידן טורקיה": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "רועי דדון": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "אלון זלנפרוינד": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה", "תצפיתן"] },
-  "נגה ברק": { type: "roles-only", allowedRoles: ["תצפיתן"] },
-  "תמר נגר": { type: "night-role-only", nightOnlyRole: "תצפיתן" },
-  "אופק מזור": { type: "day-role-only-no-night", dayOnlyRole: "שג רכוב קדמי" },
+  // צוות כמ (except נעם שילה and יהונתן אבוקרט who can do everything)
+  // Can do: שג רגלי, נשקייה, כ"כא, כ"כב
+  "אוהד אבדי": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "דור מנשה קיפגן": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "עמנואל נמרודי": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "הגרה שווגר": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "רננה ישראלוב": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "ליאורה אייזק": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "עידן טורקיה": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "רועי דדון": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "אלון זלנפרוינד": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  "נגה ברק": { type: "roles-only", allowedRoles: ["שג רגלי", "נשקייה"] },
+  // תמר — no night at all
+  "תמר נגר": { type: "no-night" },
+  // אופק — no night + must guard in pair
+  "אופק מזור": { type: "no-night-must-pair" },
   "הודיה יעקבי": { type: "no-kk" },
 };
+
+// ─── GENDER ───
+// Night pairs must be same gender (בת עם בת, בן עם בן)
+// Room 400+ = female, below 400 = male
+function isFemaleByRoom(roomNumber: string | null | undefined): boolean {
+  if (!roomNumber) return false;
+  const num = parseInt(roomNumber);
+  return !isNaN(num) && num >= 400;
+}
 
 // ─── כ"כ ROOM RULES ───
 // כ"כא and כ"כב must each be 5 people all from the same room
@@ -141,21 +151,20 @@ function canUserTakeRole(userName: string, role: string, slot: string, tableType
       return false;
 
     case "roles-only":
-      if (DAY_ROLES.includes(role)) return false; // roles-only people can't be כ"כ
+      // Can do their allowed roles + כ"כא/כ"כב
+      if (DAY_ROLES.includes(role)) return true;
       return rule.allowedRoles!.includes(role);
 
     case "no-kk":
       return !DAY_ROLES.includes(role);
 
-    case "night-role-only":
-      // During night: only allowed role. During day: any role.
-      if (isNightSlot(slot)) return role === rule.nightOnlyRole;
-      return true;
+    case "no-night":
+      // No night shifts at all, any day role is fine
+      return !isNightSlot(slot);
 
-    case "day-role-only-no-night":
-      // No night shifts at all. During day: only allowed role.
-      if (isNightSlot(slot)) return false;
-      return role === rule.dayOnlyRole || DAY_ROLES.includes(role);
+    case "no-night-must-pair":
+      // No night shifts. During day: any role (pair enforced in findBestCandidate)
+      return !isNightSlot(slot);
 
     default:
       return true;
@@ -596,6 +605,29 @@ function findBestCandidate(
     if (isReserve) {
       const alreadyReserve = (localAssignments[user.id] || []).some(a => RESERVE_ROLES.includes(a.role));
       if (alreadyReserve) continue;
+    }
+
+    // Night gender pairing: at night, pairs (same role+slot) must be same gender
+    if (tableType === "guard" && isNightSlot(timeSlot)) {
+      // Find others already assigned to this exact role+slot
+      const partnersInSlot = Object.entries(localAssignments)
+        .filter(([uid, assgns]) => uid !== user.id && assgns.some(a => a.role === role && a.timeSlot === timeSlot))
+        .map(([uid]) => users.find(u => u.id === uid))
+        .filter(Boolean) as EligibleUser[];
+      if (partnersInSlot.length > 0) {
+        const partnerIsFemale = isFemaleByRoom(partnersInSlot[0].roomNumber);
+        const candidateIsFemale = isFemaleByRoom(user.roomNumber);
+        if (partnerIsFemale !== candidateIsFemale) continue; // must be same gender
+      }
+    }
+
+    // אופק must-pair: only assign to multi-person roles so he has a partner
+    if (tableType === "guard") {
+      const rule = getPersonalRule(user.name);
+      if (rule?.type === "no-night-must-pair") {
+        const count = MULTI_PERSON_ROLES[role] || 1;
+        if (count < 2 && !DAY_ROLES.includes(role)) continue; // skip single-person roles
+      }
     }
 
     return user;
