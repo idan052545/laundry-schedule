@@ -15,15 +15,18 @@ export interface ScheduleEvent {
   allDay: boolean;
   target: string;
   type: string;
+  googleEventId: string | null;
+  calendarSynced: boolean;
   assignees: { id: string; userId: string; user: TeamMember }[];
 }
 
-export type SlotStatus = "available" | "assigned" | "platoon-blocked" | "duty" | "leave";
+export type SlotStatus = "available" | "assigned" | "platoon-blocked" | "scheduling-window" | "duty" | "leave";
 
 export interface AvailabilitySlot {
   time: string; // HH:MM
   status: SlotStatus;
   eventTitle?: string;
+  overridable?: boolean; // platoon-blocked but ממ״ש can still schedule on it
 }
 
 export interface MemberAvailability {
@@ -95,4 +98,4 @@ export type RequirementType =
   | "checkpoint"
   | "custom";
 
-export type BaltamAction = "reschedule" | "cancel" | "swap" | "reassign";
+export type BaltamAction = "reschedule" | "cancel" | "swap" | "reassign" | "split" | "duplicate";

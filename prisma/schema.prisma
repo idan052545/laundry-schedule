@@ -280,17 +280,20 @@ model AktualiaEntry {
 }
 
 model ScheduleEvent {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  startTime   DateTime
-  endTime     DateTime
-  allDay      Boolean  @default(false)
-  target      String   @default("all") // "all", "team-14", "team-15", "team-16", "team-17"
-  type        String   @default("general") // "general", "meal", "training", "ceremony", "personal", "free"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  assignees   ScheduleAssignee[]
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  startTime       DateTime
+  endTime         DateTime
+  allDay          Boolean  @default(false)
+  target          String   @default("all") // "all", "team-14", "team-15", "team-16", "team-17"
+  type            String   @default("general") // "general", "meal", "training", "ceremony", "personal", "free"
+  googleEventId   String?  // Google Calendar event ID for sync
+  calendarSynced  Boolean  @default(false) // true after pushed to Google Calendar
+  notifiedAt      DateTime? // last time assignees were notified about this event
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  assignees       ScheduleAssignee[]
 }
 
 model ScheduleAssignee {

@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { MdCalendarMonth, MdGridView, MdChecklist, MdHistory, MdFlashOn, MdCloudUpload, MdAdd } from "react-icons/md";
+import { MdCalendarMonth, MdGridView, MdChecklist, MdHistory, MdFlashOn, MdSync } from "react-icons/md";
 import { InlineLoading } from "@/components/LoadingScreen";
 import { useLanguage } from "@/i18n";
 import { useMamash } from "./useMamash";
@@ -25,20 +25,18 @@ export default function MamashPage() {
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [activeTab, setActiveTab] = useState<Tab>("timeline");
   const [baltamEvent, setBaltamEvent] = useState<ScheduleEvent | null>(null);
-  const [showCalendarPush, setShowCalendarPush] = useState(false);
-  const [calForm, setCalForm] = useState({ title: "", description: "", startTime: "", endTime: "" });
-  const [calMsg, setCalMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   const myUserId = (session?.user as { id?: string } | undefined)?.id || "";
   const myTeam = (session?.user as { team?: number } | undefined)?.team || null;
 
   const {
     data, loading, error, acting,
+    unsyncedCount, syncResult,
     fetchOverview,
     activateRole, deactivateRole,
     addRequirement, updateRequirement, deleteRequirement,
     doBaltam,
-    pushToCalendar,
+    syncToCalendar,
   } = useMamash(date, myTeam);
 
   useEffect(() => {
@@ -72,6 +70,8 @@ export default function MamashPage() {
     },
   ];
 
+  const isMamash = data?.activeMamash?.userId === myUserId;
+
   return (
     <div className="max-w-2xl mx-auto pb-20">
       <DayHeader
@@ -85,6 +85,17 @@ export default function MamashPage() {
         onRefresh={fetchOverview}
         acting={acting}
       />
+
+      {/* Sync result toast */}
+      {syncResult && (
+        <div className={`mx-3 mt-2 rounded-xl px-3 py-2 text-xs ${
+          syncResult.ok ? "bg-green-50 border border-green-200 text-green-700" : "bg-red-50 border border-red-200 text-red-600"
+        }`}>
+          {syncResult.ok
+            ? syncResult.message || `סונכרן: ${syncResult.created} חדשים, ${syncResult.updated} עודכנו, ${syncResult.notified} קיבלו התראה`
+            : syncResult.errors?.join(", ") || "שגיאה בסנכרון"}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -153,7 +164,7 @@ export default function MamashPage() {
       </div>
 
       {/* FABs */}
-      {data && data.activeMamash?.userId === myUserId && (
+      {data && isMamash && (
         <div className="fixed bottom-20 left-4 flex flex-col gap-2 z-20">
           {/* Baltam */}
           <button
@@ -169,84 +180,25 @@ export default function MamashPage() {
           >
             <MdFlashOn className="text-xl" />
           </button>
-          {/* Push to Calendar */}
+
+          {/* Sync to Calendar — one button */}
           <button
-            onClick={() => { setShowCalendarPush(true); setCalMsg(null); }}
-            className="w-12 h-12 bg-blue-500 text-white rounded-2xl shadow-lg flex items-center justify-center hover:bg-blue-600 transition"
-            title={t.mamash.pushToCalendar}
+            onClick={syncToCalendar}
+            disabled={acting}
+            className={`w-12 h-12 rounded-2xl shadow-lg flex items-center justify-center transition relative ${
+              unsyncedCount > 0
+                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-500"
+            } disabled:opacity-50`}
+            title={t.mamash.syncToCalendar}
           >
-            <MdCloudUpload className="text-xl" />
-          </button>
-        </div>
-      )}
-
-      {/* Push to Calendar modal */}
-      {showCalendarPush && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center" onClick={() => setShowCalendarPush(false)}>
-          <div className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <MdCloudUpload className="text-blue-500" /> {t.mamash.pushToCalendar}
-            </h3>
-            <p className="text-[10px] text-gray-500 mb-3">{t.mamash.pushToCalendarDesc}</p>
-
-            {calMsg && (
-              <div className={`rounded-lg px-3 py-2 mb-3 text-xs ${calMsg.type === "ok" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
-                {calMsg.text}
-              </div>
+            <MdSync className={`text-xl ${acting ? "animate-spin" : ""}`} />
+            {unsyncedCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center px-0.5">
+                {unsyncedCount}
+              </span>
             )}
-
-            <label className="block mb-3">
-              <span className="text-[10px] text-gray-500 font-bold">{t.mamash.reqTitle}</span>
-              <input value={calForm.title} onChange={e => setCalForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full mt-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="שיחת סטטוס — נטע" />
-            </label>
-            <label className="block mb-3">
-              <span className="text-[10px] text-gray-500 font-bold">{t.mamash.reason}</span>
-              <input value={calForm.description} onChange={e => setCalForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full mt-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs" placeholder="תיאור (אופציונלי)" />
-            </label>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <label>
-                <span className="text-[10px] text-gray-500 font-bold">{t.mamash.newStart}</span>
-                <input type="time" value={calForm.startTime} onChange={e => setCalForm(f => ({ ...f, startTime: e.target.value }))}
-                  className="w-full mt-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs" />
-              </label>
-              <label>
-                <span className="text-[10px] text-gray-500 font-bold">{t.mamash.newEnd}</span>
-                <input type="time" value={calForm.endTime} onChange={e => setCalForm(f => ({ ...f, endTime: e.target.value }))}
-                  className="w-full mt-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs" />
-              </label>
-            </div>
-
-            <button
-              onClick={async () => {
-                if (!calForm.title || !calForm.startTime || !calForm.endTime) {
-                  setCalMsg({ type: "error", text: "מלא כותרת ושעות" });
-                  return;
-                }
-                const startISO = `${date}T${calForm.startTime}:00+03:00`;
-                const endISO = `${date}T${calForm.endTime}:00+03:00`;
-                const result = await pushToCalendar({
-                  title: calForm.title,
-                  description: calForm.description || undefined,
-                  startTime: startISO,
-                  endTime: endISO,
-                });
-                if (result.ok) {
-                  setCalMsg({ type: "ok", text: "נוסף ליומן Google בהצלחה!" });
-                  setCalForm({ title: "", description: "", startTime: "", endTime: "" });
-                } else if (result.needsSetup) {
-                  setCalMsg({ type: "error", text: "יש להגדיר Service Account — ראה הוראות בתיעוד" });
-                } else {
-                  setCalMsg({ type: "error", text: result.error || "שגיאה" });
-                }
-              }}
-              disabled={acting}
-              className="w-full py-2.5 bg-blue-500 text-white rounded-xl text-xs font-bold hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              <MdAdd className="text-sm" /> {t.mamash.pushToCalendar}
-            </button>
-          </div>
+          </button>
         </div>
       )}
 

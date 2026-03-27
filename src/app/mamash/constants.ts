@@ -25,7 +25,8 @@ export const REQ_TYPE_CONFIG: Record<RequirementType, { icon: any; color: string
 export const SLOT_COLORS: Record<string, string> = {
   available: "bg-green-100",
   assigned: "bg-blue-200",
-  "platoon-blocked": "bg-gray-300",
+  "platoon-blocked": "bg-gray-200",
+  "scheduling-window": "bg-emerald-200",
   duty: "bg-red-200",
   leave: "bg-yellow-200",
 };

@@ -24,8 +24,9 @@ export default function AvailabilityMatrix({ availability }: Props) {
       <div className="flex items-center gap-3 mb-3 flex-wrap">
         {[
           { key: "available", label: t.mamash.available, color: "bg-green-100" },
+          { key: "scheduling-window", label: t.mamash.schedulingWindow, color: "bg-emerald-200" },
           { key: "assigned", label: t.mamash.assigned, color: "bg-blue-200" },
-          { key: "platoon-blocked", label: t.mamash.platoonBlocked, color: "bg-gray-300" },
+          { key: "platoon-blocked", label: t.mamash.platoonBlocked, color: "bg-gray-200" },
           { key: "duty", label: t.mamash.duty, color: "bg-red-200" },
           { key: "leave", label: t.mamash.leave, color: "bg-yellow-200" },
         ].map(l => (

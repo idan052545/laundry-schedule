@@ -3,14 +3,28 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-function toHHMM(d: Date): string {
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
 function getWeekStart(date: Date): string {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
   return d.toISOString().split("T")[0];
+}
+
+/**
+ * Platoon events whose titles match these patterns are SCHEDULING WINDOWS —
+ * the ממ״ש is expected to place team events inside them.
+ * Everything else is a hard block.
+ */
+const SCHEDULING_WINDOW_PATTERNS = [
+  /חל["״]ז/i,                   // חל״ז תכנים מחייבים
+  /זמני?\s*חניכה/i,             // זמני חניכה / עע / לע
+  /זמן\s*סימולציו/i,           // זמן סימולציות
+  /עצור\s*אמצע/i,              // עצור אמצע צוותי
+  /חסום/i,                       // חסום (blocked for team use)
+  /שיבוץ\s*ע["״]י\s*ממ/i,     // שיבוץ ע״י ממשים
+];
+
+function isSchedulingWindow(title: string): boolean {
+  return SCHEDULING_WINDOW_PATTERNS.some(p => p.test(title));
 }
 
 export async function GET(request: Request) {
@@ -97,7 +111,10 @@ export async function GET(request: Request) {
   ]);
 
   // Build availability matrix
+  // Split platoon events into hard blocks vs scheduling windows
   const platoonEvents = events.filter(e => e.target === "all" && !e.allDay);
+  const blockingPlatoon = platoonEvents.filter(e => !isSchedulingWindow(e.title));
+  const windowPlatoon = platoonEvents.filter(e => isSchedulingWindow(e.title));
   const teamEvents = events.filter(e => e.target === `team-${team}` && !e.allDay);
   const chopalUserIds = new Set(chopalRequests.map(c => c.userId));
   const dutyByUser = new Map<string, string[]>();
@@ -132,14 +149,27 @@ export async function GET(request: Request) {
         return { time: slotTime, status: "duty" as const };
       }
 
-      // Check platoon events (blocks everyone)
-      const platoonBlock = platoonEvents.find(e => {
+      // Check platoon events — classify as scheduling-window or platoon-soft-block
+      const platoonHit = platoonEvents.find(e => {
         const es = new Date(e.startTime);
         const ee = new Date(e.endTime);
         return es < slotEnd && ee > slotStart;
       });
-      if (platoonBlock) {
-        return { time: slotTime, status: "platoon-blocked" as const, eventTitle: platoonBlock.title };
+      if (platoonHit) {
+        // First check if already assigned to a team event here
+        const teamBlock = teamEvents.find(e => {
+          const es = new Date(e.startTime);
+          const ee = new Date(e.endTime);
+          return es < slotEnd && ee > slotStart && e.assignees.some(a => a.userId === member.id);
+        });
+        if (teamBlock) {
+          return { time: slotTime, status: "assigned" as const, eventTitle: teamBlock.title };
+        }
+        // Known scheduling windows = green, other platoon = soft block (overridable)
+        if (isSchedulingWindow(platoonHit.title)) {
+          return { time: slotTime, status: "scheduling-window" as const, eventTitle: platoonHit.title };
+        }
+        return { time: slotTime, status: "platoon-blocked" as const, eventTitle: platoonHit.title, overridable: true };
       }
 
       // Check team assignments
@@ -169,7 +199,7 @@ export async function GET(request: Request) {
     const slotEnd = new Date(slotStart);
     slotEnd.setUTCMinutes(slotEnd.getUTCMinutes() + 30);
 
-    const blocked = platoonEvents.some(e => {
+    const blocked = blockingPlatoon.some(e => {
       const es = new Date(e.startTime);
       const ee = new Date(e.endTime);
       return es < slotEnd && ee > slotStart;

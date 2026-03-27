@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { MamashOverview, Requirement, BaltamAction } from "./types";
 import { getWeekStart } from "./constants";
 
@@ -9,6 +9,10 @@ export function useMamash(date: string, team: number | null) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    ok: boolean; created: number; updated: number; notified: number;
+    alreadySynced: number; errors?: string[]; message?: string;
+  } | null>(null);
 
   const fetchOverview = useCallback(async () => {
     if (!team) return;
@@ -33,6 +37,14 @@ export function useMamash(date: string, team: number | null) {
   useEffect(() => {
     fetchOverview();
   }, [fetchOverview]);
+
+  // Count of unsynced team events for this day
+  const unsyncedCount = useMemo(() => {
+    if (!data) return 0;
+    return data.events.filter(e =>
+      e.target === `team-${team}` && !e.calendarSynced
+    ).length;
+  }, [data, team]);
 
   // ── Role actions ──
   const activateRole = useCallback(async () => {
@@ -120,7 +132,7 @@ export function useMamash(date: string, team: number | null) {
   const doBaltam = useCallback(async (
     action: BaltamAction,
     payload: Record<string, unknown>
-  ): Promise<{ ok: boolean; cascadeConflicts?: unknown[] }> => {
+  ): Promise<{ ok: boolean; cascadeConflicts?: unknown[]; teamCollisions?: unknown[] }> => {
     if (!team) return { ok: false };
     setActing(true);
     try {
@@ -130,7 +142,7 @@ export function useMamash(date: string, team: number | null) {
         body: JSON.stringify({ action, team, ...payload }),
       });
       const json = await res.json();
-      if (res.status === 409) return { ok: false, cascadeConflicts: json.cascadeConflicts };
+      if (res.status === 409) return { ok: false, cascadeConflicts: json.cascadeConflicts, teamCollisions: json.teamCollisions };
       if (!res.ok) return { ok: false };
       await fetchOverview();
       return { ok: true };
@@ -139,7 +151,7 @@ export function useMamash(date: string, team: number | null) {
     }
   }, [team, fetchOverview]);
 
-  // ── Calendar write ──
+  // ── Calendar write (single event) ──
   const pushToCalendar = useCallback(async (event: {
     title: string; description?: string; startTime: string; endTime: string; allDay?: boolean;
   }): Promise<{ ok: boolean; error?: string; needsSetup?: boolean }> => {
@@ -159,12 +171,41 @@ export function useMamash(date: string, team: number | null) {
     }
   }, [team]);
 
+  // ── One-button sync: push all dirty events to Google Calendar + notify ──
+  const syncToCalendar = useCallback(async (): Promise<{
+    ok: boolean; created: number; updated: number; notified: number;
+    alreadySynced: number; errors?: string[]; message?: string; needsSetup?: boolean;
+  }> => {
+    if (!team) return { ok: false, created: 0, updated: 0, notified: 0, alreadySynced: 0 };
+    setActing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/mamash/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team, date }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        const result = { ok: false, created: 0, updated: 0, notified: 0, alreadySynced: 0, errors: [json.error], needsSetup: json.needsSetup };
+        setSyncResult(result);
+        return result;
+      }
+      setSyncResult(json);
+      await fetchOverview(); // Refresh to show updated sync status
+      return json;
+    } finally {
+      setActing(false);
+    }
+  }, [team, date, fetchOverview]);
+
   return {
     data, loading, error, acting,
+    unsyncedCount, syncResult,
     fetchOverview,
     activateRole, deactivateRole,
     addRequirement, updateRequirement, deleteRequirement,
     doBaltam,
-    pushToCalendar,
+    pushToCalendar, syncToCalendar,
   };
 }

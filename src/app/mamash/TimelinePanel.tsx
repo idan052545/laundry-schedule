@@ -120,15 +120,22 @@ export default function TimelinePanel({ events, freeSlots, team, onEventAction, 
                     {e.title}
                   </span>
                 </div>
-                {/* Assignees */}
-                {e.assignees.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <MdPeople className="text-[10px] text-gray-400" />
-                    <span className="text-[10px] text-gray-500 truncate">
-                      {e.assignees.map(a => a.user.name.split(" ")[0]).join(", ")}
+                {/* Assignees + sync status */}
+                <div className="flex items-center gap-1 mt-1">
+                  {e.assignees.length > 0 && (
+                    <>
+                      <MdPeople className="text-[10px] text-gray-400" />
+                      <span className="text-[10px] text-gray-500 truncate">
+                        {e.assignees.map(a => a.user.name.split(" ")[0]).join(", ")}
+                      </span>
+                    </>
+                  )}
+                  {isTeam && !e.calendarSynced && (
+                    <span className="text-[9px] text-orange-500 font-bold mr-1">
+                      {e.googleEventId ? "עדכון" : "חדש"}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Action */}
