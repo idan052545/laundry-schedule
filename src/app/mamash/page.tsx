@@ -38,6 +38,7 @@ export default function MamashPage() {
     addRequirement, updateRequirement, deleteRequirement,
     doBaltam,
     syncToCalendar,
+    toggleOverride,
   } = useMamash(date, myTeam);
 
   useEffect(() => {
@@ -116,8 +117,10 @@ export default function MamashPage() {
               events={data.events}
               freeSlots={data.freeSlots}
               team={myTeam}
+              classification={data.classification || {}}
               date={date}
               onEventAction={setBaltamEvent}
+              onToggleOverride={toggleOverride}
             />
           )}
           {activeTab === "availability" && (

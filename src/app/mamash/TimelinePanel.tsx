@@ -1,6 +1,6 @@
 "use client";
 
-import { MdLock, MdPeople, MdMoreVert } from "react-icons/md";
+import { MdLock, MdLockOpen, MdPeople, MdMoreVert } from "react-icons/md";
 import { useLanguage } from "@/i18n";
 import { israelDate } from "@/lib/israel-tz";
 import type { ScheduleEvent, FreeSlot } from "./types";
@@ -9,7 +9,9 @@ interface Props {
   events: ScheduleEvent[];
   freeSlots: FreeSlot[];
   team: number;
+  classification: Record<string, boolean>;
   onEventAction: (event: ScheduleEvent) => void;
+  onToggleOverride: (eventId: string, schedulable: boolean) => void;
   date: string;
 }
 
@@ -22,7 +24,7 @@ function isPassed(iso: string) {
   return new Date(iso) < new Date();
 }
 
-export default function TimelinePanel({ events, freeSlots, team, onEventAction, date }: Props) {
+export default function TimelinePanel({ events, freeSlots, team, classification, onEventAction, onToggleOverride, date }: Props) {
   const { t } = useLanguage();
   const timedEvents = events.filter(e => !e.allDay).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   const allDayEvents = events.filter(e => e.allDay);
@@ -32,20 +34,16 @@ export default function TimelinePanel({ events, freeSlots, team, onEventAction, 
   type Item = { type: "event"; event: ScheduleEvent } | { type: "free"; slot: FreeSlot };
   const items: Item[] = [];
 
-  // Add events
   for (const event of timedEvents) {
     items.push({ type: "event", event });
   }
 
-  // Insert free slots between events
   for (const slot of freeSlots) {
     if (slot.durationMin >= 15) {
       items.push({ type: "free", slot });
     }
   }
 
-  // Sort by start time — free slot times are Israel local (HH:MM),
-  // event times are ISO/UTC, so convert both to comparable timestamps
   items.sort((a, b) => {
     const aTime = a.type === "event"
       ? new Date(a.event.startTime).getTime()
@@ -94,14 +92,17 @@ export default function TimelinePanel({ events, freeSlots, team, onEventAction, 
         const isTeam = e.target === teamTarget;
         const passed = isPassed(e.endTime);
         const isNow = !isPassed(e.endTime) && isPassed(e.startTime);
+        const isSchedulable = isPlatoon && classification[e.id];
 
         return (
           <div
             key={e.id}
-            onClick={() => !isPlatoon && onEventAction(e)}
+            onClick={() => isTeam && onEventAction(e)}
             className={`rounded-xl border p-2.5 transition-all ${
               isPlatoon
-                ? "bg-gray-50 border-gray-200 opacity-70"
+                ? isSchedulable
+                  ? "bg-emerald-50 border-emerald-200"
+                  : "bg-gray-50 border-gray-200 opacity-70"
                 : passed
                   ? "bg-white border-gray-100 opacity-50"
                   : isNow
@@ -120,11 +121,19 @@ export default function TimelinePanel({ events, freeSlots, team, onEventAction, 
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  {isPlatoon && <MdLock className="text-gray-400 text-xs shrink-0" />}
+                  {isPlatoon && !isSchedulable && <MdLock className="text-gray-400 text-xs shrink-0" />}
+                  {isPlatoon && isSchedulable && <MdLockOpen className="text-emerald-500 text-xs shrink-0" />}
                   {isNow && <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shrink-0" />}
-                  <span className={`text-xs font-bold truncate ${passed ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                  <span className={`text-xs font-bold truncate ${
+                    passed ? "text-gray-400 line-through"
+                    : isPlatoon && isSchedulable ? "text-emerald-800"
+                    : "text-gray-800"
+                  }`}>
                     {e.title}
                   </span>
+                  {isPlatoon && isSchedulable && (
+                    <span className="text-[9px] text-emerald-600 font-bold shrink-0">פנוי</span>
+                  )}
                 </div>
                 {/* Assignees + sync status */}
                 <div className="flex items-center gap-1 mt-1">
@@ -144,7 +153,25 @@ export default function TimelinePanel({ events, freeSlots, team, onEventAction, 
                 </div>
               </div>
 
-              {/* Action */}
+              {/* Toggle override for platoon events */}
+              {isPlatoon && !passed && (
+                <button
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onToggleOverride(e.id, !isSchedulable);
+                  }}
+                  className={`p-1.5 rounded-lg shrink-0 transition ${
+                    isSchedulable
+                      ? "bg-emerald-100 hover:bg-emerald-200 text-emerald-600"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-400"
+                  }`}
+                  title={isSchedulable ? "סמן כחסום" : "סמן כפנוי לשיבוץ"}
+                >
+                  {isSchedulable ? <MdLockOpen className="text-sm" /> : <MdLock className="text-sm" />}
+                </button>
+              )}
+
+              {/* Action button for team events */}
               {isTeam && !passed && (
                 <button
                   onClick={(ev) => { ev.stopPropagation(); onEventAction(e); }}

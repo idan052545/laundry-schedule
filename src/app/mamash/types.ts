@@ -80,6 +80,7 @@ export interface MamashOverview {
   freeSlots: FreeSlot[];
   requirements: Requirement[];
   changelog: ChangeEntry[];
+  classification: Record<string, boolean>; // platoon eventId -> schedulable
   activeMamash: { id: string; userId: string; user: TeamMember } | null;
 }
 

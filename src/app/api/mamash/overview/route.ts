@@ -11,21 +11,77 @@ function getWeekStart(date: Date): string {
 }
 
 /**
- * Platoon events whose titles match these patterns are SCHEDULING WINDOWS —
- * the ממ״ש is expected to place team events inside them.
- * Everything else is a hard block.
+ * Legacy fallback patterns — only used when no auto-detect data exists
+ * and no manual override is set.
  */
-const SCHEDULING_WINDOW_PATTERNS = [
-  /חל["״]ז/i,                   // חל״ז תכנים מחייבים
-  /זמני?\s*חניכה/i,             // זמני חניכה / עע / לע
-  /זמן\s*סימולציו/i,           // זמן סימולציות
-  /עצור\s*אמצע/i,              // עצור אמצע צוותי
-  /חסום/i,                       // חסום (blocked for team use)
-  /שיבוץ\s*ע["״]י\s*ממ/i,     // שיבוץ ע״י ממשים
+const LEGACY_WINDOW_PATTERNS = [
+  /חל["״]ז/i,
+  /זמני?\s*חניכה/i,
+  /זמן\s*סימולציו/i,
+  /עצור\s*אמצע/i,
+  /חסום/i,
+  /שיבוץ\s*ע["״]י\s*ממ/i,
 ];
 
-function isSchedulingWindow(title: string): boolean {
-  return SCHEDULING_WINDOW_PATTERNS.some(p => p.test(title));
+/**
+ * Normalize a platoon event title for matching:
+ * strip leading time patterns (e.g. "17:40-18:40|"), trim, collapse spaces
+ */
+function normalizeTitle(title: string): string {
+  return title
+    .replace(/^\d{1,2}[:.]\d{2}[-–]\d{1,2}[:.]\d{2}\s*[|]?\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Auto-detect which platoon event titles are schedulable
+ * by analyzing historical overlap with ALL team events in the past 30 days.
+ */
+async function getAutoDetectedSchedulableTitles(): Promise<Set<string>> {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [platoon, teamEvents] = await Promise.all([
+    prisma.scheduleEvent.findMany({
+      where: { target: "all", allDay: false, startTime: { gte: thirtyDaysAgo } },
+      select: { title: true, startTime: true, endTime: true },
+    }),
+    prisma.scheduleEvent.findMany({
+      where: {
+        target: { startsWith: "team-" },
+        allDay: false,
+        startTime: { gte: thirtyDaysAgo },
+      },
+      select: { startTime: true, endTime: true },
+    }),
+  ]);
+
+  // Count overlap by normalized title
+  const totalByTitle = new Map<string, number>();
+  const overlapByTitle = new Map<string, number>();
+
+  for (const pe of platoon) {
+    const key = normalizeTitle(pe.title);
+    totalByTitle.set(key, (totalByTitle.get(key) || 0) + 1);
+    const hasOverlap = teamEvents.some(
+      t => t.startTime < pe.endTime && t.endTime > pe.startTime
+    );
+    if (hasOverlap) {
+      overlapByTitle.set(key, (overlapByTitle.get(key) || 0) + 1);
+    }
+  }
+
+  const schedulable = new Set<string>();
+  for (const [title, total] of totalByTitle) {
+    const overlapped = overlapByTitle.get(title) || 0;
+    // If teams scheduled over this event type >30% of the time, it's schedulable
+    if (overlapped / total > 0.3) {
+      schedulable.add(title);
+    }
+  }
+
+  return schedulable;
 }
 
 export async function GET(request: Request) {
@@ -39,14 +95,12 @@ export async function GET(request: Request) {
 
   if (!dateStr) return NextResponse.json({ error: "חסר תאריך" }, { status: 400 });
 
-  // Determine team
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { team: true, role: true, email: true } });
   const team = teamParam ? Number(teamParam) : user?.team;
   if (!team) return NextResponse.json({ error: "חסר צוות" }, { status: 400 });
 
   const isAdmin = user?.role === "admin" || user?.role === "commander" || user?.email === "ohad@dotan.com";
 
-  // Verify ממ״ש or admin access
   const activeMamash = await prisma.mamashRole.findFirst({
     where: { team, active: true },
     include: { user: { select: { id: true, name: true, nameEn: true, image: true, team: true } } },
@@ -55,13 +109,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "אין הרשאה — רק ממ״ש פעיל או מפקד" }, { status: 403 });
   }
 
-  // Israel day boundaries — auto-detects IST/IDT offset
   const { dayStart, dayEnd } = israelDayRange(dateStr);
   const weekStart = getWeekStart(new Date(dateStr));
 
-  // Parallel fetches
-  const [events, teamMembers, dutyAssignments, chopalRequests, requirements, changelog] = await Promise.all([
-    // Events: platoon (all) + this team
+  // Parallel fetches — including overrides and auto-detect
+  const [
+    events, teamMembers, dutyAssignments, chopalRequests,
+    requirements, changelog, overrides, autoSchedulable,
+  ] = await Promise.all([
     prisma.scheduleEvent.findMany({
       where: {
         startTime: { lte: dayEnd },
@@ -75,25 +130,19 @@ export async function GET(request: Request) {
       },
       orderBy: { startTime: "asc" },
     }),
-    // Team members
     prisma.user.findMany({
       where: { team, role: { not: "sagal" } },
       select: { id: true, name: true, nameEn: true, image: true, team: true },
       orderBy: { name: "asc" },
     }),
-    // Duty assignments for today
     prisma.dutyAssignment.findMany({
-      where: {
-        table: { date: dateStr },
-      },
+      where: { table: { date: dateStr } },
       select: { userId: true, timeSlot: true },
     }),
-    // Chopal requests for today
     prisma.chopalRequest.findMany({
       where: { date: dateStr, needed: true },
       select: { userId: true },
     }),
-    // Requirements for the week
     prisma.scheduleRequirement.findMany({
       where: { team, weekStart },
       include: {
@@ -101,7 +150,6 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "asc" },
     }),
-    // Changelog for today
     prisma.scheduleChange.findMany({
       where: { team, date: dateStr },
       include: {
@@ -109,13 +157,37 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "desc" },
     }),
+    // Manual overrides for this team
+    prisma.eventOverride.findMany({
+      where: { team },
+      select: { eventId: true, schedulable: true },
+    }),
+    // Auto-detected schedulable titles from historical overlap
+    getAutoDetectedSchedulableTitles(),
   ]);
 
-  // Build availability matrix
-  // Split platoon events into hard blocks vs scheduling windows
+  // Build override map: eventId -> schedulable
+  const overrideMap = new Map(overrides.map(o => [o.eventId, o.schedulable]));
+
+  // 3-tier classification: override > auto-detect > legacy regex
+  function isSchedulable(eventId: string, title: string): boolean {
+    // 1. Manual override
+    if (overrideMap.has(eventId)) return overrideMap.get(eventId)!;
+    // 2. Auto-detect from historical overlap
+    const norm = normalizeTitle(title);
+    if (autoSchedulable.has(norm)) return true;
+    // 3. Legacy regex fallback
+    return LEGACY_WINDOW_PATTERNS.some(p => p.test(title));
+  }
+
+  // Build classification map for the response — only for platoon events
+  const classification: Record<string, boolean> = {};
   const platoonEvents = events.filter(e => e.target === "all" && !e.allDay);
-  const blockingPlatoon = platoonEvents.filter(e => !isSchedulingWindow(e.title));
-  const windowPlatoon = platoonEvents.filter(e => isSchedulingWindow(e.title));
+  for (const e of platoonEvents) {
+    classification[e.id] = isSchedulable(e.id, e.title);
+  }
+
+  const blockingPlatoon = platoonEvents.filter(e => !classification[e.id]);
   const teamEvents = events.filter(e => e.target === `team-${team}` && !e.allDay);
   const chopalUserIds = new Set(chopalRequests.map(c => c.userId));
   const dutyByUser = new Map<string, string[]>();
@@ -131,7 +203,6 @@ export async function GET(request: Request) {
     slots.push(`${String(h).padStart(2, "0")}:30`);
   }
 
-  // Convert Israel local HH:MM to UTC Date — auto-detects IST/IDT
   function slotToUTC(hh: number, mm: number): Date {
     return israelDate(dateStr!, `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`);
   }
@@ -142,25 +213,21 @@ export async function GET(request: Request) {
       const slotStart = slotToUTC(sh, sm);
       const slotEnd = new Date(slotStart.getTime() + 30 * 60000);
 
-      // Check leave
       if (chopalUserIds.has(member.id)) {
         return { time: slotTime, status: "leave" as const };
       }
 
-      // Check duty
       const memberDuty = dutyByUser.get(member.id);
       if (memberDuty?.some(ts => ts === slotTime || ts.startsWith(slotTime.split(":")[0]))) {
         return { time: slotTime, status: "duty" as const };
       }
 
-      // Check platoon events — classify as scheduling-window or platoon-soft-block
       const platoonHit = platoonEvents.find(e => {
         const es = new Date(e.startTime);
         const ee = new Date(e.endTime);
         return es < slotEnd && ee > slotStart;
       });
       if (platoonHit) {
-        // First check if already assigned to a team event here
         const teamBlock = teamEvents.find(e => {
           const es = new Date(e.startTime);
           const ee = new Date(e.endTime);
@@ -169,14 +236,12 @@ export async function GET(request: Request) {
         if (teamBlock) {
           return { time: slotTime, status: "assigned" as const, eventTitle: teamBlock.title };
         }
-        // Known scheduling windows = green, other platoon = soft block (overridable)
-        if (isSchedulingWindow(platoonHit.title)) {
+        if (classification[platoonHit.id]) {
           return { time: slotTime, status: "scheduling-window" as const, eventTitle: platoonHit.title };
         }
         return { time: slotTime, status: "platoon-blocked" as const, eventTitle: platoonHit.title, overridable: true };
       }
 
-      // Check team assignments
       const teamBlock = teamEvents.find(e => {
         const es = new Date(e.startTime);
         const ee = new Date(e.endTime);
@@ -192,7 +257,7 @@ export async function GET(request: Request) {
     return { user: member, slots: memberSlots };
   });
 
-  // Compute free slots (windows where no platoon event exists)
+  // Free slots: windows where no HARD BLOCK platoon event exists
   const freeSlots: { start: string; end: string; durationMin: number }[] = [];
   let freeStart: string | null = null;
   for (let i = 0; i < slots.length; i++) {
@@ -227,6 +292,7 @@ export async function GET(request: Request) {
     freeSlots,
     requirements,
     changelog,
+    classification,
     activeMamash: activeMamash ? { id: activeMamash.id, userId: activeMamash.userId, user: activeMamash.user } : null,
   });
 }

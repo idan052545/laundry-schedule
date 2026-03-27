@@ -199,6 +199,22 @@ export function useMamash(date: string, team: number | null) {
     }
   }, [team, date, fetchOverview]);
 
+  // ── Toggle platoon event override (schedulable/blocked) ──
+  const toggleOverride = useCallback(async (eventId: string, schedulable: boolean) => {
+    if (!team) return;
+    setActing(true);
+    try {
+      await fetch("/api/mamash/override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, team, schedulable }),
+      });
+      await fetchOverview();
+    } finally {
+      setActing(false);
+    }
+  }, [team, fetchOverview]);
+
   return {
     data, loading, error, acting,
     unsyncedCount, syncResult,
@@ -207,5 +223,6 @@ export function useMamash(date: string, team: number | null) {
     addRequirement, updateRequirement, deleteRequirement,
     doBaltam,
     pushToCalendar, syncToCalendar,
+    toggleOverride,
   };
 }

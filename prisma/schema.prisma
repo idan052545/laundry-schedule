@@ -74,6 +74,7 @@ model User {
   requirementTargets   ScheduleRequirement[]  @relation("requirementTarget")
   requirementCreated   ScheduleRequirement[]  @relation("requirementCreator")
   scheduleChanges      ScheduleChange[]       @relation("scheduleChanges")
+  eventOverrides       EventOverride[]        @relation("eventOverrides")
 }
 
 model Machine {
@@ -712,6 +713,19 @@ model ScheduleChange {
 
   @@index([team, date])
   @@index([eventId])
+}
+
+model EventOverride {
+  id          String   @id @default(uuid())
+  eventId     String   // ScheduleEvent.id
+  team        Int
+  schedulable Boolean  // true = ממ״ש can schedule here, false = hard block
+  createdById String
+  createdAt   DateTime @default(now())
+  createdBy   User     @relation("eventOverrides", fields: [createdById], references: [id])
+
+  @@unique([eventId, team])
+  @@index([team])
 }
 
 model TranslationCache {
