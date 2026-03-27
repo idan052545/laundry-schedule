@@ -85,4 +85,24 @@ export const guardDuty = {
   shiftNoon: "Noon",
   shiftEvening: "Evening",
   people: "people",
+  // Exemptions
+  exemptions: "Exemptions",
+  // Summary
+  summary: "Summary",
+  totalPeople: "Total people",
+  totalHours: "Total hours",
+  totalSlots: "Total slots",
+  hoursRange: "Hours range",
+  exemptedNotAssigned: "Exempted not assigned",
+  unassignedPeople: "people not assigned",
+  // Quick actions
+  findingReplacements: "Finding replacements",
+  suggestedReplacements: "Suggested replacements",
+  alreadyToday: "Already assigned",
+  showAllUsers: "Show all soldiers",
+  removeFromDuty: "Remove from duty",
+  removeConfirm: "Remove this soldier from the assignment?",
+  // Dashboard
+  todayLabel: "Today",
+  upcoming: "Soon",
 } as const;

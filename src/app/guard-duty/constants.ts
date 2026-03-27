@@ -84,6 +84,33 @@ export function parseTimeRange(range: string) {
 
 export type Overlap = { type: "same-slot" | "cross-table"; userId: string; userName: string; details: string };
 
+// ─── פטורים (exemptions) display data ───
+export interface ExemptionInfo {
+  name: string;
+  type: string;  // short label
+  detail: string; // what they can/can't do
+  color: string;  // badge color
+}
+
+export const EXEMPTIONS: ExemptionInfo[] = [
+  { name: "טל הנגבי", type: "פטור שמירה", detail: "לא שומר כלל", color: "bg-red-100 text-red-700 border-red-200" },
+  { name: "יובל ישר", type: "פטור שמירה", detail: "לא שומר כלל", color: "bg-red-100 text-red-700 border-red-200" },
+  { name: "תמר נגר", type: "ללא לילה", detail: "לא משובצת בלילה", color: "bg-amber-100 text-amber-700 border-amber-200" },
+  { name: "אופק מזור", type: "ללא לילה + זוג", detail: "לא בלילה, רק תפקידים עם זוג", color: "bg-amber-100 text-amber-700 border-amber-200" },
+  { name: "הודיה יעקבי", type: 'ללא כ"כ', detail: 'לא משובצת לכ"כא/כ"כב', color: "bg-blue-100 text-blue-700 border-blue-200" },
+  // צוות כמ — roles-only
+  { name: "אוהד אבדי", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "דור מנשה קיפגן", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "עמנואל נמרודי", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "הגרה שווגר", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "רננה ישראלוב", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "ליאורה אייזק", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "עידן טורקיה", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "רועי דדון", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "אלון זלנפרוינד", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { name: "נגה ברק", type: "צוות כמ", detail: "רק שג רגלי / נשקייה / כ\"כ", color: "bg-purple-100 text-purple-700 border-purple-200" },
+];
+
 // ─── Kitchen duty ───
 
 export const KITCHEN_SHIFTS = ["06:00-10:30", "10:30-16:00", "16:00-22:00"];

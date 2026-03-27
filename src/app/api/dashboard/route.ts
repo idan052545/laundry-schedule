@@ -176,17 +176,22 @@ export async function GET() {
       include: { user: { select: { name: true, nameEn: true, team: true } } },
     }),
 
-    // Next upcoming duty tables (today or future) with ALL assignments (to show partners)
-    prisma.dutyTable.findMany({
-      where: { date: { gte: todayStr } },
-      orderBy: { date: "asc" },
-      take: 10,
-      include: {
-        assignments: {
-          include: { user: { select: { id: true, name: true, nameEn: true } } },
+    // Duty tables: 2 days before today + today + future (to show "about to" and current)
+    (() => {
+      const d = new Date(todayStr + "T12:00:00Z");
+      d.setDate(d.getDate() - 2);
+      const twoDaysAgo = d.toISOString().slice(0, 10);
+      return prisma.dutyTable.findMany({
+        where: { date: { gte: twoDaysAgo } },
+        orderBy: { date: "asc" },
+        take: 15,
+        include: {
+          assignments: {
+            include: { user: { select: { id: true, name: true, nameEn: true } } },
+          },
         },
-      },
-    }),
+      });
+    })(),
 
     // Today's team schedule events where user is personally assigned
     prisma.scheduleEvent.findMany({
@@ -442,19 +447,23 @@ export async function GET() {
     nextDutyTables: (() => {
       if (!upcomingDutyTables || upcomingDutyTables.length === 0) return [];
       return upcomingDutyTables
-        .map((t: { id: string; title: string; date: string; type: string; assignments: { userId: string; role: string; timeSlot: string; user: { id: string; name: string } }[] }) => {
+        .map((t: { id: string; title: string; date: string; type: string; assignments: { userId: string; role: string; timeSlot: string; note?: string | null; user: { id: string; name: string; nameEn?: string | null } }[] }) => {
           const myAssignments = t.assignments.filter(a => a.userId === userId);
+          const dateStatus = t.date === todayStr ? "today" as const
+            : t.date > todayStr ? "upcoming" as const
+            : "recent" as const;
           return {
             id: t.id,
             title: t.title,
             date: t.date,
             type: t.type,
+            dateStatus,
+            totalAssigned: t.assignments.length,
             myAssignments: myAssignments.map(a => {
-              // Find partners: same role + timeSlot but different user
               const partners = t.assignments
                 .filter(o => o.role === a.role && o.timeSlot === a.timeSlot && o.userId !== userId)
                 .map(o => o.user.name);
-              return { role: a.role, timeSlot: a.timeSlot, partners };
+              return { role: a.role, timeSlot: a.timeSlot, note: a.note || undefined, partners };
             }),
           };
         });

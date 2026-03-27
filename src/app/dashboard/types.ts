@@ -39,7 +39,9 @@ export interface DashboardFeed {
     title: string;
     date: string;
     type: string;
-    myAssignments: { role: string; timeSlot: string; partners: string[] }[];
+    dateStatus: "today" | "upcoming" | "recent";
+    totalAssigned: number;
+    myAssignments: { role: string; timeSlot: string; note?: string; partners: string[] }[];
   }[];
   chopalStatus: { registered: boolean; isOpen: boolean; date: string; assignment: { id: string; assignedTime: string; status: string } | null };
   activeVolunteerRequests: { id: string; title: string; category: string; priority: string; status: string; target: string; requiredCount: number; startTime: string; endTime: string; isCommanderRequest: boolean; createdBy: { name: string; phone: string | null }; _count: { assignments: number } }[];

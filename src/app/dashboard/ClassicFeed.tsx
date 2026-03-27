@@ -5,7 +5,7 @@ import {
   MdCalendarMonth, MdCheckCircle, MdWarning, MdSchedule,
   MdAssignment, MdStar, MdDescription, MdPoll, MdCake,
   MdMessage, MdNewReleases, MdSecurity, MdLocalHospital,
-  MdAccessTime, MdVolunteerActivism, MdMoreHoriz,
+  MdAccessTime, MdVolunteerActivism, MdMoreHoriz, MdRestaurant,
 } from "react-icons/md";
 import { useEffect } from "react";
 import { useTranslation } from "@/components/TranslateButton";
@@ -78,23 +78,34 @@ export default function ClassicFeed({ feed, visible }: ClassicFeedProps) {
           )}
         </Link>
       )}
-      {visible.has("duty") && feed.nextDutyTables?.length > 0 && feed.nextDutyTables.map(dt => (
-        <Link key={dt.id} href="/guard-duty" className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 hover:shadow-sm transition ${dt.type === "obs" ? "bg-blue-50/60 border-blue-100" : "bg-amber-50/60 border-amber-100"}`}>
-          <MdSecurity className={`text-lg shrink-0 ${dt.type === "obs" ? "text-blue-600" : "text-amber-600"}`} />
-          <div className="flex-1 min-w-0">
-            <span className={`text-xs font-bold ${dt.type === "obs" ? "text-blue-700" : "text-amber-700"}`}>{dt.title}</span>
-            {dt.myAssignments.length > 0 ? (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {dt.myAssignments.map((a, i) => (
-                  <span key={i} className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${dt.type === "obs" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
-                    {a.role} {a.timeSlot}
-                  </span>
-                ))}
+      {visible.has("duty") && feed.nextDutyTables?.length > 0 && feed.nextDutyTables.map(dt => {
+        const isKitchen = dt.type === "kitchen";
+        const isObs = dt.type === "obs";
+        const bgClass = isKitchen ? "bg-orange-50/60 border-orange-100" : isObs ? "bg-blue-50/60 border-blue-100" : "bg-amber-50/60 border-amber-100";
+        const iconColor = isKitchen ? "text-orange-600" : isObs ? "text-blue-600" : "text-amber-600";
+        const textColor = isKitchen ? "text-orange-700" : isObs ? "text-blue-700" : "text-amber-700";
+        const badgeColor = isKitchen ? "bg-orange-100 text-orange-700" : isObs ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700";
+        return (
+          <Link key={dt.id} href="/guard-duty" className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 hover:shadow-sm transition ${bgClass} ${dt.dateStatus === "today" ? "ring-1 ring-green-200" : dt.dateStatus === "recent" ? "opacity-70" : ""}`}>
+            {isKitchen ? <MdRestaurant className={`text-lg shrink-0 ${iconColor}`} /> : <MdSecurity className={`text-lg shrink-0 ${iconColor}`} />}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className={`text-xs font-bold ${textColor}`}>{dt.title}</span>
+                {dt.dateStatus === "today" && <span className="text-[8px] font-bold bg-green-100 text-green-700 px-1 py-0.5 rounded-full">{t.guardDuty.todayLabel || "היום"}</span>}
               </div>
-            ) : <span className="text-[10px] text-gray-400 block">{t.guardDuty.noAssignment}</span>}
-          </div>
-        </Link>
-      ))}
+              {dt.myAssignments.length > 0 ? (
+                <div className="flex flex-wrap gap-1 mt-0.5">
+                  {dt.myAssignments.map((a, i) => (
+                    <span key={i} className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${badgeColor}`}>
+                      {a.role} {a.note || a.timeSlot}
+                    </span>
+                  ))}
+                </div>
+              ) : <span className="text-[10px] text-gray-400 block">{t.guardDuty.noAssignment}</span>}
+            </div>
+          </Link>
+        );
+      })}
       {visible.has("teamSchedule") && feed.myTeamAssignments?.length > 0 && (
         <Link href="/schedule-daily" className="flex items-center gap-2.5 bg-teal-50/60 border border-teal-100 rounded-xl px-3 py-2.5 hover:shadow-sm transition">
           <MdCalendarMonth className="text-lg text-teal-600 shrink-0" />

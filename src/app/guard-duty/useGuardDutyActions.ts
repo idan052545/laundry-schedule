@@ -161,9 +161,29 @@ export function useGuardDutyActions(
     setSubmitting(false);
   };
 
+  const handleRemoveAssignment = async () => {
+    if (!swapping) return;
+    if (!confirm(t.guardDuty.removeConfirm || "להסיר חייל זה מהשיבוץ?")) return;
+    setSubmitting(true);
+    const res = await fetch("/api/guard-duty", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "remove", assignmentId: swapping.id }),
+    });
+    if (res.ok) {
+      setSwapping(null);
+      await fetchData();
+    } else {
+      const err = await res.json();
+      alert(err.error || t.common.error);
+    }
+    setSubmitting(false);
+  };
+
   return {
     handleSwap, handleAppeal, handleResolveAppeal,
     initCreateForm, setAssignment, handleCreate,
     handleDeleteTable, handleNotifyAll, handleToggleDayType,
+    handleRemoveAssignment,
   };
 }

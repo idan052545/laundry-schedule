@@ -84,4 +84,24 @@ export const guardDuty = {
   shiftNoon: "צהריים",
   shiftEvening: "ערב",
   people: "אנשים",
+  // Exemptions
+  exemptions: "פטורים",
+  // Summary
+  summary: "סיכום",
+  totalPeople: "סה\"כ אנשים",
+  totalHours: "סה\"כ שעות",
+  totalSlots: "סה\"כ משבצות",
+  hoursRange: "טווח שעות",
+  exemptedNotAssigned: "פטורים לא משובצים",
+  unassignedPeople: "אנשים לא משובצים",
+  // Quick actions
+  findingReplacements: "מחפש מחליפים",
+  suggestedReplacements: "מחליפים מומלצים",
+  alreadyToday: "כבר משובץ",
+  showAllUsers: "הצג את כל החיילים",
+  removeFromDuty: "הסר משיבוץ",
+  removeConfirm: "להסיר חייל זה מהשיבוץ?",
+  // Dashboard
+  todayLabel: "היום",
+  upcoming: "קרוב",
 } as const;

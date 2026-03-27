@@ -30,17 +30,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "חסרים שדות" }, { status: 400 });
   }
 
-  // Get all eligible users (exclude sagal, admin, simulator roles)
+  // Get all eligible users (exclude sagal, simulator roles — admin excluded below with exception)
   const allUsers = await prisma.user.findMany({
-    where: { role: { notIn: ["admin", "sagal", "simulator", "simulator-admin"] } },
+    where: { role: { notIn: ["sagal", "simulator", "simulator-admin"] } },
     select: { id: true, name: true, nameEn: true, team: true, image: true, role: true, roleTitle: true, roomNumber: true },
     orderBy: { name: "asc" },
   });
 
-  // Also filter out users with simulator in roleTitle
-  const allEligible = allUsers.filter((u: { roleTitle?: string | null }) =>
-    !u.roleTitle?.includes("סימולטור") && !u.roleTitle?.includes("simulator")
-  ) as EligibleUser[];
+  // Admins to include in autofill (exception list)
+  const ADMIN_EXCEPTIONS = ["עידן חן סימנטוב"];
+
+  // Filter out: simulators by roleTitle, and admins (except exceptions)
+  const allEligible = allUsers.filter((u: { role: string; name: string; roleTitle?: string | null }) => {
+    if (u.roleTitle?.includes("סימולטור") || u.roleTitle?.includes("simulator")) return false;
+    if (u.role === "admin" && !ADMIN_EXCEPTIONS.some(name => u.name.includes(name))) return false;
+    return true;
+  }) as EligibleUser[];
 
   // For guard: also exclude no-guard exemptions. For obs: everyone is eligible.
   const guardEligible = allEligible.filter(u => {
@@ -91,7 +96,7 @@ export async function POST(req: NextRequest) {
     title: string;
     roles: string[];
     timeSlots: string[];
-    assignments: { userId: string; timeSlot: string; role: string }[];
+    assignments: { userId: string; timeSlot: string; role: string; note?: string }[];
     stats: { totalHours: number; usersUsed: number; fairnessScore: number };
   }> = {};
 
@@ -104,14 +109,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (types.includes("obs")) {
+    // Combine guard hours from current autofill into hoursMap so obs fairness
+    // accounts for total שמירות + עב"ס hours together
+    const combinedHoursMap = { ...hoursMap };
     if (result.guard) {
       for (const a of result.guard.assignments) {
         if (DAY_ROLES.includes(a.role)) continue;
+        if (RESERVE_ROLES.includes(a.role)) continue;
+        const h = parseTimeSlot(a.note || a.timeSlot).hours;
+        if (h > 0) combinedHoursMap[a.userId] = (combinedHoursMap[a.userId] || 0) + h;
+        // Also mark as busy for overlap check
         if (!userBusy[a.userId]) userBusy[a.userId] = [];
-        userBusy[a.userId].push(a.timeSlot);
+        userBusy[a.userId].push(a.note || a.timeSlot);
       }
     }
-    result.obs = buildObsTable(obsEligible, hoursMap, debtMap, userBusy);
+    result.obs = buildObsTable(obsEligible, combinedHoursMap, debtMap, userBusy);
   }
 
   // ─── עב"ס גדודי: 1 person per team (14-17), weekly rotation ───

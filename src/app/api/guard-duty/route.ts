@@ -345,6 +345,29 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true, notified: byUser.size });
   }
 
+  // ── REMOVE: remove a person from a specific assignment (Roni only) ──
+  if (action === "remove") {
+    if (!(await isRoni(userId))) return NextResponse.json({ error: "אין הרשאה" }, { status: 403 });
+
+    const { assignmentId } = body;
+    const assignment = await prisma.dutyAssignment.findUnique({
+      where: { id: assignmentId },
+      include: { user: { select: { id: true, name: true } } },
+    });
+    if (!assignment) return NextResponse.json({ error: "שיבוץ לא נמצא" }, { status: 404 });
+
+    await prisma.dutyAssignment.delete({ where: { id: assignmentId } });
+
+    // Notify the removed user
+    sendPushToUsers([assignment.userId], {
+      title: "הוסרת משיבוץ",
+      body: `הוסרת מ${assignment.role} (${assignment.timeSlot})`,
+      url: "/guard-duty",
+    }).catch(() => {});
+
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "פעולה לא תקינה" }, { status: 400 });
 }
 

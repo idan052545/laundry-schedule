@@ -6,7 +6,7 @@ import {
   MdCalendarMonth, MdCheckCircle, MdAssignment, MdDescription,
   MdPoll, MdCake, MdMessage, MdNewReleases, MdSecurity,
   MdLocalHospital, MdAccessTime, MdPushPin, MdStickyNote2,
-  MdAutoAwesome, MdEmojiEvents, MdVolunteerActivism,
+  MdAutoAwesome, MdEmojiEvents, MdVolunteerActivism, MdRestaurant,
 } from "react-icons/md";
 import Avatar from "@/components/Avatar";
 import { useTranslation } from "@/components/TranslateButton";
@@ -113,19 +113,21 @@ export default function CarouselFeed({ feed, visible }: CarouselFeedProps) {
   if (visible.has("duty") && feed.nextDutyTables?.length > 0) {
     for (const dt of feed.nextDutyTables) {
       const isObs = dt.type === "obs";
+      const isKitchen = dt.type === "kitchen";
+      const gradient = isKitchen ? "from-orange-400 to-red-400" : isObs ? "from-blue-500 to-indigo-600" : "from-amber-500 to-orange-600";
       cards.push({
         key: `duty-${dt.id}`,
         href: "/guard-duty",
-        gradient: isObs ? "from-blue-500 to-indigo-600" : "from-amber-500 to-orange-600",
+        gradient,
         iconBg: "bg-white/20",
-        icon: <MdSecurity className="text-xl text-white" />,
+        icon: isKitchen ? <MdRestaurant className="text-xl text-white" /> : <MdSecurity className="text-xl text-white" />,
         title: dt.title,
-        subtitle: new Date(dt.date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" }),
+        subtitle: `${new Date(dt.date + "T12:00:00").toLocaleDateString(dateLocale, { weekday: "short", day: "numeric", month: "short" })}${dt.dateStatus === "today" ? ` — ${t.guardDuty.todayLabel || "היום"}` : ""}`,
         content: dt.myAssignments.length > 0 ? (
           <div className="flex flex-wrap gap-1 mt-2">
             {dt.myAssignments.map((a, i) => (
               <span key={i} className="text-[10px] bg-white/20 text-white px-2 py-1 rounded-lg font-medium">
-                {a.role} · {a.timeSlot}
+                {a.role} · {a.note || a.timeSlot}
               </span>
             ))}
           </div>

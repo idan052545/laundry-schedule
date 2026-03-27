@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MdAutoAwesome, MdCheck, MdClose, MdTrendingUp, MdPeople, MdAccessTime, MdSecurity } from "react-icons/md";
+import { MdAutoAwesome, MdCheck, MdClose, MdTrendingUp, MdPeople, MdAccessTime, MdSecurity, MdSummarize, MdWarning } from "react-icons/md";
 import { useLanguage } from "@/i18n";
-import { ROLE_COLORS, DAY_ROLES, UserMin, KITCHEN_SHIFT_LABELS, KITCHEN_SHIFT_COLORS } from "./constants";
+import { ROLE_COLORS, DAY_ROLES, UserMin, KITCHEN_SHIFT_LABELS, KITCHEN_SHIFT_COLORS, EXEMPTIONS, parseTimeRange } from "./constants";
 import { displayName } from "@/lib/displayName";
 
 interface AutoFillStats {
@@ -369,6 +369,115 @@ function EditableKitchenCell({
   );
 }
 
+function SummarySection({
+  tables,
+  allUsers,
+  obsGdudi,
+  locale,
+}: {
+  tables: Record<string, AutoFillTable>;
+  allUsers: UserMin[];
+  obsGdudi?: { userId: string; name: string; team: number }[];
+  locale: string;
+}) {
+  const { t } = useLanguage();
+
+  // Aggregate across all tables
+  const allAssignedIds = new Set<string>();
+  let totalHours = 0;
+  let totalSlots = 0;
+
+  for (const [, tbl] of Object.entries(tables)) {
+    for (const a of tbl.assignments) {
+      allAssignedIds.add(a.userId);
+      if (!DAY_ROLES.includes(a.role)) {
+        const h = parseTimeRange(a.note || a.timeSlot) || parseTimeRange(a.role);
+        totalHours += h;
+        totalSlots++;
+      }
+    }
+  }
+
+  // People NOT assigned at all
+  const unassignedUsers = allUsers.filter(u => !allAssignedIds.has(u.id));
+
+  // Exempted people in this assignment
+  const exemptedInAssignment = EXEMPTIONS.filter(e =>
+    [...allAssignedIds].some(id => {
+      const u = allUsers.find(u => u.id === id);
+      return u?.name === e.name;
+    })
+  );
+
+  const exemptedNames = new Set(EXEMPTIONS.map(e => e.name));
+  const exemptedNotAssigned = EXEMPTIONS.filter(e => !allAssignedIds.has(
+    allUsers.find(u => u.name === e.name)?.id || ""
+  ));
+
+  // Per-person hours distribution
+  const personHours: Record<string, number> = {};
+  for (const [, tbl] of Object.entries(tables)) {
+    for (const a of tbl.assignments) {
+      if (DAY_ROLES.includes(a.role)) continue;
+      const h = parseTimeRange(a.note || a.timeSlot) || parseTimeRange(a.role);
+      if (h > 0) personHours[a.userId] = (personHours[a.userId] || 0) + h;
+    }
+  }
+  const hValues = Object.values(personHours);
+  const maxH = Math.max(...hValues, 0);
+  const minH = Math.min(...hValues, 0);
+  const avgH = hValues.length > 0 ? hValues.reduce((s, v) => s + v, 0) / hValues.length : 0;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-3 mb-4">
+      <h3 className="font-bold text-gray-700 text-xs mb-2.5 flex items-center gap-1.5">
+        <MdSummarize className="text-indigo-500" /> {t.guardDuty.summary}
+      </h3>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-2 text-center">
+          <div className="text-[10px] text-blue-500">{t.guardDuty.totalPeople}</div>
+          <div className="text-sm font-bold text-blue-700">{allAssignedIds.size}</div>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-lg px-2.5 py-2 text-center">
+          <div className="text-[10px] text-green-500">{t.guardDuty.totalHours}</div>
+          <div className="text-sm font-bold text-green-700">{totalHours.toFixed(0)}h</div>
+        </div>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg px-2.5 py-2 text-center">
+          <div className="text-[10px] text-purple-500">{t.guardDuty.totalSlots}</div>
+          <div className="text-sm font-bold text-purple-700">{totalSlots}</div>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 text-center">
+          <div className="text-[10px] text-amber-500">{t.guardDuty.hoursRange}</div>
+          <div className="text-sm font-bold text-amber-700">{minH.toFixed(1)}-{maxH.toFixed(1)}h</div>
+          <div className="text-[9px] text-amber-400">{t.guardDuty.average}: {avgH.toFixed(1)}h</div>
+        </div>
+      </div>
+
+      {/* Exempted people info */}
+      {exemptedNotAssigned.length > 0 && (
+        <div className="mb-2">
+          <div className="text-[10px] font-bold text-gray-500 mb-1">{t.guardDuty.exemptedNotAssigned}:</div>
+          <div className="flex flex-wrap gap-1">
+            {exemptedNotAssigned.map(e => (
+              <span key={e.name} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[9px] font-medium ${e.color}`} title={e.detail}>
+                {e.name} <span className="opacity-60">({e.type})</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Unassigned people count */}
+      {unassignedUsers.length > 0 && (
+        <div className="text-[10px] text-gray-400">
+          <MdWarning className="inline text-amber-400 text-xs align-middle" /> {unassignedUsers.filter(u => !exemptedNames.has(u.name)).length} {t.guardDuty.unassignedPeople}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AutoFillPreview({ tables, allUsers, submitting, obsGdudi, onApply, onCancel, onEditAssignment }: AutoFillPreviewProps) {
   const { t, locale } = useLanguage();
 
@@ -383,6 +492,9 @@ export default function AutoFillPreview({ tables, allUsers, submitting, obsGdudi
       {tables.guard && <TablePreview type="guard" table={tables.guard} allUsers={allUsers} locale={locale} onEdit={onEditAssignment} />}
       {tables.obs && <TablePreview type="obs" table={tables.obs} allUsers={allUsers} locale={locale} onEdit={onEditAssignment} />}
       {tables.kitchen && <KitchenPreview table={tables.kitchen} allUsers={allUsers} locale={locale} onEdit={onEditAssignment} />}
+
+      {/* Summary */}
+      <SummarySection tables={tables} allUsers={allUsers} obsGdudi={obsGdudi} locale={locale} />
 
       {/* עב"ס גדודי */}
       {obsGdudi && obsGdudi.length > 0 && (

@@ -20,6 +20,7 @@ import AppealModal from "./AppealModal";
 import PersonSummary from "./PersonSummary";
 import DatePickerCalendar from "./DatePickerCalendar";
 import AutoFillPreview from "./AutoFillPreview";
+import ExemptionsPanel from "./ExemptionsPanel";
 
 export default function GuardDutyPage() {
   const { t } = useLanguage();
@@ -203,6 +204,9 @@ export default function GuardDutyPage() {
         <AppealsPanel appeals={g.appeals} submitting={g.submitting} onResolve={g.handleResolveAppeal} />
       )}
 
+      {/* Exemptions panel (Roni only) */}
+      {g.isRoni && <ExemptionsPanel />}
+
       {/* No table */}
       {!g.table && !g.showCreate && !g.autoFillPreview && (
         <div className="text-center py-16 text-gray-400">
@@ -296,6 +300,7 @@ export default function GuardDutyPage() {
           submitting={g.submitting}
           onClose={() => g.setSwapping(null)}
           onSwap={g.handleSwap}
+          onRemove={g.isRoni ? g.handleRemoveAssignment : undefined}
         />
       )}
 
