@@ -10,55 +10,83 @@ export function buildObsTable(
   const obsTimeRanges = ["08:30-11:30", "13:30-17:30", "18:30-20:00"];
   const obsPositions = Array.from({ length: 20 }, (_, i) => String(i + 1));
 
+  // Sort shifts by hours descending — assign heaviest shifts first
+  const shiftsByHours = [...obsTimeRanges].sort((a, b) => {
+    return parseTimeSlot(b).hours - parseTimeSlot(a).hours;
+  });
+
   const assignments: { userId: string; timeSlot: string; role: string }[] = [];
   const localAssignments: Record<string, { role: string; timeSlot: string }[]> = {};
-  // Track how many obs shifts each person has
   const obsShiftCount: Record<string, number> = {};
+  const filledPerShift: Record<string, number> = {};
+  for (const s of obsTimeRanges) filledPerShift[s] = 0;
 
-  // Pass 1: assign each person to at most 1 obs shift
-  for (const timeRange of obsTimeRanges) {
-    for (const pos of obsPositions) {
+  // Pass 1: round-robin across shifts, 1 person per shift max
+  // Fill 1 slot from each shift in rotation until all 20 per shift are filled
+  for (let pos = 0; pos < obsPositions.length; pos++) {
+    for (const timeRange of shiftsByHours) {
+      if (filledPerShift[timeRange] >= obsPositions.length) continue;
+      const slotH = parseTimeSlot(timeRange).hours;
       const candidate = findBestCandidate(
         users.filter(u => (obsShiftCount[u.id] || 0) < 1),
-        hoursMap, debtMap, localAssignments, userBusy, timeRange, timeRange, false, false, [], "obs"
+        hoursMap, debtMap, localAssignments, userBusy,
+        timeRange, timeRange, false, false, [], "obs", slotH
       );
       if (candidate) {
-        assignments.push({ userId: candidate.id, timeSlot: pos, role: timeRange });
+        const posStr = String(filledPerShift[timeRange] + 1);
+        assignments.push({ userId: candidate.id, timeSlot: posStr, role: timeRange });
         if (!localAssignments[candidate.id]) localAssignments[candidate.id] = [];
         localAssignments[candidate.id].push({ role: timeRange, timeSlot: timeRange });
-
         if (!userBusy[candidate.id]) userBusy[candidate.id] = [];
         userBusy[candidate.id].push(timeRange);
         obsShiftCount[candidate.id] = (obsShiftCount[candidate.id] || 0) + 1;
+        filledPerShift[timeRange]++;
       }
     }
   }
 
-  // Pass 2: if there are still unfilled slots (? marks), allow a 2nd shift
+  // Pass 2: fill remaining slots allowing 2nd shift per person
   const totalNeeded = obsTimeRanges.length * obsPositions.length;
   if (assignments.length < totalNeeded) {
-    // Rebuild what's missing per shift
-    const filledPerShift: Record<string, number> = {};
-    for (const a of assignments) filledPerShift[a.role] = (filledPerShift[a.role] || 0) + 1;
-
-    for (const timeRange of obsTimeRanges) {
-      const filled = filledPerShift[timeRange] || 0;
-      const needed = obsPositions.length - filled;
-      for (let i = 0; i < needed; i++) {
-        const pos = String(filled + i + 1);
+    for (const timeRange of shiftsByHours) {
+      while (filledPerShift[timeRange] < obsPositions.length) {
+        const slotH = parseTimeSlot(timeRange).hours;
         const candidate = findBestCandidate(
           users.filter(u => (obsShiftCount[u.id] || 0) < 2),
-          hoursMap, debtMap, localAssignments, userBusy, timeRange, timeRange, false, false, [], "obs"
+          hoursMap, debtMap, localAssignments, userBusy,
+          timeRange, timeRange, false, false, [], "obs", slotH
         );
-        if (candidate) {
-          assignments.push({ userId: candidate.id, timeSlot: pos, role: timeRange });
-          if (!localAssignments[candidate.id]) localAssignments[candidate.id] = [];
-          localAssignments[candidate.id].push({ role: timeRange, timeSlot: timeRange });
+        if (!candidate) break;
+        const posStr = String(filledPerShift[timeRange] + 1);
+        assignments.push({ userId: candidate.id, timeSlot: posStr, role: timeRange });
+        if (!localAssignments[candidate.id]) localAssignments[candidate.id] = [];
+        localAssignments[candidate.id].push({ role: timeRange, timeSlot: timeRange });
+        if (!userBusy[candidate.id]) userBusy[candidate.id] = [];
+        userBusy[candidate.id].push(timeRange);
+        obsShiftCount[candidate.id] = (obsShiftCount[candidate.id] || 0) + 1;
+        filledPerShift[timeRange]++;
+      }
+    }
+  }
 
-          if (!userBusy[candidate.id]) userBusy[candidate.id] = [];
-          userBusy[candidate.id].push(timeRange);
-          obsShiftCount[candidate.id] = (obsShiftCount[candidate.id] || 0) + 1;
-        }
+  // Pass 3: still unfilled? allow 3rd shift
+  if (assignments.length < totalNeeded) {
+    for (const timeRange of shiftsByHours) {
+      while (filledPerShift[timeRange] < obsPositions.length) {
+        const slotH = parseTimeSlot(timeRange).hours;
+        const candidate = findBestCandidate(
+          users, hoursMap, debtMap, localAssignments, userBusy,
+          timeRange, timeRange, false, false, [], "obs", slotH
+        );
+        if (!candidate) break;
+        const posStr = String(filledPerShift[timeRange] + 1);
+        assignments.push({ userId: candidate.id, timeSlot: posStr, role: timeRange });
+        if (!localAssignments[candidate.id]) localAssignments[candidate.id] = [];
+        localAssignments[candidate.id].push({ role: timeRange, timeSlot: timeRange });
+        if (!userBusy[candidate.id]) userBusy[candidate.id] = [];
+        userBusy[candidate.id].push(timeRange);
+        obsShiftCount[candidate.id] = (obsShiftCount[candidate.id] || 0) + 1;
+        filledPerShift[timeRange]++;
       }
     }
   }

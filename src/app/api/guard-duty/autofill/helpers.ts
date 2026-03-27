@@ -129,7 +129,11 @@ export function findBestCandidate(
   isReserve: boolean,
   squadMembers: { squadIdx: number; userIds: string[] }[],
   tableType: "guard" | "obs" = "guard",
+  shiftHours: number = 0,
 ): EligibleUser | null {
+  // Hours of the shift being assigned (for hour-weighted fairness)
+  const slotH = shiftHours > 0 ? shiftHours : parseTimeSlot(timeSlot).hours || parseTimeSlot(role).hours;
+
   // Score each user — lower score = higher priority
   const scored = users.map(u => {
     const hist = hoursMap[u.id] || 0;
@@ -159,8 +163,12 @@ export function findBestCandidate(
       }
     }
 
+    // Hour-weighted fairness: projected total hours if this person gets this shift
+    // Heavy shifts go to low-hours people, light shifts can go to higher-hours people
+    const projected = hist + local + slotH;
+
     // debt is weighted x2 to make fairness correction stronger than raw hours
-    return { user: u, score: hist + local + (debt * 2) + squadBonus, localCount };
+    return { user: u, score: projected + (debt * 2) + squadBonus, localCount };
   });
 
   // For night multi-person roles: prefer the gender with more available candidates

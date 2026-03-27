@@ -116,12 +116,13 @@ export function buildGuardTable(
       const isReserve = RESERVE_ROLES.includes(role);
       const noteConfig = SLOT_ROLE_NOTES[role]?.[slot];
       for (let i = 0; i < count; i++) {
+        // Use actual hours for this assignment (note may have partial time)
+        const note = noteConfig?.[i];
+        const slotH = parseTimeSlot(note || slot).hours;
         const candidate = findBestCandidate(
-          users, hoursMap, debtMap, tryLocal, tryBusy, slot, role, false, isReserve, squadMembers, "guard"
+          users, hoursMap, debtMap, tryLocal, tryBusy, slot, role, false, isReserve, squadMembers, "guard", slotH
         );
         if (candidate) {
-          // Apply partial-time note if defined for this role/slot/position
-          const note = noteConfig?.[i];
           tryAssignments.push({ userId: candidate.id, timeSlot: slot, role, ...(note ? { note } : {}) });
           if (!tryLocal[candidate.id]) tryLocal[candidate.id] = [];
           tryLocal[candidate.id].push({ role, timeSlot: slot });
