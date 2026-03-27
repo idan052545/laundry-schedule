@@ -424,8 +424,8 @@ function SummarySection({
     }
   }
   const hValues = Object.values(personHours);
-  const maxH = Math.max(...hValues, 0);
-  const minH = Math.min(...hValues, 0);
+  const maxH = hValues.length > 0 ? Math.max(...hValues) : 0;
+  const minH = hValues.length > 0 ? Math.min(...hValues) : 0;
   const avgH = hValues.length > 0 ? hValues.reduce((s, v) => s + v, 0) / hValues.length : 0;
 
   return (
